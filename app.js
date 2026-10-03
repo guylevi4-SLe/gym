@@ -25,8 +25,8 @@ function idb(store, mode, fn) {
 }
 const kvGet = k => idb('kv', 'readonly', s => s.get(k));
 const kvSet = (k, v) => idb('kv', 'readwrite', s => s.put(v, k));
-const photoSet = (id, data) => idb('photos', 'readwrite', s => s.put(data, id));
-const photoDel = id => idb('photos', 'readwrite', s => s.delete(id));
+const photoSet = (id, data) => cloudUser ? Promise.resolve() : idb('photos', 'readwrite', s => s.put(data, id));
+const photoDel = id => cloudUser ? Promise.resolve() : idb('photos', 'readwrite', s => s.delete(id));
 const photoAll = () => !db ? Promise.resolve({}) : new Promise((resolve, reject) => {
   const out = {};
   const req = db.transaction('photos').objectStore('photos').openCursor();
@@ -57,10 +57,11 @@ function mirror() {
 }
 function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNow, 250);
+  saveTimer = setTimeout(saveNow, cloudUser ? 800 : 250);
 }
 function saveNow() {
   clearTimeout(saveTimer);
+  if (cloudUser) { cloudPush(); return Promise.resolve(); }
   mirror();
   return kvSet('state', S).catch(() => {});
 }
@@ -455,8 +456,9 @@ function screenWorkoutView(id) {
 }
 
 function screenUsers() {
-  return `${topbar('משתמשים והגדרות', true)}
-    <h2>מי מתאמן?</h2>
+  const cloud = !!cloudUser;
+  return `${topbar(cloud ? 'הגדרות' : 'משתמשים והגדרות', true)}
+    ${cloud ? cloudSettingsSection() : `<h2>מי מתאמן?</h2>
     ${S.users.map(u => `<div class="card list-item tap" data-act="switch-user" data-id="${u.id}">
       <span class="avatar" style="background:${u.color}">${esc(u.name.trim()[0] || '?')}</span>
       <b class="grow">${esc(u.name)}</b>
@@ -466,6 +468,7 @@ function screenUsers() {
       <input class="input grow" id="add-user-name" placeholder="שם משתמש חדש" autocomplete="off">
       <button class="btn primary" data-act="add-user">הוסף</button>
     </div>
+    ${window.FIREBASE_CONFIG ? cloudSettingsSection() : ''}`}
     <h2>חדרי כושר</h2>
     ${S.gyms.map(g => `<div class="card list-item">
       <b class="grow">📍 ${esc(g.name)}</b>
@@ -484,15 +487,17 @@ function screenUsers() {
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
     <h2>גיבוי</h2>
-    <p class="muted small" style="margin-top:0">כרגע הנתונים שמורים רק בטלפון הזה. מומלץ לשמור גיבוי מדי פעם.</p>
+    ${cloud ? `<p class="muted small" style="margin-top:0">הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.</p>
+    <div class="btns"><button class="btn" data-act="export">⬇️ שמור גיבוי</button></div>`
+    : `<p class="muted small" style="margin-top:0">כרגע הנתונים שמורים רק בטלפון הזה. מומלץ לשמור גיבוי מדי פעם.</p>
     <div class="btns">
       <button class="btn" data-act="export">⬇️ שמור גיבוי</button>
       <label class="btn">⬆️ שחזר מגיבוי<input type="file" accept="application/json,.json" data-in="import" hidden></label>
-    </div>
+    </div>`}
     <h2>התקנה באייפון</h2>
     <p class="muted small" style="margin-top:0">בספארי: לחץ על כפתור השיתוף ⬆️ ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p>
-    <hr>
-    <button class="btn block danger" data-act="delete-user" data-id="${S.settings.currentUserId}">מחק את המשתמש ${esc(me()?.name)}</button>`;
+    ${cloud ? '' : `<hr>
+    <button class="btn block danger" data-act="delete-user" data-id="${S.settings.currentUserId}">מחק את המשתמש ${esc(me()?.name)}</button>`}`;
 }
 
 /* ================= Modals ================= */
@@ -617,6 +622,12 @@ function route() {
 let lastRoute = '';
 function render() {
   const app = $('#app');
+  if (ui.cloudScreen) {
+    app.innerHTML = cloudScreen();
+    $('#nav').innerHTML = ''; $('#banner').innerHTML = '';
+    renderModal();
+    return;
+  }
   if (!S.users.length) {
     app.innerHTML = screenOnboarding();
     $('#nav').innerHTML = ''; $('#banner').innerHTML = '';
@@ -929,6 +940,7 @@ const inputs = {
     save();
   },
   draft: el => { ui.draft[el.dataset.f] = el.value; },
+  'my-name': el => { const u = me(); if (u && el.value.trim()) { u.name = el.value.trim(); save(); } },
   setting: el => {
     const v = parseInt(el.value, 10);
     if (v > 0) { S.settings[el.dataset.f] = v; save(); }
@@ -960,7 +972,7 @@ document.addEventListener('click', e => {
   if (e.target.id === 'modal') { closeModal(); return; }
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
-  const fn = actions[el.dataset.act];
+  const fn = actions[el.dataset.act] || window.cloudActions?.[el.dataset.act];
   if (fn) { e.preventDefault(); fn(el.dataset, el); }
 });
 document.addEventListener('input', e => {
@@ -977,6 +989,7 @@ document.addEventListener('focusin', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'new-user-name') actions['create-first-user']();
+  if (e.key === 'Enter' && e.target.id === 'auth-pass') window.cloudActions['sign-in']();
   if (e.key === 'Enter' && e.target.id === 'add-user-name') actions['add-user']();
   if (e.key === 'Enter' && e.target.id === 'new-gym-name') actions['add-gym']();
 });
@@ -1006,8 +1019,8 @@ window.addEventListener('hashchange', render);
     $('#app').innerHTML = `<div class="empty">לא הצלחתי לפתוח את האחסון בטלפון. נסה לפתוח שוב.</div>`;
     return;
   }
-  render();
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  if (isCloud()) startCloud(); else render();
 })();

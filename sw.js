@@ -1,6 +1,7 @@
-// Offline support: serve the app shell from cache, refresh it in the background.
-const CACHE = 'gym-v3';
-const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
+// Offline support: try the network first (so updates arrive), fall back to the cached copy
+// when there is no reception or the network is slow.
+const CACHE = 'gym-v4';
+const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'cloud.js', 'config.js', 'vendor/firebase.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -14,13 +15,16 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const cached = await cache.match(e.request, { ignoreSearch: true });
     const network = fetch(e.request).then(res => {
-      if (res.ok && new URL(e.request.url).origin === location.origin) cache.put(e.request, res.clone());
+      if (res.ok) cache.put(e.request, res.clone());
       return res;
-    }).catch(() => cached);
-    return cached || network;
+    });
+    if (!cached) return network;
+    const slow = new Promise(resolve => setTimeout(() => resolve(cached), 2500));
+    return Promise.race([network.catch(() => cached), slow]);
   }));
 });

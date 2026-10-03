@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMember(fid) {
+      return signedIn() && request.auth.uid in get(/databases/$(database)/documents/families/$(fid)).data.members;
+    }
+
+    // Each person's own data: profile, workouts, routines. Nobody else can read it.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      match /{sub=**} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // A family: shared gyms, machines and member names. The family id is the invite code.
+    match /families/{fid} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.members == [request.auth.uid];
+      allow update: if isMember(fid)
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+            && request.resource.data.members == resource.data.members.concat([request.auth.uid]));
+      match /{sub=**} {
+        allow read, write: if isMember(fid);
+      }
+    }
+  }
+}
