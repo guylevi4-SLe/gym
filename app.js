@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 16;  // keep in step with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = 17;  // keep in step with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -220,7 +220,7 @@ function closeModal() {
 function go(hash) { location.hash = hash; }
 function thumb(ex, cls = '') {
   if (ex && photos[ex.id]) return `<img class="thumb ${cls}" src="${photos[ex.id]}" alt="">`;
-  return `<div class="thumb ${cls}">${TYPES[ex?.type]?.icon || '🏋️'}</div>`;
+  return `<div class="thumb ${cls}">${window.exerciseIcon ? exerciseIcon(ex) : (TYPES[ex?.type]?.icon || '🏋️')}</div>`;
 }
 function avatar(u, act = 'go-users') {
   if (!u) return '';

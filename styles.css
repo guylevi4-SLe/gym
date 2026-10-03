@@ -222,3 +222,60 @@ body.resting { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 80px); }
 .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 .empty .big-ic { font-size: 48px; display: block; margin-bottom: 8px; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
+
+/* Animated exercise illustrations (icons.js) */
+.thumb { background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--accent) 22%, var(--surface-2)), var(--surface-2) 70%); }
+.thumb .ic { width: 82%; height: 82%; max-width: 150px; max-height: 150px; overflow: visible; }
+.ic { --ic-eq: color-mix(in srgb, var(--text) 50%, transparent); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ic * { transform-box: view-box; }
+.ic .f { stroke: var(--accent); stroke-width: 4; fill: none; }
+.ic .fh { fill: var(--accent); stroke: none; }
+.ic .e { stroke: var(--ic-eq); stroke-width: 3; fill: none; }
+.ic .ef { fill: var(--ic-eq); stroke: none; }
+.ic .soft { opacity: .45; }
+.ic .belt { stroke-dasharray: 3 5; animation: ic-belt .5s linear infinite; }
+.ic .sw { animation: ic-swing .7s ease-in-out infinite alternate; }
+.ic .sw.sm { animation-name: ic-swing-sm; animation-duration: .9s; }
+.ic .sw.xs { animation-name: ic-swing-xs; animation-duration: .6s; }
+.ic .sw.rev { animation-direction: alternate-reverse; }
+.ic .spin { animation: ic-spin 1.4s linear infinite; }
+.ic .spin.fast { animation-duration: 1.2s; }
+.ic .slide { animation: ic-slide 2s ease-in-out infinite; }
+.ic .lift { animation: ic-lift 1.6s ease-in-out infinite; }
+.ic .lift.big { --d: -14px; }
+.ic .shadow { animation: ic-shadow 1.6s ease-in-out infinite; }
+.ic .cable { animation: ic-cable 1.6s ease-in-out infinite; }
+.ic-stairs .lift { --d: -5px; animation-duration: 1s; }
+.ic .hop { animation: ic-lift .6s ease-in-out infinite; --d: -3px; }
+.ic .rope { animation: ic-rope .6s linear infinite; }
+.ic .curl { animation: ic-curl 1.8s ease-in-out infinite; }
+.ic .press { animation: ic-press 1.8s ease-in-out infinite; }
+.ic .legp { animation: ic-legp 1.8s ease-in-out infinite; }
+.ic .push { animation: ic-push 1.6s ease-in-out infinite; }
+.ic-pushup .arms { animation: ic-arms-push 1.6s ease-in-out infinite; }
+.ic-pullup .arms { animation: ic-arms-pull 1.8s ease-in-out infinite; }
+.ic .rise { animation: ic-rise 1.8s ease-in-out infinite; }
+.ic .crunch { animation: ic-crunch 1.6s ease-in-out infinite; }
+.ic .beat { animation: ic-beat 1.2s ease-in-out infinite; }
+.ic .pulse { stroke: var(--surface); stroke-width: 2.5; stroke-dasharray: 60; animation: ic-pulse 1.2s linear infinite; }
+@keyframes ic-belt { to { stroke-dashoffset: -16; } }
+@keyframes ic-swing { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+@keyframes ic-swing-sm { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+@keyframes ic-swing-xs { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes ic-spin { to { transform: rotate(360deg); } }
+@keyframes ic-slide { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+@keyframes ic-lift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(var(--d, -10px)); } }
+@keyframes ic-shadow { 0%, 100% { transform: scaleX(1); opacity: .45; } 50% { transform: scaleX(.75); opacity: .25; } }
+@keyframes ic-cable { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.55); } }
+@keyframes ic-rope { from { transform: scaleY(1); } 50% { transform: scaleY(-1); } to { transform: scaleY(1); } }
+@keyframes ic-curl { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-135deg); } }
+@keyframes ic-press { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(5px, -5px); } }
+@keyframes ic-legp { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-10deg) scale(1.12); } }
+@keyframes ic-push { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-9deg); } }
+@keyframes ic-arms-push { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.54); } }
+@keyframes ic-arms-pull { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.45); } }
+@keyframes ic-rise { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+@keyframes ic-crunch { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(32deg); } }
+@keyframes ic-beat { 0%, 60%, 100% { transform: scale(1); } 15% { transform: scale(1.12); } 35% { transform: scale(1.06); } }
+@keyframes ic-pulse { from { stroke-dashoffset: 60; } to { stroke-dashoffset: -60; } }
+@media (prefers-reduced-motion: reduce) { .ic * { animation: none !important; } }
