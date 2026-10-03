@@ -1,6 +1,6 @@
 // Offline support: try the network first (so updates arrive), fall back to the cached copy
 // when there is no reception or the network is slow.
-const CACHE = 'gym-v17';
+const CACHE = 'gym-v18';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'icons.js', 'cloud.js', 'config.js', 'vendor/firebase.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

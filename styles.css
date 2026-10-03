@@ -279,3 +279,6 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
 @keyframes ic-beat { 0%, 60%, 100% { transform: scale(1); } 15% { transform: scale(1.12); } 35% { transform: scale(1.06); } }
 @keyframes ic-pulse { from { stroke-dashoffset: 60; } to { stroke-dashoffset: -60; } }
 @media (prefers-reduced-motion: reduce) { .ic * { animation: none !important; } }
+.ic .pl { fill: color-mix(in srgb, var(--accent) 30%, transparent); stroke: var(--accent); stroke-width: 2.5; }
+.ic .db { stroke-width: 3; }
+.ic .e.thick { stroke-width: 4.5; }

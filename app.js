@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 17;  // keep in step with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = 18;  // keep in step with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
