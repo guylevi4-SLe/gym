@@ -223,6 +223,10 @@ function cloudPush() {
 
 /* ---------- Account actions ---------- */
 
+// iPhone keyboards and autofill can slip in invisible direction marks, spaces or full-width characters.
+function cleanEmail(v) {
+  return String(v || '').normalize('NFKC').replace(/[\s\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '').toLowerCase();
+}
 function busy(btn, on) {
   document.querySelectorAll('#app .btn').forEach(b => { b.disabled = on; });
   if (btn) { if (on) { btn.dataset.label = btn.textContent; btn.textContent = 'רגע...'; } else if (btn.dataset.label) btn.textContent = btn.dataset.label; }
@@ -231,7 +235,7 @@ function withTimeout(promise, ms = 20000) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject({ code: 'timeout' }), ms))]);
 }
 async function cloudSignIn(create, btn) {
-  const email = $('#auth-email').value.trim(), pass = $('#auth-pass').value;
+  const email = cleanEmail($('#auth-email').value), pass = $('#auth-pass').value;
   ui.authError = ''; ui.authEmail = email;
   if (!email) { ui.authError = 'צריך להזין מייל'; render(); return; }
   if (!FB || !fbAuth) { ui.authError = 'האפליקציה עוד נטענת. נסה שוב בעוד רגע'; render(); return; }
@@ -242,11 +246,11 @@ async function cloudSignIn(create, btn) {
   } catch (e) {
     console.error('auth failed', e);
     busy(btn, false);
-    ui.authError = authMsg(e); render();
+    ui.authError = authMsg(e) + (e?.code === 'auth/invalid-email' ? ` (${email})` : ''); render();
   }
 }
 async function cloudResetPassword() {
-  const email = $('#auth-email').value.trim();
+  const email = cleanEmail($('#auth-email').value);
   if (!email) { ui.authError = 'הזן קודם את כתובת המייל'; render(); return; }
   try { await FB.sendPasswordResetEmail(fbAuth, email); toast('שלחתי מייל לאיפוס הסיסמה', 4000); }
   catch (e) { ui.authError = authMsg(e); ui.authEmail = email; render(); }
@@ -349,8 +353,8 @@ function cloudScreen() {
       <div class="center" style="font-size:56px">💪</div>
       <h1 class="center">כושר</h1>
       <p class="muted center" style="margin-top:0">התחבר כדי שהאימונים שלך יישמרו בענן ויופיעו בכל מכשיר.</p>
-      <input class="input" id="auth-email" type="email" inputmode="email" autocomplete="username" placeholder="מייל" value="${esc(ui.authEmail || '')}" dir="ltr">
-      <input class="input" id="auth-pass" type="password" autocomplete="current-password" placeholder="סיסמה (לפחות 6 תווים)" dir="ltr">
+      <input class="input" id="auth-email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="מייל" value="${esc(ui.authEmail || '')}" dir="ltr">
+      <input class="input" id="auth-pass" type="password" autocapitalize="off" autocorrect="off" autocomplete="current-password" placeholder="סיסמה (לפחות 6 תווים)" dir="ltr">
       ${err}
       <button class="btn primary big" data-act="sign-in">כניסה</button>
       <button class="btn big" data-act="sign-up">הרשמה (פעם ראשונה)</button>
