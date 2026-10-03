@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 18;  // keep in step with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.1';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -344,7 +344,7 @@ function screenExercises() {
   const f = ui.exFilter.trim();
   const gym = ui.exGym === undefined ? curGymId() : ui.exGym;
   const list = S.exercises.filter(e => (!f || e.name.includes(f) || e.muscle === f) && atGym(e, gym)).sort((a, b) => a.name.localeCompare(b.name, 'he'));
-  return `${topbar('מכשירים ותרגילים')}
+  return `${topbar('המכשירים והתרגילים שלי')}
     <div class="row" style="margin-bottom:12px">
       <input class="input grow" data-in="ex-filter" placeholder="🔍 חיפוש" value="${esc(ui.exFilter)}">
       <button class="btn primary" data-act="go" data-to="#/exercise-new">+ חדש</button>
