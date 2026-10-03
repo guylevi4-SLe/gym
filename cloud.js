@@ -236,7 +236,7 @@ function withTimeout(promise, ms = 20000) {
 }
 async function cloudSignIn(create, btn) {
   const email = cleanEmail($('#auth-email').value), pass = $('#auth-pass').value;
-  ui.authError = ''; ui.authEmail = email;
+  ui.authError = ''; ui.authDetail = ''; ui.authEmail = email;
   if (!email) { ui.authError = 'צריך להזין מייל'; render(); return; }
   if (!FB || !fbAuth) { ui.authError = 'האפליקציה עוד נטענת. נסה שוב בעוד רגע'; render(); return; }
   busy(btn, true);
@@ -246,7 +246,9 @@ async function cloudSignIn(create, btn) {
   } catch (e) {
     console.error('auth failed', e);
     busy(btn, false);
-    ui.authError = authMsg(e) + (e?.code === 'auth/invalid-email' ? ` (${email})` : ''); render();
+    ui.authError = authMsg(e);
+    ui.authDetail = `${create ? 'הרשמה' : 'כניסה'} · ${e?.code || e?.message || 'unknown'} · "${email}" (${email.length})`;
+    render();
   }
 }
 async function cloudResetPassword() {
@@ -344,7 +346,7 @@ async function migrateLocal(localUserId) {
 
 function cloudScreen() {
   const s = ui.cloudScreen;
-  const err = ui.authError ? `<p style="color:var(--danger);margin:0">${esc(ui.authError)}</p>` : '';
+  const err = ui.authError ? `<p style="color:var(--danger);margin:0">${esc(ui.authError)}</p>${ui.authDetail ? `<p class="muted small" dir="ltr" style="margin:0;text-align:right">${esc(ui.authDetail)}</p>` : ''}` : '';
   if (s === 'loading') return `<div class="empty" style="padding-top:30vh"><span class="big-ic">💪</span>טוען...</div>`;
   if (s === 'offline-first') return `<div class="empty" style="padding-top:20vh"><span class="big-ic">📶</span>
       בפתיחה הראשונה צריך חיבור לאינטרנט. התחבר ונסה שוב.
