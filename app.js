@@ -989,7 +989,6 @@ document.addEventListener('focusin', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'new-user-name') actions['create-first-user']();
-  if (e.key === 'Enter' && e.target.id === 'auth-pass') window.cloudActions['sign-in']();
   if (e.key === 'Enter' && e.target.id === 'add-user-name') actions['add-user']();
   if (e.key === 'Enter' && e.target.id === 'new-gym-name') actions['add-gym']();
 });
