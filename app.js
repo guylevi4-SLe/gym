@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 15;  // keep in step with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = 16;  // keep in step with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -533,6 +533,8 @@ function screenUsers() {
     <label class="field"><span>יעד אימונים בשבוע</span>
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
+    <h2>צבעים</h2>
+    <div class="chips">${[['blue', 'כחול'], ['green', 'ירוק (המקורי)']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'blue') === v ? 'on' : ''}" data-act="palette" data-v="${v}">${l}</button>`).join('')}</div>
     <h2>גיבוי</h2>
     ${cloud ? `<p class="muted small" style="margin-top:0">הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.</p>
     <div class="btns"><button class="btn" data-act="export">⬇️ שמור גיבוי</button></div>`
@@ -829,6 +831,11 @@ const actions = {
   'close-modal': () => closeModal(),
   'confirm-ok': () => { const r = ui.modal.resolve; ui.modal = null; renderModal(); r(true); },
   'confirm-no': () => closeModal(),
+  palette: d => {
+    document.documentElement.dataset.palette = d.v;
+    try { localStorage.setItem('gym-palette', d.v); } catch (e) {}
+    render();
+  },
 
   'create-first-user': () => {
     const name = $('#new-user-name').value.trim();

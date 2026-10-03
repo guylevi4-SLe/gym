@@ -43,6 +43,33 @@
     color-scheme: light;
 }
 
+
+/* Blue palette (default). The original green palette is kept: Settings → צבעים switches back. */
+:root[data-palette="blue"] {
+  --bg: #0b1220;
+  --surface: #13203a;
+  --surface-2: #1c2d4d;
+  --border: #27406a;
+  --text: #eef3fb;
+  --muted: #93a4c3;
+  --accent: #3b82f6;
+  --accent-ink: #ffffff;
+  --done: #1e3a8a;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-palette="blue"]:not([data-theme="dark"]) {
+    --bg: #eaf1fb;
+    --surface: #f5f9ff;
+    --surface-2: #dde9f9;
+    --border: #c3d6f0;
+    --text: #0f2440;
+    --muted: #556a89;
+    --accent: #2563eb;
+    --accent-ink: #ffffff;
+    --done: #bfdbfe;
+  }
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
 body {
