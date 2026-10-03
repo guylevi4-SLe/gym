@@ -1,6 +1,6 @@
 // Offline support: try the network first (so updates arrive), fall back to the cached copy
 // when there is no reception or the network is slow.
-const CACHE = 'gym-v9';
+const CACHE = 'gym-v10';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'cloud.js', 'config.js', 'vendor/firebase.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 
@@ -19,7 +19,8 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const cached = await cache.match(e.request, { ignoreSearch: true });
-    const network = fetch(e.request).then(res => {
+    // no-cache: always ask the server (cheap ETag check) instead of trusting the browser's 10-minute HTTP cache
+    const network = fetch(e.request, { cache: 'no-cache' }).then(res => {
       if (res.ok) cache.put(e.request, res.clone());
       return res;
     });
