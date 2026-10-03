@@ -44,6 +44,7 @@ let S = {
   users: [],
   exercises: [],   // shared by all users: {id, name, type, muscle, hasPhoto, notes: {userId: text}}
   routines: [],    // per user: {id, userId, name, exerciseIds}
+  gyms: [],        // {id, name}; exercises with no gymIds are available everywhere
   workouts: [],    // finished: {id, userId, start, end, routineId, entries: [{exerciseId, sets}]}
   active: {},      // userId -> workout in progress
   settings: { currentUserId: null, restSeconds: 90, weeklyGoal: 3 },
@@ -78,6 +79,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const $ = sel => document.querySelector(sel);
 const me = () => S.users.find(u => u.id === S.settings.currentUserId);
 const exById = id => S.exercises.find(e => e.id === id);
+const gymById = id => S.gyms.find(g => g.id === id);
+const curGymId = () => (me()?.gymId && gymById(me().gymId)) ? me().gymId : null;
+const atGym = (ex, gymId) => !gymId || !ex.gymIds?.length || ex.gymIds.includes(gymId);
 const myActive = () => S.active[S.settings.currentUserId];
 const myWorkouts = () => S.workouts.filter(w => w.userId === S.settings.currentUserId).sort((a, b) => b.start - a.start);
 const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
@@ -157,7 +161,7 @@ function streakWeeks() {
 
 /* ================= UI helpers ================= */
 
-const ui = { modal: null, exFilter: '', picked: [] };
+const ui = { modal: null, exFilter: '', exGym: undefined };
 
 function toast(msg, ms = 2600) {
   const el = $('#toast');
@@ -217,6 +221,7 @@ function screenHome() {
 
   return `${topbar(`שלום ${esc(u.name)}`)}
     <p class="muted" style="margin-top:0">${msg}</p>
+    ${gymChip()}
     <div class="card">
       <div class="row between"><b>השבוע</b><span class="muted small">יעד: ${goal} אימונים</span></div>
       <div class="goal-bar"><i style="width:${pct}%"></i></div>
@@ -236,11 +241,17 @@ function screenHome() {
     ${recent.length ? recent.map(workoutRow).join('') : `<div class="empty"><span class="big-ic">📅</span>עוד אין אימונים. האימון הראשון מחכה לך!</div>`}`;
 }
 
+function gymChip() {
+  const g = gymById(curGymId());
+  return `<button class="chip" style="margin-bottom:12px" data-act="pick-gym">📍 ${g ? esc(g.name) : 'בחר חדר כושר'} ▾</button>`;
+}
+
 function workoutRow(w) {
   const sets = w.entries.reduce((t, e) => t + e.sets.length, 0);
   const names = w.entries.map(e => exById(e.exerciseId)?.name).filter(Boolean);
   return `<div class="card tap" data-act="go" data-to="#/workout/${w.id}">
     <div class="row between"><b>${fmtDate(w.start)}</b><span class="muted small">${fmtDur(w.end - w.start)} · ${sets} סטים</span></div>
+    ${gymById(w.gymId) ? `<div class="small" style="margin-top:2px">📍 ${esc(gymById(w.gymId).name)}</div>` : ''}
     <div class="muted small" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(names.join(' · ')) || '—'}</div>
   </div>`;
 }
@@ -249,7 +260,7 @@ function screenWorkout() {
   const a = myActive();
   if (!a) { go('#/home'); return ''; }
   return `<div class="topbar">
-      <div><div class="muted small">${a.routineName ? esc(a.routineName) : 'אימון'}</div><div class="elapsed" style="font-size:24px" data-elapsed></div></div>
+      <div><div class="muted small">${a.routineName ? esc(a.routineName) : 'אימון'}${gymById(a.gymId) ? ' · 📍 ' + esc(gymById(a.gymId).name) : ''}</div><div class="elapsed" style="font-size:24px" data-elapsed></div></div>
       <button class="btn primary" data-act="finish-workout">סיים אימון</button>
     </div>
     ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : `<div class="empty"><span class="big-ic">🏋️</span>הוסף את התרגיל או המכשיר הראשון</div>`}
@@ -292,12 +303,17 @@ function entryCard(e, i) {
 
 function screenExercises() {
   const f = ui.exFilter.trim();
-  const list = S.exercises.filter(e => !f || e.name.includes(f) || e.muscle === f).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  const gym = ui.exGym === undefined ? curGymId() : ui.exGym;
+  const list = S.exercises.filter(e => (!f || e.name.includes(f) || e.muscle === f) && atGym(e, gym)).sort((a, b) => a.name.localeCompare(b.name, 'he'));
   return `${topbar('מכשירים ותרגילים')}
     <div class="row" style="margin-bottom:12px">
       <input class="input grow" data-in="ex-filter" placeholder="🔍 חיפוש" value="${esc(ui.exFilter)}">
       <button class="btn primary" data-act="go" data-to="#/exercise-new">+ חדש</button>
     </div>
+    ${S.gyms.length ? `<div class="chips" style="margin-bottom:12px">
+      <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">הכל</button>
+      ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}
+    </div>` : ''}
     ${list.length ? `<div class="grid">${list.map(ex => `
       <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
         ${thumb(ex)}
@@ -322,7 +338,7 @@ function screenExercise(id) {
   }
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
-    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag">${esc(ex.muscle)}</span>` : ''}</div>
+    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag">${esc(ex.muscle)}</span>` : ''}${(ex.gymIds || []).map(gymById).filter(Boolean).map(g => `<span class="tag">📍 ${esc(g.name)}</span>`).join('')}</div>
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
       <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
     </label>
@@ -339,7 +355,8 @@ function screenExercise(id) {
 function screenExerciseEdit(id) {
   const ex = id ? exById(id) : null;
   if (id && !ex) { go('#/exercises'); return ''; }
-  const draft = ui.draft || (ui.draft = ex ? { ...ex, photo: photos[ex.id] || null } : { name: '', type: 'machine', muscle: '', photo: null });
+  const draft = ui.draft || (ui.draft = ex ? { ...ex, gymIds: [...(ex.gymIds || [])], photo: photos[ex.id] || null } : { name: '', type: 'machine', muscle: '', photo: null, gymIds: curGymId() ? [curGymId()] : [] });
+  draft.gymIds = draft.gymIds || [];
   return `${topbar(ex ? 'עריכת תרגיל' : 'מכשיר / תרגיל חדש', true)}
     <label class="field"><span>תמונה</span>
       ${draft.photo ? `<img class="thumb lg" src="${draft.photo}" alt="">` : `<div class="thumb lg">📷</div>`}
@@ -358,6 +375,9 @@ function screenExerciseEdit(id) {
     <div class="field" style="margin-top:14px"><span class="muted small" style="display:block;margin-bottom:6px">קבוצת שרירים</span>
       <div class="chips">${MUSCLES.map(m => `<button class="chip ${draft.muscle === m ? 'on' : ''}" data-act="draft-set" data-f="muscle" data-v="${m}">${m}</button>`).join('')}</div>
     </div>
+    ${S.gyms.length ? `<div class="field" style="margin-top:14px"><span class="muted small" style="display:block;margin-bottom:6px">באיזה חדר כושר? (בלי סימון = בכל מקום)</span>
+      <div class="chips">${S.gyms.map(g => `<button class="chip ${draft.gymIds.includes(g.id) ? 'on' : ''}" data-act="draft-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}</div>
+    </div>` : ''}
     <div class="stack" style="margin-top:22px">
       <button class="btn primary big" data-act="save-exercise" data-id="${ex ? ex.id : ''}">שמור</button>
       ${ex ? `<button class="btn block danger" data-act="delete-exercise" data-id="${ex.id}">מחק תרגיל</button>` : ''}
@@ -446,6 +466,16 @@ function screenUsers() {
       <input class="input grow" id="add-user-name" placeholder="שם משתמש חדש" autocomplete="off">
       <button class="btn primary" data-act="add-user">הוסף</button>
     </div>
+    <h2>חדרי כושר</h2>
+    ${S.gyms.map(g => `<div class="card list-item">
+      <b class="grow">📍 ${esc(g.name)}</b>
+      <button class="btn sm" data-act="rename-gym" data-id="${g.id}">שנה שם</button>
+      <button class="btn sm danger" data-act="delete-gym" data-id="${g.id}">מחק</button>
+    </div>`).join('') || '<p class="muted small" style="margin-top:0">עוד אין חדרי כושר</p>'}
+    <div class="row" style="margin-top:12px">
+      <input class="input grow" id="new-gym-name" placeholder="שם חדר כושר חדש" autocomplete="off">
+      <button class="btn primary" data-act="add-gym">הוסף</button>
+    </div>
     <h2>הגדרות</h2>
     <label class="field"><span>זמן מנוחה בין סטים (שניות)</span>
       <input class="input" inputmode="numeric" data-in="setting" data-f="restSeconds" value="${S.settings.restSeconds}">
@@ -474,7 +504,7 @@ function renderModal() {
     const a = myActive();
     const inWorkout = new Set(a ? a.entries.map(e => e.exerciseId) : []);
     const f = (m.filter || '').trim();
-    const list = S.exercises.filter(e => !f || e.name.includes(f)).sort((x, y) => x.name.localeCompare(y.name, 'he'));
+    const list = S.exercises.filter(e => (!f || e.name.includes(f)) && atGym(e, a?.gymId)).sort((x, y) => x.name.localeCompare(y.name, 'he'));
     el.innerHTML = `<div class="sheet" data-stop>
       <div class="row between"><h2>בחר תרגיל</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
       <input class="input" data-in="pick-filter" placeholder="🔍 חיפוש" value="${esc(m.filter || '')}" style="margin-bottom:10px">
@@ -482,6 +512,21 @@ function renderModal() {
         ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(ex.muscle || TYPES[ex.type].label)}${inWorkout.has(ex.id) ? ' · כבר באימון' : ''}</div></div>
       </div>`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
       <button class="btn big" style="margin-top:12px" data-act="new-ex-from-workout">+ מכשיר / תרגיל חדש</button>
+    </div>`;
+  } else if (m.type === 'gym') {
+    const cur = curGymId();
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <div class="row between"><h2>איפה אתה מתאמן?</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      ${S.gyms.map(g => `<button class="btn block ${g.id === cur ? 'primary' : ''}" data-act="set-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}
+      ${S.gyms.length ? `<button class="btn block ${!cur ? 'primary' : ''}" data-act="set-gym" data-id="">בלי חדר כושר מסוים</button>` : '<p class="muted">עוד אין חדרי כושר. הוסף את הראשון:</p>'}
+      <div class="row"><input class="input grow" id="new-gym-name" placeholder="למשל: אייקון רעננה" autocomplete="off"><button class="btn primary" data-act="add-gym">הוסף</button></div>
+    </div>`;
+  } else if (m.type === 'rename-gym') {
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <h2>שינוי שם</h2>
+      <input class="input" id="rename-gym-name" value="${esc(gymById(m.id)?.name)}" autocomplete="off">
+      <button class="btn primary block" data-act="save-gym-name" data-id="${m.id}">שמור</button>
+      <button class="btn block" data-act="close-modal">ביטול</button>
     </div>`;
   } else if (m.type === 'confirm') {
     el.innerHTML = `<div class="sheet stack" data-stop>
@@ -641,7 +686,7 @@ function startWorkout(routine) {
   const uidv = S.settings.currentUserId;
   S.active[uidv] = {
     id: uid(), userId: uidv, start: Date.now(),
-    routineId: routine?.id || null, routineName: routine?.name || null,
+    routineId: routine?.id || null, routineName: routine?.name || null, gymId: curGymId(),
     entries: (routine?.exerciseIds || []).filter(exById).map(id => ({ exerciseId: id, sets: newSetsFor(id) })),
   };
   save();
@@ -659,7 +704,7 @@ async function finishWorkout() {
     rest.endsAt = 0; save(); go('#/home');
     return;
   }
-  const w = { id: a.id, userId: a.userId, start: a.start, end: Date.now(), routineId: a.routineId, entries };
+  const w = { id: a.id, userId: a.userId, start: a.start, end: Date.now(), routineId: a.routineId, gymId: a.gymId || null, entries };
   S.workouts.push(w);
   delete S.active[a.userId];
   rest.endsAt = 0;
@@ -708,6 +753,44 @@ const actions = {
     save(); go('#/home'); render();
   },
 
+  'pick-gym': () => { ui.modal = { type: 'gym' }; renderModal(); },
+  'set-gym': d => {
+    me().gymId = d.id || null; ui.exGym = undefined;
+    const a = myActive(); if (a && !a.entries.length) a.gymId = me().gymId;
+    ui.modal = null; save(); render();
+  },
+  'add-gym': () => {
+    const inp = $('#new-gym-name'), name = inp.value.trim();
+    if (!name) return inp.focus();
+    const g = { id: uid(), name };
+    S.gyms.push(g);
+    if (!curGymId()) me().gymId = g.id;
+    if (ui.modal?.type === 'gym') { me().gymId = g.id; ui.modal = null; renderModal(); }
+    save(); render(); toast(`${name} נוסף ✓`);
+  },
+  'rename-gym': async d => {
+    const g = gymById(d.id);
+    ui.modal = { type: 'rename-gym', id: g.id }; renderModal();
+  },
+  'save-gym-name': d => {
+    const name = $('#rename-gym-name').value.trim();
+    if (name) gymById(d.id).name = name;
+    ui.modal = null; save(); render();
+  },
+  'delete-gym': async d => {
+    const g = gymById(d.id);
+    if (!await ask(`למחוק את ${g.name}? המכשירים שלו יישארו ויופיעו בכל המקומות.`)) return;
+    S.gyms = S.gyms.filter(x => x.id !== g.id);
+    S.exercises.forEach(e => { if (e.gymIds) e.gymIds = e.gymIds.filter(x => x !== g.id); });
+    S.users.forEach(u => { if (u.gymId === g.id) u.gymId = null; });
+    save(); render();
+  },
+  'ex-gym': d => { ui.exGym = d.id || null; render(); },
+  'draft-gym': d => {
+    const ids = ui.draft.gymIds, i = ids.indexOf(d.id);
+    if (i >= 0) ids.splice(i, 1); else ids.push(d.id);
+    render();
+  },
   'start-empty': () => startWorkout(null),
   'start-routine': d => {
     if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
@@ -758,7 +841,7 @@ const actions = {
     if (!dr.name.trim()) { toast('צריך לתת שם'); return; }
     let ex = d.id ? exById(d.id) : null;
     if (!ex) { ex = { id: uid(), notes: {}, created: Date.now() }; S.exercises.push(ex); }
-    Object.assign(ex, { name: dr.name.trim(), type: dr.type, muscle: dr.muscle });
+    Object.assign(ex, { name: dr.name.trim(), type: dr.type, muscle: dr.muscle, gymIds: [...(dr.gymIds || [])] });
     if (dr.photo) { photos[ex.id] = dr.photo; await photoSet(ex.id, dr.photo); }
     else if (photos[ex.id]) { delete photos[ex.id]; await photoDel(ex.id); }
     ui.draft = null;
@@ -895,6 +978,7 @@ document.addEventListener('focusin', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'new-user-name') actions['create-first-user']();
   if (e.key === 'Enter' && e.target.id === 'add-user-name') actions['add-user']();
+  if (e.key === 'Enter' && e.target.id === 'new-gym-name') actions['add-gym']();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveNow();
