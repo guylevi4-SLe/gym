@@ -42,9 +42,9 @@ const AUTH_ERRORS = {
   'auth/invalid-email': 'כתובת המייל לא תקינה',
   'auth/missing-password': 'צריך להזין סיסמה',
   'auth/weak-password': 'הסיסמה קצרה מדי. צריך לפחות 6 תווים',
-  'auth/email-already-in-use': 'כבר יש חשבון עם המייל הזה. לחץ "כניסה"',
-  'auth/invalid-credential': 'המייל או הסיסמה לא נכונים. אם זו הפעם הראשונה שלך, לחץ על "הרשמה (פעם ראשונה)"',
-  'auth/wrong-password': 'המייל או הסיסמה לא נכונים. אם זו הפעם הראשונה שלך, לחץ על "הרשמה (פעם ראשונה)"',
+  'auth/email-already-in-use': 'כבר יש חשבון עם המייל הזה. עבור ל"כניסה" למטה',
+  'auth/invalid-credential': 'המייל או הסיסמה לא נכונים. אם עוד לא נרשמת, עבור ל"הרשמה" למטה',
+  'auth/wrong-password': 'המייל או הסיסמה לא נכונים. אם עוד לא נרשמת, עבור ל"הרשמה" למטה',
   'auth/user-not-found': 'אין חשבון עם המייל הזה. לחץ "הרשמה"',
   'auth/too-many-requests': 'יותר מדי ניסיונות. נסה שוב בעוד כמה דקות',
   'auth/network-request-failed': 'לא הצלחתי להתחבר לשרת. בדוק שיש אינטרנט ונסה שוב',
@@ -351,19 +351,23 @@ function cloudScreen() {
   if (s === 'offline-first') return `<div class="empty" style="padding-top:20vh"><span class="big-ic">📶</span>
       בפתיחה הראשונה צריך חיבור לאינטרנט. התחבר ונסה שוב.
       <div style="margin-top:16px"><button class="btn primary" data-act="reload">נסה שוב</button></div></div>`;
-  if (s === 'auth') return `<div style="padding-top:8vh" class="stack">
+  if (s === 'auth') {
+    // One action per screen, so a tap that lands after the keyboard closes can't hit the wrong button.
+    const signup = ui.authMode !== 'signin';
+    return `<div style="padding-top:8vh" class="stack">
       <div class="center" style="font-size:56px">💪</div>
-      <h1 class="center">כושר</h1>
-      <p class="muted center" style="margin-top:0">התחבר כדי שהאימונים שלך יישמרו בענן ויופיעו בכל מכשיר.</p>
+      <h1 class="center">${signup ? 'הרשמה' : 'כניסה'}</h1>
+      <p class="muted center" style="margin-top:0">${signup ? 'פעם ראשונה? בחר מייל וסיסמה חדשה לאפליקציה.' : 'כניסה לחשבון שכבר יצרת.'}</p>
       <input class="input" id="auth-email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="מייל" value="${esc(ui.authEmail || '')}" dir="ltr">
-      <input class="input" id="auth-pass" type="password" autocapitalize="off" autocorrect="off" autocomplete="current-password" placeholder="סיסמה (לפחות 6 תווים)" dir="ltr">
+      <input class="input" id="auth-pass" type="password" autocapitalize="off" autocorrect="off" autocomplete="${signup ? 'new-password' : 'current-password'}" placeholder="${signup ? 'סיסמה חדשה (לפחות 6 תווים)' : 'סיסמה'}" dir="ltr">
       ${err}
-      <button class="btn primary big" data-act="sign-in">כניסה</button>
-      <button class="btn big" data-act="sign-up">הרשמה (פעם ראשונה)</button>
-      <button class="back" style="display:block;margin:0 auto" data-act="reset-pass">שכחתי סיסמה</button>
+      <button class="btn primary big" data-act="${signup ? 'sign-up' : 'sign-in'}">${signup ? 'צור חשבון' : 'כניסה'}</button>
+      <button class="back" style="display:block;margin:8px auto 0" data-act="auth-mode" data-v="${signup ? 'signin' : 'signup'}">${signup ? 'כבר יש לך חשבון? כניסה' : 'אין לך חשבון? הרשמה'}</button>
+      ${signup ? '' : `<button class="back" style="display:block;margin:0 auto" data-act="reset-pass">שכחתי סיסמה</button>`}
       <hr>
       <button class="back muted" style="display:block;margin:0 auto;color:var(--muted)" data-act="local-mode">המשך בלי חשבון (נשמר רק בטלפון הזה)</button>
     </div>`;
+  }
   if (s === 'setup') return `<div style="padding-top:6vh" class="stack">
       <h1>כמעט סיימנו</h1>
       <label class="field"><span>איך קוראים לך?</span>
@@ -424,4 +428,9 @@ Object.assign(window, { cloudActions: {
   'local-mode': () => { setLocalModeChoice('local'); location.reload(); },
   'cloud-mode': () => { setLocalModeChoice(null); location.hash = '#/home'; location.reload(); },
   reload: () => location.reload(),
+  'auth-mode': d => {
+    ui.authMode = d.v; ui.authError = ''; ui.authDetail = '';
+    const e = document.querySelector('#auth-email'); if (e) ui.authEmail = cleanEmail(e.value);
+    render();
+  },
 } });
