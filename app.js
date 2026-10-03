@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 14;  // keep in step with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = 15;  // keep in step with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -152,7 +152,12 @@ function clock(ms) {
 function setText(set, kind) {
   if (kind === 'cardio') return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`].filter(Boolean).join(' · ');
   if (kind === 'reps') return `${set.reps ?? '?'} חזרות`;
-  return `${fmtNum(set.weight) || 0}×${set.reps ?? '?'}`;
+  return `\u2066${fmtNum(set.weight) || 0}×${set.reps ?? '?'}\u2069`;  // isolate so RTL keeps weight×reps order
+}
+// What the user did last time, as one line (shown in the workout, exercise screen and routine editor)
+function lastLine(ex) {
+  const last = lastPerformance(ex.id);
+  return last ? `בפעם הקודמת (${fmtDate(last.date)}): ${setsSummary(last.sets, measure(ex))}` : 'עוד לא עשית את התרגיל הזה';
 }
 function setsSummary(sets, kind) {
   if (!sets.length) return '';
@@ -322,9 +327,10 @@ function entryCard(e, i) {
       <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">⋯</button>
     </div>
     <table class="sets">
-      <tr><th>סט</th>${cols.map(c => `<th>${c}</th>`).join('')}<th></th><th></th></tr>
+      <tr><th>סט</th>${last ? '<th>קודם</th>' : ''}${cols.map(c => `<th>${c}</th>`).join('')}<th></th><th></th></tr>
       ${e.sets.map((s, j) => `<tr class="${s.done ? 'done' : ''}">
         <td class="num">${j + 1}</td>
+        ${last ? `<td class="prev">${last.sets[j] ? esc(setText(last.sets[j], kind)) : '–'}</td>` : ''}
         ${fields.map(f => `<td><input inputmode="decimal" data-in="set" data-i="${i}" data-j="${j}" data-f="${f}" value="${fmtNum(s[f])}" placeholder="${f === 'weight' ? 'ק״ג' : '0'}"></td>`).join('')}
         <td style="width:50px"><button class="check" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-label="סיימתי">✓</button></td>
         <td style="width:28px"><button class="del-set" data-act="del-set" data-i="${i}" data-j="${j}" aria-label="מחק סט">×</button></td>
@@ -375,6 +381,7 @@ function screenExercise(id) {
     <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag">${esc(ex.muscle)}</span>` : ''}${(ex.gymIds || []).map(gymById).filter(Boolean).map(g => `<span class="tag">📍 ${esc(g.name)}</span>`).join('')}</div>
     <div class="field"><span class="muted small" style="display:block;margin-bottom:6px">🎯 היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span>
       ${targetFields(ex)}
+      <div class="muted small" style="margin-top:6px">⏮ ${esc(lastLine(ex))}</div>
     </div>
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
       <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
@@ -451,6 +458,7 @@ function screenRoutineEdit(id) {
         <button class="btn sm danger" data-act="r-remove" data-i="${i}">×</button>
       </div>
       ${targetFields(ex)}
+      <div class="muted small">⏮ ${esc(lastLine(ex))}</div>
     </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
     <h2>הוסף תרגיל</h2>
     ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">+ ${esc(e.name)}</button>`).join('')}</div>`
