@@ -1,0 +1,917 @@
+'use strict';
+
+/* ================= Storage (IndexedDB) ================= */
+
+let db;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('gym', 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore('kv');
+      req.result.createObjectStore('photos');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idb(store, mode, fn) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, mode);
+    const req = fn(tx.objectStore(store));
+    tx.oncomplete = () => resolve(req && req.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+const kvGet = k => idb('kv', 'readonly', s => s.get(k));
+const kvSet = (k, v) => idb('kv', 'readwrite', s => s.put(v, k));
+const photoSet = (id, data) => idb('photos', 'readwrite', s => s.put(data, id));
+const photoDel = id => idb('photos', 'readwrite', s => s.delete(id));
+const photoAll = () => new Promise((resolve, reject) => {
+  const out = {};
+  const req = db.transaction('photos').objectStore('photos').openCursor();
+  req.onsuccess = () => {
+    const c = req.result;
+    if (c) { out[c.key] = c.value; c.continue(); } else resolve(out);
+  };
+  req.onerror = () => reject(req.error);
+});
+
+/* ================= State ================= */
+
+let S = {
+  version: 1,
+  users: [],
+  exercises: [],   // shared by all users: {id, name, type, muscle, hasPhoto, notes: {userId: text}}
+  routines: [],    // per user: {id, userId, name, exerciseIds}
+  workouts: [],    // finished: {id, userId, start, end, routineId, entries: [{exerciseId, sets}]}
+  active: {},      // userId -> workout in progress
+  settings: { currentUserId: null, restSeconds: 90, weeklyGoal: 3 },
+};
+let photos = {};   // exerciseId -> dataURL
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => kvSet('state', S), 250);
+}
+function saveNow() {
+  clearTimeout(saveTimer);
+  return kvSet('state', S);
+}
+
+const TYPES = {
+  machine: { label: 'מכשיר', icon: '🏋️' },
+  free: { label: 'משקולות חופשיות', icon: '💪' },
+  bodyweight: { label: 'משקל גוף', icon: '🤸' },
+  cardio: { label: 'אירובי', icon: '🏃' },
+};
+const MUSCLES = ['חזה', 'גב', 'כתפיים', 'יד קדמית', 'יד אחורית', 'רגליים', 'ישבן', 'בטן', 'כל הגוף', 'אירובי'];
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = sel => document.querySelector(sel);
+const me = () => S.users.find(u => u.id === S.settings.currentUserId);
+const exById = id => S.exercises.find(e => e.id === id);
+const myActive = () => S.active[S.settings.currentUserId];
+const myWorkouts = () => S.workouts.filter(w => w.userId === S.settings.currentUserId).sort((a, b) => b.start - a.start);
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
+const fmtNum = n => n == null ? '' : (Math.round(n * 100) / 100).toString();
+
+function measure(ex) {
+  if (!ex) return 'weight';
+  if (ex.type === 'cardio') return 'cardio';
+  if (ex.type === 'bodyweight') return 'reps';
+  return 'weight';
+}
+
+/* ================= Formatting ================= */
+
+const DAY = 864e5;
+function fmtDate(t) {
+  const d = new Date(t), today = new Date();
+  const days = Math.round((startOfDay(today) - startOfDay(d)) / DAY);
+  if (days === 0) return 'היום';
+  if (days === 1) return 'אתמול';
+  if (days < 7) return d.toLocaleDateString('he-IL', { weekday: 'long' });
+  return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'long' });
+}
+function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); }
+function startOfWeek(d = new Date()) { const x = new Date(startOfDay(d)); x.setDate(x.getDate() - x.getDay()); return x.getTime(); }
+function fmtDur(ms) {
+  const m = Math.round(ms / 60000);
+  if (m < 60) return `${m} דק׳`;
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} שע׳`;
+}
+function clock(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = s % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+}
+function setText(set, kind) {
+  if (kind === 'cardio') return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`].filter(Boolean).join(' · ');
+  if (kind === 'reps') return `${set.reps ?? '?'} חזרות`;
+  return `${fmtNum(set.weight) || 0}×${set.reps ?? '?'}`;
+}
+function setsSummary(sets, kind) {
+  if (!sets.length) return '';
+  if (kind !== 'weight') return sets.map(s => setText(s, kind)).join(', ');
+  const same = sets.every(s => s.weight === sets[0].weight && s.reps === sets[0].reps);
+  if (same) return `${sets.length} סטים × ${sets[0].reps ?? '?'} חזרות · ${fmtNum(sets[0].weight) || 0} ק״ג`;
+  return sets.map(s => setText(s, kind)).join(', ') + ' ק״ג';
+}
+
+/* ================= Queries ================= */
+
+function lastPerformance(exerciseId, userId = S.settings.currentUserId) {
+  for (const w of S.workouts.filter(w => w.userId === userId).sort((a, b) => b.start - a.start)) {
+    const e = w.entries.find(e => e.exerciseId === exerciseId);
+    if (e && e.sets.length) return { date: w.start, sets: e.sets };
+  }
+  return null;
+}
+function weekStats() {
+  const from = startOfWeek();
+  const ws = myWorkouts().filter(w => w.start >= from);
+  return { count: ws.length, minutes: Math.round(ws.reduce((t, w) => t + (w.end - w.start), 0) / 60000) };
+}
+function streakWeeks() {
+  const goal = S.settings.weeklyGoal || 1;
+  let n = 0, wk = startOfWeek();
+  const ws = myWorkouts();
+  const thisWeek = ws.filter(w => w.start >= wk).length;
+  if (thisWeek >= goal) n++;
+  for (;;) {
+    const prev = new Date(wk); prev.setDate(prev.getDate() - 7);
+    const c = ws.filter(w => w.start >= prev.getTime() && w.start < wk).length;
+    if (c < goal) break;
+    n++; wk = prev.getTime();
+  }
+  return n;
+}
+
+/* ================= UI helpers ================= */
+
+const ui = { modal: null, exFilter: '', picked: [] };
+
+function toast(msg, ms = 2600) {
+  const el = $('#toast');
+  el.textContent = msg;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { el.textContent = ''; }, ms);
+}
+function ask(msg, okLabel = 'אישור', danger = true) {
+  return new Promise(resolve => {
+    ui.modal = { type: 'confirm', msg, okLabel, danger, resolve };
+    renderModal();
+  });
+}
+function closeModal() {
+  const r = ui.modal?.resolve;
+  ui.modal = null; renderModal();
+  if (r) r(false);
+}
+function go(hash) { location.hash = hash; }
+function thumb(ex, cls = '') {
+  if (ex && photos[ex.id]) return `<img class="thumb ${cls}" src="${photos[ex.id]}" alt="">`;
+  return `<div class="thumb ${cls}">${TYPES[ex?.type]?.icon || '🏋️'}</div>`;
+}
+function avatar(u, act = 'go-users') {
+  if (!u) return '';
+  return `<button class="avatar" style="background:${u.color}" data-act="${act}" aria-label="${esc(u.name)}">${esc(u.name.trim()[0] || '?')}</button>`;
+}
+function topbar(title, back) {
+  return `<div class="topbar">
+    ${back ? `<button class="back" data-act="back">→ חזרה</button>` : `<h1>${title}</h1>`}
+    ${avatar(me())}
+  </div>${back ? `<h1>${title}</h1>` : ''}`;
+}
+
+/* ================= Screens ================= */
+
+function screenOnboarding() {
+  return `<div style="padding-top:12vh" class="center stack">
+    <div style="font-size:64px">💪</div>
+    <h1>ברוך הבא!</h1>
+    <p class="muted">איך קוראים לך? אפשר להוסיף עוד משתמשים אחר כך, למשל את הבן.</p>
+    <input class="input" id="new-user-name" placeholder="השם שלך" autocomplete="off">
+    <button class="btn primary big" data-act="create-first-user">יאללה, מתחילים</button>
+  </div>`;
+}
+
+function screenHome() {
+  const u = me(), a = myActive(), st = weekStats(), goal = S.settings.weeklyGoal;
+  const pct = Math.min(100, Math.round(st.count / goal * 100));
+  const streak = streakWeeks();
+  const recent = myWorkouts().slice(0, 3);
+  const routines = S.routines.filter(r => r.userId === u.id);
+  let msg;
+  if (st.count >= goal) msg = 'עמדת ביעד השבועי! כל אימון נוסף הוא בונוס 🔥';
+  else if (st.count === 0) msg = 'שבוע חדש, הזדמנות חדשה. בוא נפתח אותו!';
+  else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
+
+  return `${topbar(`שלום ${esc(u.name)}`)}
+    <p class="muted" style="margin-top:0">${msg}</p>
+    <div class="card">
+      <div class="row between"><b>השבוע</b><span class="muted small">יעד: ${goal} אימונים</span></div>
+      <div class="goal-bar"><i style="width:${pct}%"></i></div>
+      <div class="stats" style="margin-top:12px">
+        <div class="stat"><b>${st.count}</b><span>אימונים</span></div>
+        <div class="stat"><b>${st.minutes}</b><span>דקות</span></div>
+        <div class="stat"><b>${streak}</b><span>שבועות ברצף</span></div>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      ${a ? `<button class="btn primary big" data-act="go-workout">המשך אימון · <span data-elapsed></span></button>`
+          : `<button class="btn primary big" data-act="start-empty">▶ התחל אימון</button>`}
+    </div>
+    ${!a && routines.length ? `<h2>התחל מתוכנית</h2>
+      <div class="chips">${routines.map(r => `<button class="chip" data-act="start-routine" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>` : ''}
+    <h2>אימונים אחרונים</h2>
+    ${recent.length ? recent.map(workoutRow).join('') : `<div class="empty"><span class="big-ic">📅</span>עוד אין אימונים. האימון הראשון מחכה לך!</div>`}`;
+}
+
+function workoutRow(w) {
+  const sets = w.entries.reduce((t, e) => t + e.sets.length, 0);
+  const names = w.entries.map(e => exById(e.exerciseId)?.name).filter(Boolean);
+  return `<div class="card tap" data-act="go" data-to="#/workout/${w.id}">
+    <div class="row between"><b>${fmtDate(w.start)}</b><span class="muted small">${fmtDur(w.end - w.start)} · ${sets} סטים</span></div>
+    <div class="muted small" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(names.join(' · ')) || '—'}</div>
+  </div>`;
+}
+
+function screenWorkout() {
+  const a = myActive();
+  if (!a) { go('#/home'); return ''; }
+  return `<div class="topbar">
+      <div><div class="muted small">${a.routineName ? esc(a.routineName) : 'אימון'}</div><div class="elapsed" style="font-size:24px" data-elapsed></div></div>
+      <button class="btn primary" data-act="finish-workout">סיים אימון</button>
+    </div>
+    ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : `<div class="empty"><span class="big-ic">🏋️</span>הוסף את התרגיל או המכשיר הראשון</div>`}
+    <div class="stack" style="margin-top:14px">
+      <button class="btn big" data-act="pick-exercise">+ הוסף תרגיל</button>
+      <button class="btn block danger" data-act="cancel-workout">בטל אימון</button>
+    </div>`;
+}
+
+function entryCard(e, i) {
+  const ex = exById(e.exerciseId);
+  if (!ex) return '';
+  const kind = measure(ex);
+  const last = lastPerformance(ex.id);
+  const note = ex.notes?.[S.settings.currentUserId];
+  const cols = kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
+  const fields = kind === 'cardio' ? ['minutes', 'km'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
+  return `<div class="card ex-card">
+    <div class="ex-head">
+      ${thumb(ex)}
+      <div class="grow">
+        <b>${esc(ex.name)}</b>
+        <div class="last">${last ? `בפעם הקודמת (${fmtDate(last.date)}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</div>
+        ${note ? `<div class="note">📌 ${esc(note)}</div>` : ''}
+      </div>
+      <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">⋯</button>
+    </div>
+    <table class="sets">
+      <tr><th>סט</th>${cols.map(c => `<th>${c}</th>`).join('')}<th></th><th></th></tr>
+      ${e.sets.map((s, j) => `<tr class="${s.done ? 'done' : ''}">
+        <td class="num">${j + 1}</td>
+        ${fields.map(f => `<td><input inputmode="decimal" data-in="set" data-i="${i}" data-j="${j}" data-f="${f}" value="${fmtNum(s[f])}" placeholder="${f === 'weight' ? 'ק״ג' : '0'}"></td>`).join('')}
+        <td style="width:50px"><button class="check" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-label="סיימתי">✓</button></td>
+        <td style="width:28px"><button class="del-set" data-act="del-set" data-i="${i}" data-j="${j}" aria-label="מחק סט">×</button></td>
+      </tr>`).join('')}
+    </table>
+    <button class="btn sm block" data-act="add-set" data-i="${i}" style="margin-top:4px">+ סט</button>
+  </div>`;
+}
+
+function screenExercises() {
+  const f = ui.exFilter.trim();
+  const list = S.exercises.filter(e => !f || e.name.includes(f) || e.muscle === f).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  return `${topbar('מכשירים ותרגילים')}
+    <div class="row" style="margin-bottom:12px">
+      <input class="input grow" data-in="ex-filter" placeholder="🔍 חיפוש" value="${esc(ui.exFilter)}">
+      <button class="btn primary" data-act="go" data-to="#/exercise-new">+ חדש</button>
+    </div>
+    ${list.length ? `<div class="grid">${list.map(ex => `
+      <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
+        ${thumb(ex)}
+        <div class="body"><div class="name">${esc(ex.name)}</div><span class="tag">${esc(ex.muscle || TYPES[ex.type].label)}</span></div>
+      </div>`).join('')}</div>`
+    : `<div class="empty"><span class="big-ic">📸</span>${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחדר הכושר, צלם מכשיר ותן לו שם.'}</div>`}`;
+}
+
+function screenExercise(id) {
+  const ex = exById(id);
+  if (!ex) { go('#/exercises'); return ''; }
+  const kind = measure(ex);
+  const hist = [];
+  for (const w of myWorkouts()) {
+    const e = w.entries.find(e => e.exerciseId === id);
+    if (e && e.sets.length) hist.push({ date: w.start, sets: e.sets });
+  }
+  let best = '';
+  if (kind === 'weight' && hist.length) {
+    const max = Math.max(...hist.flatMap(h => h.sets.map(s => s.weight || 0)));
+    best = `<div class="stat"><b>${fmtNum(max)}</b><span>שיא (ק״ג)</span></div>`;
+  }
+  return `${topbar(esc(ex.name), true)}
+    ${thumb(ex, 'lg')}
+    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag">${esc(ex.muscle)}</span>` : ''}</div>
+    <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
+      <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
+    </label>
+    <div class="stats" style="grid-template-columns:repeat(${best ? 2 : 1},1fr)">
+      <div class="stat"><b>${hist.length}</b><span>פעמים</span></div>${best}
+    </div>
+    <h2>היסטוריה</h2>
+    ${hist.length ? hist.slice(0, 20).map(h => `<div class="card"><div class="row between"><b>${fmtDate(h.date)}</b></div><div class="muted small">${esc(setsSummary(h.sets, kind))}</div></div>`).join('')
+      : `<div class="empty">עוד לא עשית את התרגיל הזה</div>`}
+    <hr>
+    <button class="btn block" data-act="go" data-to="#/exercise-edit/${ex.id}">✏️ עריכה</button>`;
+}
+
+function screenExerciseEdit(id) {
+  const ex = id ? exById(id) : null;
+  if (id && !ex) { go('#/exercises'); return ''; }
+  const draft = ui.draft || (ui.draft = ex ? { ...ex, photo: photos[ex.id] || null } : { name: '', type: 'machine', muscle: '', photo: null });
+  return `${topbar(ex ? 'עריכת תרגיל' : 'מכשיר / תרגיל חדש', true)}
+    <label class="field"><span>תמונה</span>
+      ${draft.photo ? `<img class="thumb lg" src="${draft.photo}" alt="">` : `<div class="thumb lg">📷</div>`}
+    </label>
+    <div class="btns" style="margin:-4px 0 16px">
+      <label class="btn">📸 צלם<input type="file" accept="image/*" capture="environment" data-in="photo" hidden></label>
+      <label class="btn">🖼️ מהגלריה<input type="file" accept="image/*" data-in="photo" hidden></label>
+      ${draft.photo ? `<button class="btn danger" data-act="photo-clear">הסר</button>` : ''}
+    </div>
+    <label class="field"><span>שם</span>
+      <input class="input" data-in="draft" data-f="name" value="${esc(draft.name)}" placeholder="למשל: לחיצת חזה במכונה" autocomplete="off">
+    </label>
+    <div class="field"><span class="muted small" style="display:block;margin-bottom:6px">סוג</span>
+      <div class="chips">${Object.entries(TYPES).map(([k, t]) => `<button class="chip ${draft.type === k ? 'on' : ''}" data-act="draft-set" data-f="type" data-v="${k}">${t.icon} ${t.label}</button>`).join('')}</div>
+    </div>
+    <div class="field" style="margin-top:14px"><span class="muted small" style="display:block;margin-bottom:6px">קבוצת שרירים</span>
+      <div class="chips">${MUSCLES.map(m => `<button class="chip ${draft.muscle === m ? 'on' : ''}" data-act="draft-set" data-f="muscle" data-v="${m}">${m}</button>`).join('')}</div>
+    </div>
+    <div class="stack" style="margin-top:22px">
+      <button class="btn primary big" data-act="save-exercise" data-id="${ex ? ex.id : ''}">שמור</button>
+      ${ex ? `<button class="btn block danger" data-act="delete-exercise" data-id="${ex.id}">מחק תרגיל</button>` : ''}
+    </div>`;
+}
+
+function screenRoutines() {
+  const rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
+  return `${topbar('תוכניות אימון')}
+    <p class="muted" style="margin-top:0">תוכנית היא רשימה קבועה של תרגילים, למשל "אימון א" ו"אימון ב". מתחילים אותה בלחיצה אחת.</p>
+    ${rs.map(r => `<div class="card">
+      <div class="row between"><b>${esc(r.name)}</b><button class="btn sm" data-act="go" data-to="#/routine/${r.id}">עריכה</button></div>
+      <div class="muted small" style="margin:4px 0 10px">${esc(r.exerciseIds.map(id => exById(id)?.name).filter(Boolean).join(' · ')) || 'אין תרגילים'}</div>
+      <button class="btn primary block" data-act="start-routine" data-id="${r.id}">▶ התחל</button>
+    </div>`).join('') || `<div class="empty"><span class="big-ic">📋</span>עוד אין תוכניות</div>`}
+    <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">+ תוכנית חדשה</button>`;
+}
+
+function screenRoutineEdit(id) {
+  const r = id === 'new' ? null : S.routines.find(r => r.id === id);
+  if (id !== 'new' && !r) { go('#/routines'); return ''; }
+  const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds] } : { name: '', exerciseIds: [] });
+  const sorted = [...S.exercises].sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  return `${topbar(r ? 'עריכת תוכנית' : 'תוכנית חדשה', true)}
+    <label class="field"><span>שם התוכנית</span>
+      <input class="input" data-in="draft" data-f="name" value="${esc(draft.name)}" placeholder="למשל: אימון א - פלג גוף עליון" autocomplete="off">
+    </label>
+    <h2>תרגילים בתוכנית (${draft.exerciseIds.length})</h2>
+    ${draft.exerciseIds.map((xid, i) => { const ex = exById(xid); return ex ? `<div class="card list-item">
+      <b class="muted">${i + 1}</b><div class="grow">${esc(ex.name)}</div>
+      <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''}>▲</button>
+      <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''}>▼</button>
+      <button class="btn sm danger" data-act="r-remove" data-i="${i}">×</button>
+    </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
+    <h2>הוסף תרגיל</h2>
+    ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">+ ${esc(e.name)}</button>`).join('')}</div>`
+      : `<p class="muted">קודם צריך להוסיף מכשירים בלשונית "מכשירים".</p>`}
+    <div class="stack" style="margin-top:22px">
+      <button class="btn primary big" data-act="save-routine" data-id="${r ? r.id : ''}">שמור</button>
+      ${r ? `<button class="btn block danger" data-act="delete-routine" data-id="${r.id}">מחק תוכנית</button>` : ''}
+    </div>`;
+}
+
+function screenHistory() {
+  const ws = myWorkouts();
+  const monthFrom = new Date(); monthFrom.setDate(1); monthFrom.setHours(0, 0, 0, 0);
+  const month = ws.filter(w => w.start >= monthFrom.getTime());
+  const st = weekStats();
+  let lastMonth = '';
+  return `${topbar('היסטוריה')}
+    <div class="stats">
+      <div class="stat"><b>${st.count}</b><span>השבוע</span></div>
+      <div class="stat"><b>${month.length}</b><span>החודש</span></div>
+      <div class="stat"><b>${ws.length}</b><span>סה״כ</span></div>
+    </div>
+    ${ws.length ? ws.map(w => {
+      const m = new Date(w.start).toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+      const head = m !== lastMonth ? `<h2>${m}</h2>` : '';
+      lastMonth = m;
+      return head + workoutRow(w);
+    }).join('') : `<div class="empty"><span class="big-ic">📅</span>כאן יופיעו האימונים שלך</div>`}`;
+}
+
+function screenWorkoutView(id) {
+  const w = S.workouts.find(w => w.id === id);
+  if (!w) { go('#/history'); return ''; }
+  const d = new Date(w.start);
+  return `${topbar(fmtDate(w.start), true)}
+    <p class="muted" style="margin-top:0">${d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} · ${fmtDur(w.end - w.start)}</p>
+    ${w.entries.map(e => { const ex = exById(e.exerciseId); return `<div class="card list-item">
+      ${thumb(ex)}<div class="grow"><b>${esc(ex?.name || 'תרגיל שנמחק')}</b><div class="muted small">${esc(setsSummary(e.sets, measure(ex)))}</div></div>
+    </div>`; }).join('')}
+    <hr>
+    <button class="btn block danger" data-act="delete-workout" data-id="${w.id}">מחק אימון</button>`;
+}
+
+function screenUsers() {
+  return `${topbar('משתמשים והגדרות', true)}
+    <h2>מי מתאמן?</h2>
+    ${S.users.map(u => `<div class="card list-item tap" data-act="switch-user" data-id="${u.id}">
+      <span class="avatar" style="background:${u.color}">${esc(u.name.trim()[0] || '?')}</span>
+      <b class="grow">${esc(u.name)}</b>
+      ${u.id === S.settings.currentUserId ? '<span class="tag">פעיל</span>' : ''}
+    </div>`).join('')}
+    <div class="row" style="margin-top:12px">
+      <input class="input grow" id="add-user-name" placeholder="שם משתמש חדש" autocomplete="off">
+      <button class="btn primary" data-act="add-user">הוסף</button>
+    </div>
+    <h2>הגדרות</h2>
+    <label class="field"><span>זמן מנוחה בין סטים (שניות)</span>
+      <input class="input" inputmode="numeric" data-in="setting" data-f="restSeconds" value="${S.settings.restSeconds}">
+    </label>
+    <label class="field"><span>יעד אימונים בשבוע</span>
+      <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
+    </label>
+    <h2>גיבוי</h2>
+    <p class="muted small" style="margin-top:0">כרגע הנתונים שמורים רק בטלפון הזה. מומלץ לשמור גיבוי מדי פעם.</p>
+    <div class="btns">
+      <button class="btn" data-act="export">⬇️ שמור גיבוי</button>
+      <label class="btn">⬆️ שחזר מגיבוי<input type="file" accept="application/json,.json" data-in="import" hidden></label>
+    </div>
+    <h2>התקנה באייפון</h2>
+    <p class="muted small" style="margin-top:0">בספארי: לחץ על כפתור השיתוף ⬆️ ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p>
+    <hr>
+    <button class="btn block danger" data-act="delete-user" data-id="${S.settings.currentUserId}">מחק את המשתמש ${esc(me()?.name)}</button>`;
+}
+
+/* ================= Modals ================= */
+
+function renderModal() {
+  const m = ui.modal, el = $('#modal');
+  if (!m) { el.innerHTML = ''; return; }
+  if (m.type === 'pick') {
+    const a = myActive();
+    const inWorkout = new Set(a ? a.entries.map(e => e.exerciseId) : []);
+    const f = (m.filter || '').trim();
+    const list = S.exercises.filter(e => !f || e.name.includes(f)).sort((x, y) => x.name.localeCompare(y.name, 'he'));
+    el.innerHTML = `<div class="sheet" data-stop>
+      <div class="row between"><h2>בחר תרגיל</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <input class="input" data-in="pick-filter" placeholder="🔍 חיפוש" value="${esc(m.filter || '')}" style="margin-bottom:10px">
+      ${list.map(ex => `<div class="card list-item tap" data-act="add-entry" data-id="${ex.id}">
+        ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(ex.muscle || TYPES[ex.type].label)}${inWorkout.has(ex.id) ? ' · כבר באימון' : ''}</div></div>
+      </div>`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
+      <button class="btn big" style="margin-top:12px" data-act="new-ex-from-workout">+ מכשיר / תרגיל חדש</button>
+    </div>`;
+  } else if (m.type === 'confirm') {
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <p style="font-size:18px;margin:4px 0 8px">${esc(m.msg)}</p>
+      <button class="btn block ${m.danger ? 'danger' : 'primary'}" data-act="confirm-ok">${esc(m.okLabel)}</button>
+      <button class="btn block" data-act="confirm-no">ביטול</button>
+    </div>`;
+  } else if (m.type === 'entry') {
+    const a = myActive(), n = a.entries.length;
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <h2>${esc(exById(a.entries[m.i].exerciseId)?.name)}</h2>
+      <button class="btn block" data-act="entry-move" data-i="${m.i}" data-d="-1" ${m.i === 0 ? 'disabled' : ''}>▲ הזז למעלה</button>
+      <button class="btn block" data-act="entry-move" data-i="${m.i}" data-d="1" ${m.i === n - 1 ? 'disabled' : ''}>▼ הזז למטה</button>
+      <button class="btn block danger" data-act="entry-remove" data-i="${m.i}">הסר מהאימון</button>
+      <button class="btn block" data-act="close-modal">סגור</button>
+    </div>`;
+  }
+}
+
+/* ================= Rest timer ================= */
+
+const rest = { endsAt: 0, total: 0, alerted: false };
+let audioCtx;
+function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (_) { /* no audio */ }
+}
+function beep() {
+  try {
+    if (!audioCtx) return;
+    [0, 0.25, 0.5].forEach(t => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.25, audioCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.2);
+      o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.2);
+    });
+  } catch (_) { /* no audio */ }
+  if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+}
+function startRest(sec = S.settings.restSeconds) {
+  rest.total = sec * 1000;
+  rest.endsAt = Date.now() + rest.total;
+  rest.alerted = false;
+  tick();
+}
+function renderRest() {
+  const el = $('#rest');
+  document.body.classList.toggle('resting', !!rest.endsAt);
+  if (!rest.endsAt) { el.innerHTML = ''; el.className = ''; return; }
+  const left = rest.endsAt - Date.now();
+  if (left <= 0 && !rest.alerted) { rest.alerted = true; beep(); }
+  if (left < -60000) { rest.endsAt = 0; el.innerHTML = ''; el.className = ''; return; }
+  el.className = left <= 0 ? 'over' : '';
+  const pct = Math.max(0, Math.min(100, (1 - left / rest.total) * 100));
+  el.innerHTML = `<div class="bar" style="width:${pct}%"></div>
+    <div class="time">${left > 0 ? '⏱ ' + clock(left + 999) : 'יאללה, סט הבא! 💪'}</div>
+    <button class="btn sm" data-act="rest-add" data-v="-15">−15</button>
+    <button class="btn sm" data-act="rest-add" data-v="15">+15</button>
+    <button class="btn sm" data-act="rest-stop">${left > 0 ? 'דלג' : 'סגור'}</button>`;
+}
+
+/* ================= Wake lock (screen stays on during a workout) ================= */
+
+let wakeLock = null;
+async function updateWakeLock() {
+  const want = !!myActive() && document.visibilityState === 'visible';
+  try {
+    if (want && !wakeLock && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!want && wakeLock) {
+      await wakeLock.release(); wakeLock = null;
+    }
+  } catch (_) { wakeLock = null; }
+}
+
+/* ================= Render ================= */
+
+function route() {
+  const h = location.hash.replace(/^#\/?/, '') || 'home';
+  const [name, id] = h.split('/');
+  return { name, id };
+}
+
+let lastRoute = '';
+function render() {
+  const app = $('#app');
+  if (!S.users.length) {
+    app.innerHTML = screenOnboarding();
+    $('#nav').innerHTML = ''; $('#banner').innerHTML = '';
+    return;
+  }
+  const r = route();
+  const key = r.name + '/' + (r.id || '');
+  if (key !== lastRoute) {
+    if (!['exercise-new', 'exercise-edit', 'routine'].includes(r.name)) ui.draft = null;
+    lastRoute = key;
+    window.scrollTo(0, 0);
+  }
+  const screens = {
+    home: screenHome, workout: () => r.id ? screenWorkoutView(r.id) : screenWorkout(),
+    exercises: screenExercises, exercise: () => screenExercise(r.id),
+    'exercise-new': () => screenExerciseEdit(null), 'exercise-edit': () => screenExerciseEdit(r.id),
+    routines: screenRoutines, routine: () => screenRoutineEdit(r.id),
+    history: screenHistory, users: screenUsers,
+  };
+  app.innerHTML = (screens[r.name] || screenHome)();
+
+  const tab = { home: 'home', workout: r.id ? 'history' : 'home', exercises: 'exercises', exercise: 'exercises', 'exercise-new': 'exercises', 'exercise-edit': 'exercises', routines: 'routines', routine: 'routines', history: 'history' }[r.name];
+  const tabs = [['home', '🏠', 'בית'], ['exercises', '🏋️', 'מכשירים'], ['routines', '📋', 'תוכניות'], ['history', '📅', 'היסטוריה']];
+  $('#nav').innerHTML = tabs.map(([k, ic, l]) => `<a href="#/${k}" class="${tab === k ? 'on' : ''}"><span class="ic">${ic}</span>${l}</a>`).join('');
+  $('#banner').innerHTML = myActive() && !(r.name === 'workout' && !r.id) ? `<div data-act="go-workout">🏋️ אימון פעיל · <span data-elapsed></span> · לחץ לחזרה</div>` : '';
+  renderModal();
+  tick();
+  updateWakeLock();
+}
+
+function tick() {
+  const a = myActive();
+  document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = a ? clock(Date.now() - a.start) : ''; });
+  renderRest();
+}
+setInterval(tick, 1000);
+
+/* ================= Photos ================= */
+
+function resizeImage(file, max = 900) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+    img.src = url;
+  });
+}
+
+/* ================= Workout actions ================= */
+
+function newSetsFor(exId) {
+  const ex = exById(exId), kind = measure(ex);
+  const last = lastPerformance(exId);
+  if (last) return last.sets.map(s => ({ ...s, done: false }));
+  const blank = kind === 'cardio' ? { minutes: null, km: null } : kind === 'reps' ? { reps: null } : { weight: null, reps: null };
+  return Array.from({ length: kind === 'cardio' ? 1 : 3 }, () => ({ ...blank, done: false }));
+}
+function startWorkout(routine) {
+  const uidv = S.settings.currentUserId;
+  S.active[uidv] = {
+    id: uid(), userId: uidv, start: Date.now(),
+    routineId: routine?.id || null, routineName: routine?.name || null,
+    entries: (routine?.exerciseIds || []).filter(exById).map(id => ({ exerciseId: id, sets: newSetsFor(id) })),
+  };
+  save();
+  go('#/workout');
+  if (!routine) { ui.modal = { type: 'pick' }; renderModal(); }
+}
+async function finishWorkout() {
+  const a = myActive();
+  const entries = a.entries
+    .map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(s => s.done).map(({ done, ...s }) => s) }))
+    .filter(e => e.sets.length);
+  if (!entries.length) {
+    if (!await ask('לא סימנת אף סט כמבוצע (✓). לסיים בלי לשמור?')) return;
+    delete S.active[a.userId];
+    rest.endsAt = 0; save(); go('#/home');
+    return;
+  }
+  const w = { id: a.id, userId: a.userId, start: a.start, end: Date.now(), routineId: a.routineId, entries };
+  S.workouts.push(w);
+  delete S.active[a.userId];
+  rest.endsAt = 0;
+  saveNow();
+  const sets = entries.reduce((t, e) => t + e.sets.length, 0);
+  const st = weekStats();
+  const goal = S.settings.weeklyGoal;
+  const extra = st.count === goal ? ' עמדת ביעד השבועי! 🏆' : st.count < goal ? ` עוד ${goal - st.count} ליעד השבועי.` : '';
+  toast(`כל הכבוד! 💪 ${fmtDur(w.end - w.start)}, ${sets} סטים.${extra}`, 4500);
+  go('#/home');
+}
+
+/* ================= Event handling ================= */
+
+const actions = {
+  back: () => history.length > 1 ? history.back() : go('#/home'),
+  go: d => go(d.to),
+  'go-users': () => go('#/users'),
+  'go-workout': () => go('#/workout'),
+  'close-modal': () => closeModal(),
+  'confirm-ok': () => { const r = ui.modal.resolve; ui.modal = null; renderModal(); r(true); },
+  'confirm-no': () => closeModal(),
+
+  'create-first-user': () => {
+    const name = $('#new-user-name').value.trim();
+    if (!name) return $('#new-user-name').focus();
+    const u = { id: uid(), name, color: COLORS[0], created: Date.now() };
+    S.users.push(u); S.settings.currentUserId = u.id; save(); go('#/home'); render();
+  },
+  'add-user': () => {
+    const name = $('#add-user-name').value.trim();
+    if (!name) return $('#add-user-name').focus();
+    S.users.push({ id: uid(), name, color: COLORS[S.users.length % COLORS.length], created: Date.now() });
+    save(); render(); toast(`${name} נוסף. לחץ על השם כדי לעבור אליו.`);
+  },
+  'switch-user': d => { S.settings.currentUserId = d.id; rest.endsAt = 0; save(); go('#/home'); toast(`שלום ${me().name}!`); },
+  'delete-user': async d => {
+    const u = S.users.find(u => u.id === d.id);
+    if (!u || !await ask(`למחוק את ${u.name} ואת כל האימונים שלו? אי אפשר לבטל.`)) return;
+    S.users = S.users.filter(x => x.id !== u.id);
+    S.workouts = S.workouts.filter(w => w.userId !== u.id);
+    S.routines = S.routines.filter(r => r.userId !== u.id);
+    delete S.active[u.id];
+    S.exercises.forEach(e => { if (e.notes) delete e.notes[u.id]; });
+    S.settings.currentUserId = S.users[0]?.id || null;
+    save(); go('#/home'); render();
+  },
+
+  'start-empty': () => startWorkout(null),
+  'start-routine': d => {
+    if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
+    startWorkout(S.routines.find(r => r.id === d.id));
+  },
+  'finish-workout': finishWorkout,
+  'cancel-workout': async () => {
+    if (!await ask('לבטל את האימון? מה שרשמת בו לא יישמר.')) return;
+    delete S.active[S.settings.currentUserId]; rest.endsAt = 0; save(); go('#/home');
+  },
+  'pick-exercise': () => { ui.modal = { type: 'pick' }; renderModal(); },
+  'add-entry': d => {
+    const a = myActive();
+    a.entries.push({ exerciseId: d.id, sets: newSetsFor(d.id) });
+    ui.modal = null; save(); render();
+    requestAnimationFrame(() => window.scrollTo(0, document.body.scrollHeight));
+  },
+  'new-ex-from-workout': () => { ui.modal = null; ui.returnToWorkout = true; go('#/exercise-new'); },
+  'entry-menu': d => { ui.modal = { type: 'entry', i: +d.i }; renderModal(); },
+  'entry-move': d => {
+    const a = myActive(), i = +d.i, j = i + +d.d;
+    [a.entries[i], a.entries[j]] = [a.entries[j], a.entries[i]];
+    ui.modal = null; save(); render();
+  },
+  'entry-remove': d => { myActive().entries.splice(+d.i, 1); ui.modal = null; save(); render(); },
+  'add-set': d => {
+    const e = myActive().entries[+d.i];
+    const prev = e.sets[e.sets.length - 1];
+    const ex = exById(e.exerciseId), kind = measure(ex);
+    e.sets.push(prev ? { ...prev, done: false } : (kind === 'cardio' ? { minutes: null, km: null, done: false } : { weight: null, reps: null, done: false }));
+    save(); render();
+  },
+  'del-set': d => { myActive().entries[+d.i].sets.splice(+d.j, 1); save(); render(); },
+  'toggle-set': d => {
+    unlockAudio();
+    const e = myActive().entries[+d.i], s = e.sets[+d.j];
+    s.done = !s.done;
+    save(); render();
+    if (s.done && measure(exById(e.exerciseId)) !== 'cardio') startRest();
+  },
+  'rest-add': d => { rest.endsAt += +d.v * 1000; rest.total += +d.v * 1000; rest.alerted = false; tick(); },
+  'rest-stop': () => { rest.endsAt = 0; tick(); },
+
+  'draft-set': d => { ui.draft[d.f] = ui.draft[d.f] === d.v && d.f === 'muscle' ? '' : d.v; render(); },
+  'photo-clear': () => { ui.draft.photo = null; render(); },
+  'save-exercise': async d => {
+    const dr = ui.draft;
+    if (!dr.name.trim()) { toast('צריך לתת שם'); return; }
+    let ex = d.id ? exById(d.id) : null;
+    if (!ex) { ex = { id: uid(), notes: {}, created: Date.now() }; S.exercises.push(ex); }
+    Object.assign(ex, { name: dr.name.trim(), type: dr.type, muscle: dr.muscle });
+    if (dr.photo) { photos[ex.id] = dr.photo; await photoSet(ex.id, dr.photo); }
+    else if (photos[ex.id]) { delete photos[ex.id]; await photoDel(ex.id); }
+    ui.draft = null;
+    await saveNow();
+    if (ui.returnToWorkout && myActive()) {
+      ui.returnToWorkout = false;
+      myActive().entries.push({ exerciseId: ex.id, sets: newSetsFor(ex.id) });
+      save(); go('#/workout');
+    } else if (d.id) {
+      history.back();
+    } else {
+      go('#/exercises');
+    }
+    toast('נשמר ✓');
+  },
+  'delete-exercise': async d => {
+    const ex = exById(d.id);
+    if (!await ask(`למחוק את "${ex.name}"? ההיסטוריה שלו תישאר באימונים שכבר נשמרו.`)) return;
+    S.exercises = S.exercises.filter(e => e.id !== d.id);
+    S.routines.forEach(r => { r.exerciseIds = r.exerciseIds.filter(x => x !== d.id); });
+    Object.values(S.active).forEach(a => { a.entries = a.entries.filter(e => e.exerciseId !== d.id); });
+    delete photos[d.id]; await photoDel(d.id);
+    ui.draft = null; save(); go('#/exercises');
+  },
+
+  'r-add': d => { ui.draft.exerciseIds.push(d.id); render(); },
+  'r-remove': d => { ui.draft.exerciseIds.splice(+d.i, 1); render(); },
+  'r-move': d => {
+    const ids = ui.draft.exerciseIds, i = +d.i, j = i + +d.d;
+    [ids[i], ids[j]] = [ids[j], ids[i]]; render();
+  },
+  'save-routine': d => {
+    const dr = ui.draft;
+    if (!dr.name.trim()) { toast('צריך לתת שם לתוכנית'); return; }
+    let r = d.id ? S.routines.find(r => r.id === d.id) : null;
+    if (!r) { r = { id: uid(), userId: S.settings.currentUserId }; S.routines.push(r); }
+    r.name = dr.name.trim(); r.exerciseIds = [...dr.exerciseIds];
+    ui.draft = null; save(); go('#/routines'); toast('התוכנית נשמרה ✓');
+  },
+  'delete-routine': async d => {
+    if (!await ask('למחוק את התוכנית?')) return;
+    S.routines = S.routines.filter(r => r.id !== d.id); ui.draft = null; save(); go('#/routines');
+  },
+  'delete-workout': async d => {
+    if (!await ask('למחוק את האימון הזה מההיסטוריה?')) return;
+    S.workouts = S.workouts.filter(w => w.id !== d.id); save(); history.back();
+  },
+
+  export: async () => {
+    const data = JSON.stringify({ app: 'gym', exported: Date.now(), state: S, photos });
+    const file = new File([data], `gym-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'גיבוי כושר' }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  },
+};
+
+const inputs = {
+  set: el => {
+    const s = myActive().entries[+el.dataset.i].sets[+el.dataset.j];
+    s[el.dataset.f] = num(el.value);
+    save();
+  },
+  'ex-filter': el => {
+    ui.exFilter = el.value;
+    const pos = el.selectionStart;
+    render();
+    const n = document.querySelector('[data-in="ex-filter"]');
+    n.focus(); n.setSelectionRange(pos, pos);
+  },
+  'pick-filter': el => {
+    ui.modal.filter = el.value;
+    const pos = el.selectionStart;
+    renderModal();
+    const n = document.querySelector('[data-in="pick-filter"]');
+    n.focus(); n.setSelectionRange(pos, pos);
+  },
+  'ex-note': el => {
+    const ex = exById(el.dataset.id);
+    ex.notes = ex.notes || {};
+    ex.notes[S.settings.currentUserId] = el.value;
+    save();
+  },
+  draft: el => { ui.draft[el.dataset.f] = el.value; },
+  setting: el => {
+    const v = parseInt(el.value, 10);
+    if (v > 0) { S.settings[el.dataset.f] = v; save(); }
+  },
+};
+
+const changes = {
+  photo: async el => {
+    const f = el.files[0];
+    if (!f) return;
+    try { ui.draft.photo = await resizeImage(f); render(); } catch (_) { toast('לא הצלחתי לקרוא את התמונה'); }
+  },
+  import: async el => {
+    const f = el.files[0];
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.app !== 'gym' || !data.state) throw new Error('not a backup');
+      if (!await ask('לשחזר מהגיבוי? כל הנתונים הנוכחיים בטלפון יוחלפו.')) return;
+      S = data.state; photos = data.photos || {};
+      await idb('photos', 'readwrite', s => s.clear());
+      for (const [k, v] of Object.entries(photos)) await photoSet(k, v);
+      await saveNow(); go('#/home'); render(); toast('הגיבוי שוחזר ✓');
+    } catch (_) { toast('הקובץ הזה לא נראה כמו גיבוי של האפליקציה'); }
+  },
+};
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'modal') { closeModal(); return; }
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const fn = actions[el.dataset.act];
+  if (fn) { e.preventDefault(); fn(el.dataset, el); }
+});
+document.addEventListener('input', e => {
+  const el = e.target.closest('[data-in]');
+  if (el && inputs[el.dataset.in]) inputs[el.dataset.in](el);
+});
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-in]');
+  if (el && changes[el.dataset.in]) { changes[el.dataset.in](el); el.value = ''; }
+});
+document.addEventListener('focusin', e => {
+  // Select the whole number when tapping a set field, so typing replaces it.
+  if (e.target.matches('.sets input')) setTimeout(() => e.target.select(), 0);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'new-user-name') actions['create-first-user']();
+  if (e.key === 'Enter' && e.target.id === 'add-user-name') actions['add-user']();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveNow();
+  updateWakeLock();
+  tick();
+});
+window.addEventListener('hashchange', render);
+
+/* ================= Boot ================= */
+
+(async function boot() {
+  try {
+    db = await openDB();
+    const saved = await kvGet('state');
+    if (saved) S = { ...S, ...saved, settings: { ...S.settings, ...saved.settings } };
+    photos = await photoAll();
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  } catch (err) {
+    $('#app').innerHTML = `<div class="empty">לא הצלחתי לפתוח את האחסון בטלפון. נסה לפתוח שוב.</div>`;
+    return;
+  }
+  render();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
