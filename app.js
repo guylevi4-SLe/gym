@@ -70,9 +70,39 @@ const TYPES = {
   machine: { label: 'מכשיר', icon: '🏋️' },
   free: { label: 'משקולות חופשיות', icon: '💪' },
   bodyweight: { label: 'משקל גוף', icon: '🤸' },
-  cardio: { label: 'אירובי', icon: '🏃' },
+  cardio: { label: 'אירובי / חימום', icon: '🏃' },
 };
 const MUSCLES = ['חזה', 'גב', 'כתפיים', 'יד קדמית', 'יד אחורית', 'רגליים', 'ישבן', 'בטן', 'כל הגוף', 'אירובי'];
+// Ready-made list so nobody starts from an empty screen: [name, type, muscle]
+const CATALOG = [
+  ['חימום ואירובי', [
+    ['הליכון', 'cardio', 'אירובי'], ['אליפטי', 'cardio', 'אירובי'], ['אופני כושר', 'cardio', 'אירובי'],
+    ['אופני כושר עם משענת', 'cardio', 'אירובי'], ['מכונת חתירה', 'cardio', 'אירובי'], ['מדרגות', 'cardio', 'אירובי'],
+    ['אופני ידיים', 'cardio', 'אירובי'], ['קפיצה בחבל', 'cardio', 'אירובי'],
+  ]],
+  ['מכשירים', [
+    ['לחיצת חזה במכונה', 'machine', 'חזה'], ['פרפר (Pec Deck)', 'machine', 'חזה'], ['לחיצת חזה בשיפוע במכונה', 'machine', 'חזה'],
+    ['פולי עליון', 'machine', 'גב'], ['חתירה בכבל בישיבה', 'machine', 'גב'], ['חתירה במכונה', 'machine', 'גב'], ['פשיטת גב', 'machine', 'גב'],
+    ['לחיצת כתפיים במכונה', 'machine', 'כתפיים'], ['הרחקת כתפיים במכונה', 'machine', 'כתפיים'], ['פרפר הפוך', 'machine', 'כתפיים'],
+    ['כפיפת מרפקים במכונה', 'machine', 'יד קדמית'], ['פשיטת מרפקים בכבל', 'machine', 'יד אחורית'], ['מקבילים עם סיוע', 'machine', 'יד אחורית'],
+    ['לחיצת רגליים', 'machine', 'רגליים'], ['פשיטת ברכיים', 'machine', 'רגליים'], ['כפיפת ברכיים בשכיבה', 'machine', 'רגליים'],
+    ['כפיפת ברכיים בישיבה', 'machine', 'רגליים'], ['מקרב ירכיים', 'machine', 'רגליים'], ['מרחיק ירכיים', 'machine', 'ישבן'],
+    ['תאומים במכונה', 'machine', 'רגליים'], ['סמית׳ סקוואט', 'machine', 'רגליים'], ['מתח עם סיוע', 'machine', 'גב'],
+    ['כפיפות בטן במכונה', 'machine', 'בטן'], ['הצלבת כבלים', 'machine', 'חזה'],
+  ]],
+  ['משקולות חופשיות', [
+    ['לחיצת חזה במוט', 'free', 'חזה'], ['לחיצת חזה במשקולות', 'free', 'חזה'], ['סקוואט במוט', 'free', 'רגליים'],
+    ['דדליפט', 'free', 'גב'], ['חתירה במוט', 'free', 'גב'], ['חתירה במשקולת יד', 'free', 'גב'],
+    ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקה לצדדים', 'free', 'כתפיים'],
+    ['כפיפת מרפקים במשקולות', 'free', 'יד קדמית'], ['פטישים', 'free', 'יד קדמית'], ['פשיטת מרפקים מעל הראש', 'free', 'יד אחורית'],
+    ['מכרעים (לאנג׳ים)', 'free', 'רגליים'], ['גשר ישבן (היפ תראסט)', 'free', 'ישבן'],
+  ]],
+  ['משקל גוף', [
+    ['שכיבות סמיכה', 'bodyweight', 'חזה'], ['מתח', 'bodyweight', 'גב'], ['מקבילים', 'bodyweight', 'יד אחורית'],
+    ['כפיפות בטן', 'bodyweight', 'בטן'], ['הרמות רגליים בתלייה', 'bodyweight', 'בטן'], ['סקוואט משקל גוף', 'bodyweight', 'רגליים'],
+  ]],
+];
+
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -311,6 +341,7 @@ function screenExercises() {
       <input class="input grow" data-in="ex-filter" placeholder="🔍 חיפוש" value="${esc(ui.exFilter)}">
       <button class="btn primary" data-act="go" data-to="#/exercise-new">+ חדש</button>
     </div>
+    <button class="btn block" style="margin-bottom:12px" data-act="open-catalog">📋 הוסף מהרשימה המוכנה</button>
     ${S.gyms.length ? `<div class="chips" style="margin-bottom:12px">
       <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">הכל</button>
       ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}
@@ -320,7 +351,7 @@ function screenExercises() {
         ${thumb(ex)}
         <div class="body"><div class="name">${esc(ex.name)}</div><span class="tag">${esc(ex.muscle || TYPES[ex.type].label)}</span></div>
       </div>`).join('')}</div>`
-    : `<div class="empty"><span class="big-ic">📸</span>${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחדר הכושר, צלם מכשיר ותן לו שם.'}</div>`}`;
+    : `<div class="empty"><span class="big-ic">📸</span>${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחר מהרשימה המוכנה, או צלם מכשיר בחדר הכושר ותן לו שם.'}</div>`}`;
 }
 
 function screenExercise(id) {
@@ -516,7 +547,24 @@ function renderModal() {
       ${list.map(ex => `<div class="card list-item tap" data-act="add-entry" data-id="${ex.id}">
         ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(ex.muscle || TYPES[ex.type].label)}${inWorkout.has(ex.id) ? ' · כבר באימון' : ''}</div></div>
       </div>`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
-      <button class="btn big" style="margin-top:12px" data-act="new-ex-from-workout">+ מכשיר / תרגיל חדש</button>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn" data-act="open-catalog">📋 מהרשימה</button>
+        <button class="btn" data-act="new-ex-from-workout">+ חדש</button>
+      </div>
+    </div>`;
+  } else if (m.type === 'catalog') {
+    const have = new Set(S.exercises.map(e => e.name));
+    const n = m.picked.length, g = gymById(curGymId());
+    el.innerHTML = `<div class="sheet" data-stop>
+      <div class="row between"><h2>רשימה מוכנה</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <p class="muted small" style="margin-top:0">בחר את מה שיש${g ? ` ב${esc(g.name)}` : ''}. אפשר לשנות שם ולהוסיף תמונה אחר כך.</p>
+      ${CATALOG.map(([title, items]) => `<h2 style="font-size:16px">${title}</h2>
+        <div class="chips">${items.map(([name]) => have.has(name)
+          ? `<span class="chip" style="opacity:.45">✓ ${esc(name)}</span>`
+          : `<button class="chip ${m.picked.includes(name) ? 'on' : ''}" data-act="catalog-toggle" data-v="${esc(name)}">${esc(name)}</button>`).join('')}</div>`).join('')}
+      <div style="position:sticky;bottom:0;padding-top:12px;background:var(--bg)">
+        <button class="btn primary big" data-act="catalog-add" ${n ? '' : 'disabled'}>${n ? `הוסף ${n}` : 'בחר תרגילים'}</button>
+      </div>
     </div>`;
   } else if (m.type === 'gym') {
     const cur = curGymId();
@@ -797,6 +845,36 @@ const actions = {
     save(); render();
   },
   'ex-gym': d => { ui.exGym = d.id || null; render(); },
+  'open-catalog': () => {
+    ui.modal = { type: 'catalog', picked: [], fromWorkout: ui.modal?.type === 'pick' || location.hash === '#/workout' };
+    renderModal();
+  },
+  'catalog-toggle': d => {
+    const p = ui.modal.picked, i = p.indexOf(d.v);
+    if (i >= 0) p.splice(i, 1); else p.push(d.v);
+    const sheet = document.querySelector('.sheet'), top = sheet?.scrollTop;
+    renderModal();
+    const s2 = document.querySelector('.sheet'); if (s2) s2.scrollTop = top;
+  },
+  'catalog-add': () => {
+    const m = ui.modal, gym = curGymId();
+    const all = CATALOG.flatMap(([, items]) => items);
+    const added = [];
+    for (const name of m.picked) {
+      const [, type, muscle] = all.find(x => x[0] === name);
+      // machines and cardio equipment belong to the gym you're in; free weights and bodyweight work anywhere
+      const gymIds = gym && (type === 'machine' || type === 'cardio') && !['קפיצה בחבל'].includes(name) ? [gym] : [];
+      const ex = { id: uid(), name, type, muscle, gymIds, notes: {}, created: Date.now() };
+      S.exercises.push(ex); added.push(ex);
+    }
+    const a = myActive();
+    if (m.fromWorkout && a) {
+      if (added.length === 1) { a.entries.push({ exerciseId: added[0].id, sets: newSetsFor(added[0].id) }); ui.modal = null; }
+      else ui.modal = { type: 'pick' };
+    } else ui.modal = null;
+    save(); render();
+    toast(`נוספו ${added.length} ✓`);
+  },
   'draft-gym': d => {
     const ids = ui.draft.gymIds, i = ids.indexOf(d.id);
     if (i >= 0) ids.splice(i, 1); else ids.push(d.id);
