@@ -315,6 +315,7 @@ function entryCard(e, i) {
       <div class="grow">
         <b>${esc(ex.name)}</b>
         <div class="last">${last ? `בפעם הקודמת (${fmtDate(last.date)}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</div>
+        ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">🎯 יעד: ${esc(targetText(myTarget(ex), kind))}</div>` : ''}
         ${note ? `<div class="note">📌 ${esc(note)}</div>` : ''}
       </div>
       <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">⋯</button>
@@ -371,6 +372,9 @@ function screenExercise(id) {
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
     <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag">${esc(ex.muscle)}</span>` : ''}${(ex.gymIds || []).map(gymById).filter(Boolean).map(g => `<span class="tag">📍 ${esc(g.name)}</span>`).join('')}</div>
+    <div class="field"><span class="muted small" style="display:block;margin-bottom:6px">🎯 היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span>
+      ${targetFields(ex)}
+    </div>
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
       <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
     </label>
@@ -438,11 +442,14 @@ function screenRoutineEdit(id) {
       <input class="input" data-in="draft" data-f="name" value="${esc(draft.name)}" placeholder="למשל: אימון א - פלג גוף עליון" autocomplete="off">
     </label>
     <h2>תרגילים בתוכנית (${draft.exerciseIds.length})</h2>
-    ${draft.exerciseIds.map((xid, i) => { const ex = exById(xid); return ex ? `<div class="card list-item">
-      <b class="muted">${i + 1}</b><div class="grow">${esc(ex.name)}</div>
-      <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''}>▲</button>
-      <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''}>▼</button>
-      <button class="btn sm danger" data-act="r-remove" data-i="${i}">×</button>
+    ${draft.exerciseIds.map((xid, i) => { const ex = exById(xid); return ex ? `<div class="card stack">
+      <div class="list-item">
+        <b class="muted">${i + 1}</b><div class="grow">${esc(ex.name)}</div>
+        <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''}>▼</button>
+        <button class="btn sm danger" data-act="r-remove" data-i="${i}">×</button>
+      </div>
+      ${targetFields(ex)}
     </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
     <h2>הוסף תרגיל</h2>
     ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">+ ${esc(e.name)}</button>`).join('')}</div>`
@@ -734,8 +741,34 @@ function resizeImage(file, max = 900) {
 
 /* ================= Workout actions ================= */
 
+const myTarget = ex => ex?.targets?.[S.settings.currentUserId] || null;
+function targetText(t, kind) {
+  if (!t) return '';
+  if (kind === 'cardio') return [t.minutes != null && `${fmtNum(t.minutes)} דק׳`, t.km != null && `${fmtNum(t.km)} ק״מ`].filter(Boolean).join(' · ');
+  const parts = [`${t.sets || 3} סטים`];
+  if (t.reps != null) parts.push(`${t.reps} חזרות`);
+  if (kind === 'weight' && t.weight != null) parts.push(`${fmtNum(t.weight)} ק״ג`);
+  return parts.join(' × ');
+}
+// Inputs for an exercise's target; the same values show in the exercise screen and the routine editor.
+function targetFields(ex) {
+  const kind = measure(ex), t = myTarget(ex) || {};
+  const f = kind === 'cardio' ? [['minutes', 'דקות'], ['km', 'ק״מ']]
+    : kind === 'reps' ? [['sets', 'סטים'], ['reps', 'חזרות']]
+    : [['sets', 'סטים'], ['reps', 'חזרות'], ['weight', 'ק״ג']];
+  return `<div class="row" style="gap:8px">${f.map(([k, l]) => `<label class="grow" style="min-width:0">
+    <span class="muted small" style="display:block;margin-bottom:4px">${l}</span>
+    <input class="input" style="text-align:center;padding:8px 4px" inputmode="decimal" data-in="target" data-id="${ex.id}" data-f="${k}" value="${fmtNum(t[k])}" placeholder="—">
+  </label>`).join('')}</div>`;
+}
 function newSetsFor(exId) {
   const ex = exById(exId), kind = measure(ex);
+  const t = myTarget(ex);
+  if (t && Object.values(t).some(v => v != null)) {
+    if (kind === 'cardio') return [{ minutes: t.minutes ?? null, km: t.km ?? null, done: false }];
+    const one = kind === 'reps' ? { reps: t.reps ?? null } : { weight: t.weight ?? null, reps: t.reps ?? null };
+    return Array.from({ length: Math.max(1, Math.min(10, t.sets || 3)) }, () => ({ ...one, done: false }));
+  }
   const last = lastPerformance(exId);
   if (last) return last.sets.map(s => ({ ...s, done: false }));
   const blank = kind === 'cardio' ? { minutes: null, km: null } : kind === 'reps' ? { reps: null } : { weight: null, reps: null };
@@ -1018,6 +1051,15 @@ const inputs = {
     save();
   },
   draft: el => { ui.draft[el.dataset.f] = el.value; },
+  target: el => {
+    const ex = exById(el.dataset.id), uidv = S.settings.currentUserId;
+    ex.targets = ex.targets || {};
+    const t = { ...(ex.targets[uidv] || {}) };
+    const v = num(el.value);
+    t[el.dataset.f] = el.dataset.f === 'sets' && v != null ? Math.round(v) : v;
+    ex.targets[uidv] = t;
+    save();
+  },
   'my-name': el => { const u = me(); if (u && el.value.trim()) { u.name = el.value.trim(); save(); } },
   setting: el => {
     const v = parseInt(el.value, 10);

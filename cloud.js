@@ -133,7 +133,7 @@ function subscribe() {
   watchList(['families', fid, 'exercises'], 'exercises', ex => {
     if (ex.photo) photos[ex.id] = ex.photo; else delete photos[ex.id];
     const { photo, ...rest } = ex;
-    return { ...rest, notes: rest.notes || {}, gymIds: rest.gymIds || [] };
+    return { ...rest, notes: rest.notes || {}, targets: rest.targets || {}, gymIds: rest.gymIds || [] };
   });
   watchList(['families', fid, 'profiles'], 'users', p => p);
   watchList(['users', uidv, 'workouts'], 'workouts', w => ({ ...w, userId: uidv }));
@@ -328,7 +328,9 @@ async function migrateLocal(localUserId) {
     if (exIds.has(ex.id)) continue;
     const notes = {};
     if (ex.notes?.[localUserId]) notes[uidv] = ex.notes[localUserId];
-    S.exercises.push({ ...ex, notes, gymIds: ex.gymIds || [] });
+    const targets = {};
+    if (ex.targets?.[localUserId]) targets[uidv] = ex.targets[localUserId];
+    S.exercises.push({ ...ex, notes, targets, gymIds: ex.gymIds || [] });
     if (localPhotos[ex.id]) photos[ex.id] = localPhotos[ex.id];
   }
   for (const w of L.workouts.filter(w => w.userId === localUserId)) S.workouts.push({ ...w, userId: uidv });
