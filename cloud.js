@@ -47,9 +47,12 @@ const AUTH_ERRORS = {
   'auth/wrong-password': 'המייל או הסיסמה לא נכונים',
   'auth/user-not-found': 'אין חשבון עם המייל הזה. לחץ "הרשמה"',
   'auth/too-many-requests': 'יותר מדי ניסיונות. נסה שוב בעוד כמה דקות',
-  'auth/network-request-failed': 'אין חיבור לאינטרנט. הכניסה הראשונה צריכה קליטה',
+  'auth/network-request-failed': 'לא הצלחתי להתחבר לשרת. בדוק שיש אינטרנט ונסה שוב',
+  'auth/operation-not-allowed': 'ההרשמה עם מייל עוד לא הופעלה ב-Firebase',
+  'auth/unauthorized-domain': 'הכתובת של האפליקציה לא מאושרת ב-Firebase',
+  timeout: 'השרת לא ענה. בדוק את החיבור ונסה שוב',
 };
-const authMsg = e => AUTH_ERRORS[e?.code] || 'משהו השתבש. נסה שוב';
+const authMsg = e => AUTH_ERRORS[e?.code] || `משהו השתבש (${e?.code || e?.message || 'unknown'}). צלם את ההודעה ושלח לי`;
 
 /* ---------- Start ---------- */
 
@@ -220,14 +223,26 @@ function cloudPush() {
 
 /* ---------- Account actions ---------- */
 
-async function cloudSignIn(create) {
+function busy(btn, on) {
+  document.querySelectorAll('#app .btn').forEach(b => { b.disabled = on; });
+  if (btn) { if (on) { btn.dataset.label = btn.textContent; btn.textContent = 'רגע...'; } else if (btn.dataset.label) btn.textContent = btn.dataset.label; }
+}
+function withTimeout(promise, ms = 20000) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject({ code: 'timeout' }), ms))]);
+}
+async function cloudSignIn(create, btn) {
   const email = $('#auth-email').value.trim(), pass = $('#auth-pass').value;
-  ui.authError = '';
+  ui.authError = ''; ui.authEmail = email;
+  if (!email) { ui.authError = 'צריך להזין מייל'; render(); return; }
+  if (!FB || !fbAuth) { ui.authError = 'האפליקציה עוד נטענת. נסה שוב בעוד רגע'; render(); return; }
+  busy(btn, true);
   try {
-    if (create) await FB.createUserWithEmailAndPassword(fbAuth, email, pass);
-    else await FB.signInWithEmailAndPassword(fbAuth, email, pass);
+    if (create) await withTimeout(FB.createUserWithEmailAndPassword(fbAuth, email, pass));
+    else await withTimeout(FB.signInWithEmailAndPassword(fbAuth, email, pass));
   } catch (e) {
-    ui.authError = authMsg(e); ui.authEmail = email; render();
+    console.error('auth failed', e);
+    busy(btn, false);
+    ui.authError = authMsg(e); render();
   }
 }
 async function cloudResetPassword() {
@@ -237,10 +252,11 @@ async function cloudResetPassword() {
   catch (e) { ui.authError = authMsg(e); ui.authEmail = email; render(); }
 }
 
-async function cloudSetup(join) {
+async function cloudSetup(join, btn) {
   const name = $('#setup-name').value.trim();
   if (!name) { ui.authError = 'איך קוראים לך?'; render(); return; }
   const uidv = cloudUser.uid;
+  busy(btn, true);
   try {
     let fid;
     if (join) {
@@ -261,7 +277,8 @@ async function cloudSetup(join) {
     subscribe();
   } catch (e) {
     console.error(e);
-    ui.authError = 'לא הצלחתי לשמור. בדוק את החיבור ונסה שוב'; ui.setupName = name; render();
+    busy(btn, false);
+    ui.authError = `לא הצלחתי לשמור (${e?.code || e?.message || 'unknown'}). בדוק את החיבור ונסה שוב`; ui.setupName = name; render();
   }
 }
 async function countProfiles(fid) {
@@ -389,11 +406,11 @@ function cloudSettingsSection() {
 }
 
 Object.assign(window, { cloudActions: {
-  'sign-in': () => cloudSignIn(false),
-  'sign-up': () => cloudSignIn(true),
+  'sign-in': (d, el) => cloudSignIn(false, el),
+  'sign-up': (d, el) => cloudSignIn(true, el),
   'reset-pass': cloudResetPassword,
-  'setup-new': () => cloudSetup(false),
-  'setup-join': () => cloudSetup(true),
+  'setup-new': (d, el) => cloudSetup(false, el),
+  'setup-join': (d, el) => cloudSetup(true, el),
   'sign-out': cloudSignOut,
   'sign-out-now': () => FB.signOut(fbAuth),
   'share-invite': shareInvite,
