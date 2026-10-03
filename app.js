@@ -1,4 +1,5 @@
 'use strict';
+const APP_VERSION = 14;  // keep in step with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -534,6 +535,7 @@ function screenUsers() {
     </div>`}
     <h2>התקנה באייפון</h2>
     <p class="muted small" style="margin-top:0">בספארי: לחץ על כפתור השיתוף ⬆️ ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p>
+    <p class="muted small center" style="margin-top:24px">גרסה ${APP_VERSION}</p>
     ${cloud ? '' : `<hr>
     <button class="btn block danger" data-act="delete-user" data-id="${S.settings.currentUserId}">מחק את המשתמש ${esc(me()?.name)}</button>`}`;
 }
