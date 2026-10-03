@@ -15,6 +15,7 @@ function openDB() {
   });
 }
 function idb(store, mode, fn) {
+  if (!db) return Promise.resolve(undefined);
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, mode);
     const req = fn(tx.objectStore(store));
@@ -26,7 +27,7 @@ const kvGet = k => idb('kv', 'readonly', s => s.get(k));
 const kvSet = (k, v) => idb('kv', 'readwrite', s => s.put(v, k));
 const photoSet = (id, data) => idb('photos', 'readwrite', s => s.put(data, id));
 const photoDel = id => idb('photos', 'readwrite', s => s.delete(id));
-const photoAll = () => new Promise((resolve, reject) => {
+const photoAll = () => !db ? Promise.resolve({}) : new Promise((resolve, reject) => {
   const out = {};
   const req = db.transaction('photos').objectStore('photos').openCursor();
   req.onsuccess = () => {
@@ -49,13 +50,18 @@ let S = {
 };
 let photos = {};   // exerciseId -> dataURL
 let saveTimer = null;
+// State is written to IndexedDB and mirrored to localStorage, so a lost database never means a lost user.
+function mirror() {
+  try { localStorage.setItem('gym-state', JSON.stringify(S)); } catch (_) { /* storage full or blocked */ }
+}
 function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => kvSet('state', S), 250);
+  saveTimer = setTimeout(saveNow, 250);
 }
 function saveNow() {
   clearTimeout(saveTimer);
-  return kvSet('state', S);
+  mirror();
+  return kvSet('state', S).catch(() => {});
 }
 
 const TYPES = {
@@ -681,7 +687,7 @@ const actions = {
     const name = $('#new-user-name').value.trim();
     if (!name) return $('#new-user-name').focus();
     const u = { id: uid(), name, color: COLORS[0], created: Date.now() };
-    S.users.push(u); S.settings.currentUserId = u.id; save(); go('#/home'); render();
+    S.users.push(u); S.settings.currentUserId = u.id; saveNow(); go('#/home'); render();
   },
   'add-user': () => {
     const name = $('#add-user-name').value.trim();
@@ -901,10 +907,16 @@ window.addEventListener('hashchange', render);
 
 (async function boot() {
   try {
-    db = await openDB();
-    const saved = await kvGet('state');
+    let saved = null;
+    try {
+      db = await openDB();
+      saved = await kvGet('state');
+      photos = await photoAll();
+    } catch (_) { db = null; }
+    if (!saved || !saved.users?.length) {
+      try { saved = JSON.parse(localStorage.getItem('gym-state')) || saved; } catch (_) { /* no mirror */ }
+    }
     if (saved) S = { ...S, ...saved, settings: { ...S.settings, ...saved.settings } };
-    photos = await photoAll();
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   } catch (err) {
     $('#app').innerHTML = `<div class="empty">לא הצלחתי לפתוח את האחסון בטלפון. נסה לפתוח שוב.</div>`;
