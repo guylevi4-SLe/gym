@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.1';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.2';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -45,6 +45,7 @@ let S = {
   users: [],
   exercises: [],   // shared by all users: {id, name, type, muscle, hasPhoto, notes: {userId: text}}
   routines: [],    // per user: {id, userId, name, exerciseIds}
+  plans: [],       // per user, planned visits: {id, userId, at, gymId, routineId, notes, started}
   gyms: [],        // {id, name}; exercises with no gymIds are available everywhere
   workouts: [],    // finished: {id, userId, start, end, routineId, entries: [{exerciseId, sets}]}
   active: {},      // userId -> workout in progress
@@ -198,7 +199,7 @@ function streakWeeks() {
 
 /* ================= UI helpers ================= */
 
-const ui = { modal: null, exFilter: '', exGym: undefined };
+const ui = { planDraft: null, modal: null, exFilter: '', exGym: undefined };
 
 function toast(msg, ms = 2600) {
   const el = $('#toast');
@@ -275,7 +276,49 @@ function screenHome() {
     ${!a && routines.length ? `<h2>התחל מתוכנית</h2>
       <div class="chips">${routines.map(r => `<button class="chip" data-act="start-routine" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>` : ''}
     <h2>אימונים אחרונים</h2>
-    ${recent.length ? recent.map(workoutRow).join('') : `<div class="empty"><span class="big-ic">📅</span>עוד אין אימונים. האימון הראשון מחכה לך!</div>`}`;
+    ${recent.length ? recent.map(workoutRow).join('') : `<div class="empty"><span class="big-ic">📅</span>עוד אין אימונים. האימון הראשון מחכה לך!</div>`}
+    <div class="row between" style="margin-top:22px"><h2 style="margin:0">אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">+ תכנן אימון</button></div>
+    <div style="margin-top:10px">${upcomingPlans().map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}</div>`;
+}
+
+/* ---- Planned workouts ---- */
+const upcomingPlans = () => S.plans
+  .filter(p => p.userId === S.settings.currentUserId && !p.started && p.at > startOfDay(new Date()))
+  .sort((a, b) => a.at - b.at);
+function fmtPlanWhen(t) {
+  const d = new Date(t), days = Math.round((startOfDay(d) - startOfDay(new Date())) / DAY);
+  const day = days === 0 ? 'היום' : days === 1 ? 'מחר' : d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+  return `${day} · ${d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+}
+function planRow(p) {
+  const r = S.routines.find(r => r.id === p.routineId), g = gymById(p.gymId);
+  const today = startOfDay(new Date(p.at)) === startOfDay(new Date());
+  return `<div class="card tap" data-act="plan-edit" data-id="${p.id}">
+    <div class="row between"><b>🗓️ ${fmtPlanWhen(p.at)}</b>${today && !myActive() ? `<button class="btn sm primary" data-act="plan-start" data-id="${p.id}">▶ התחל</button>` : ''}</div>
+    ${g || r ? `<div class="small" style="margin-top:2px">${[g && '📍 ' + esc(g.name), r && '📋 ' + esc(r.name)].filter(Boolean).join(' · ')}</div>` : ''}
+    ${p.notes ? `<div class="muted small" style="margin-top:4px;white-space:pre-line">${esc(p.notes)}</div>` : ''}
+  </div>`;
+}
+const pad2 = n => String(n).padStart(2, '0');
+const toLocalInput = t => { const d = new Date(t); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const icsTime = t => new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+function planEvent(p) {
+  const r = S.routines.find(r => r.id === p.routineId), g = gymById(p.gymId);
+  return { title: `אימון${r ? ' – ' + r.name : ''}`, where: g?.name || '', notes: p.notes || '', start: p.at, end: p.at + 75 * 60000 };
+}
+function planIcs(p) {
+  const ev = planEvent(p), x = s => s.replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//gym//he', 'BEGIN:VEVENT', `UID:${p.id}@gym-app`, `DTSTAMP:${icsTime(Date.now())}`,
+    `DTSTART:${icsTime(ev.start)}`, `DTEND:${icsTime(ev.end)}`, `SUMMARY:${x(ev.title)}`,
+    ev.where && `LOCATION:${x(ev.where)}`, ev.notes && `DESCRIPTION:${x(ev.notes)}`,
+    'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', `DESCRIPTION:${x(ev.title)}`, 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+}
+function googleCalUrl(p) {
+  const ev = planEvent(p);
+  return 'https://calendar.google.com/calendar/render?' + new URLSearchParams({
+    action: 'TEMPLATE', text: ev.title, dates: `${icsTime(ev.start)}/${icsTime(ev.end)}`, details: ev.notes, location: ev.where,
+  });
 }
 
 function gymChip() {
@@ -430,7 +473,7 @@ function screenExerciseEdit(id) {
 
 function screenRoutines() {
   const rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
-  return `${topbar('תוכניות אימון')}
+  return `${topbar('תוכניות האימון שלי')}
     <p class="muted" style="margin-top:0">תוכנית היא רשימה קבועה של תרגילים, למשל "אימון א" ו"אימון ב". מתחילים אותה בלחיצה אחת.</p>
     ${rs.map(r => `<div class="card">
       <div class="row between"><b>${esc(r.name)}</b><button class="btn sm" data-act="go" data-to="#/routine/${r.id}">עריכה</button></div>
@@ -584,6 +627,18 @@ function renderModal() {
       <div style="position:sticky;bottom:0;padding-top:12px;background:var(--bg)">
         <button class="btn primary big" data-act="catalog-add" ${n ? '' : 'disabled'}>${n ? `הוסף ${n}` : 'בחר תרגילים'}</button>
       </div>
+    </div>`;
+  } else if (m.type === 'plan') {
+    const d = ui.planDraft, rs = S.routines.filter(r => r.userId === S.settings.currentUserId), saved = S.plans.some(p => p.id === d.id);
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <div class="row between"><h2>${saved ? 'אימון מתוכנן' : 'תכנון אימון'}</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <label class="field" style="margin:0"><span>מתי?</span><input class="input" type="datetime-local" data-in="plan" data-f="at" value="${toLocalInput(d.at)}"></label>
+      ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="plan-set" data-f="gymId" data-v="${g.id}">📍 ${esc(g.name)}</button>`).join('')}</div></div>` : ''}
+      ${rs.length ? `<div><span class="muted small">איזו תוכנית? (לא חובה)</span><div class="chips" style="margin-top:6px">${rs.map(r => `<button class="chip ${d.routineId === r.id ? 'on' : ''}" data-act="plan-set" data-f="routineId" data-v="${r.id}">${esc(r.name)}</button>`).join('')}</div></div>` : ''}
+      <label class="field" style="margin:0"><span>הערות</span><textarea class="input" data-in="plan" data-f="notes" placeholder="למשל: יום רגליים, להביא אוזניות">${esc(d.notes || '')}</textarea></label>
+      <button class="btn primary block" data-act="plan-save">${saved ? 'שמור שינויים' : 'שמור'}</button>
+      ${saved ? `<div class="btns"><button class="btn" data-act="plan-ics">📅 ליומן באייפון</button><button class="btn" data-act="plan-google">📅 ליומן גוגל</button></div>
+      <button class="btn block danger" data-act="plan-delete" data-id="${d.id}">מחק</button>` : ''}
     </div>`;
   } else if (m.type === 'gym') {
     const cur = curGymId();
@@ -856,6 +911,7 @@ const actions = {
     S.users = S.users.filter(x => x.id !== u.id);
     S.workouts = S.workouts.filter(w => w.userId !== u.id);
     S.routines = S.routines.filter(r => r.userId !== u.id);
+    S.plans = S.plans.filter(p => p.userId !== u.id);
     delete S.active[u.id];
     S.exercises.forEach(e => { if (e.notes) delete e.notes[u.id]; });
     S.settings.currentUserId = S.users[0]?.id || null;
@@ -863,6 +919,47 @@ const actions = {
   },
 
   'pick-gym': () => { ui.modal = { type: 'gym' }; renderModal(); },
+  'plan-new': () => {
+    const t = new Date(); t.setDate(t.getDate() + 1); t.setHours(18, 0, 0, 0);
+    ui.planDraft = { id: uid(), at: t.getTime(), gymId: curGymId(), routineId: null, notes: '' };
+    ui.modal = { type: 'plan' }; renderModal();
+  },
+  'plan-edit': d => {
+    const p = S.plans.find(p => p.id === d.id); if (!p) return;
+    ui.planDraft = { ...p }; ui.modal = { type: 'plan' }; renderModal();
+  },
+  'plan-set': d => {
+    ui.planDraft[d.f] = ui.planDraft[d.f] === d.v ? null : d.v; renderModal();
+  },
+  'plan-save': () => {
+    const d = ui.planDraft, i = S.plans.findIndex(p => p.id === d.id);
+    const p = { id: d.id, userId: S.settings.currentUserId, at: d.at, gymId: d.gymId || null, routineId: d.routineId || null, notes: (d.notes || '').trim(), started: false };
+    if (i >= 0) S.plans[i] = p; else S.plans.push(p);
+    save(); render();
+    if (i >= 0) { ui.modal = null; renderModal(); toast('נשמר ✓'); }
+    else { renderModal(); toast('האימון נקבע ✓ אפשר להוסיף אותו ליומן'); }
+  },
+  'plan-delete': async d => {
+    if (!await ask('למחוק את האימון המתוכנן?')) return;
+    S.plans = S.plans.filter(p => p.id !== d.id); save(); render();
+  },
+  'plan-start': d => {
+    const p = S.plans.find(p => p.id === d.id); if (!p) return;
+    if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
+    p.started = true;
+    if (p.gymId && gymById(p.gymId)) me().gymId = p.gymId;
+    startWorkout(S.routines.find(r => r.id === p.routineId));
+  },
+  'plan-ics': () => {
+    const p = S.plans.find(p => p.id === ui.planDraft.id); if (!p) return;
+    const file = new File([planIcs(p)], 'workout.ics', { type: 'text/calendar' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  },
+  'plan-google': () => {
+    const p = S.plans.find(p => p.id === ui.planDraft.id); if (p) window.open(googleCalUrl(p), '_blank');
+  },
   'set-gym': d => {
     me().gymId = d.id || null; ui.exGym = undefined;
     const a = myActive(); if (a && !a.entries.length) a.gymId = me().gymId;
@@ -1042,6 +1139,10 @@ const actions = {
 };
 
 const inputs = {
+  plan: el => {
+    if (el.dataset.f === 'at') { const t = new Date(el.value).getTime(); if (!isNaN(t)) ui.planDraft.at = t; }
+    else ui.planDraft[el.dataset.f] = el.value;
+  },
   set: el => {
     const s = myActive().entries[+el.dataset.i].sets[+el.dataset.j];
     s[el.dataset.f] = num(el.value);
@@ -1097,7 +1198,7 @@ const changes = {
       const data = JSON.parse(await f.text());
       if (data.app !== 'gym' || !data.state) throw new Error('not a backup');
       if (!await ask('לשחזר מהגיבוי? כל הנתונים הנוכחיים בטלפון יוחלפו.')) return;
-      S = data.state; photos = data.photos || {};
+      S = { plans: [], ...data.state }; photos = data.photos || {};
       await idb('photos', 'readwrite', s => s.clear());
       for (const [k, v] of Object.entries(photos)) await photoSet(k, v);
       await saveNow(); go('#/home'); render(); toast('הגיבוי שוחזר ✓');

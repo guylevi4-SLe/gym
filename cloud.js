@@ -6,6 +6,7 @@
      users/{uid}                     name, email, familyId, settings, active (workout in progress)
      users/{uid}/workouts/{id}       finished workouts (private)
      users/{uid}/routines/{id}       routines (private)
+     users/{uid}/plans/{id}          planned workouts (private)
      families/{fid}                  name, members [uid], created. The id doubles as the invite code.
      families/{fid}/gyms/{id}        shared gyms
      families/{fid}/exercises/{id}   shared machines/exercises, photo as a small JPEG data URL
@@ -80,7 +81,7 @@ async function startCloud() {
 
 function blankState() {
   return {
-    version: 1, users: [], exercises: [], routines: [], gyms: [], workouts: [], active: {},
+    version: 1, users: [], exercises: [], routines: [], plans: [], gyms: [], workouts: [], active: {},
     settings: { currentUserId: null, restSeconds: 90, weeklyGoal: 3 },
   };
 }
@@ -138,6 +139,7 @@ function subscribe() {
   watchList(['families', fid, 'profiles'], 'users', p => p);
   watchList(['users', uidv, 'workouts'], 'workouts', w => ({ ...w, userId: uidv }));
   watchList(['users', uidv, 'routines'], 'routines', r => ({ ...r, userId: uidv }));
+  watchList(['users', uidv, 'plans'], 'plans', p => ({ ...p, userId: uidv }));
 }
 
 function applyUserDoc(d) {
@@ -198,6 +200,7 @@ function cloudPush() {
   if (meP) want[`families/${fid}/profiles/${uidv}`] = { name: meP.name, color: meP.color || COLORS[0], gymId: meP.gymId || null };
   for (const w of S.workouts.filter(w => w.userId === uidv)) { const { id, userId, ...rest } = w; want[`users/${uidv}/workouts/${id}`] = rest; }
   for (const r of S.routines.filter(r => r.userId === uidv)) { const { id, userId, ...rest } = r; want[`users/${uidv}/routines/${id}`] = rest; }
+  for (const p of S.plans.filter(p => p.userId === uidv)) { const { id, userId, ...rest } = p; want[`users/${uidv}/plans/${id}`] = rest; }
 
   const writes = [];
   for (const [path, data] of Object.entries(want)) {
@@ -205,7 +208,7 @@ function cloudPush() {
     if (synced[path] !== js) { synced[path] = js; writes.push(['set', path, data]); }
   }
   // Deletions: only within collections this user manages.
-  const mine = [`families/${fid}/gyms/`, `families/${fid}/exercises/`, `users/${uidv}/workouts/`, `users/${uidv}/routines/`];
+  const mine = [`families/${fid}/gyms/`, `families/${fid}/exercises/`, `users/${uidv}/workouts/`, `users/${uidv}/routines/`, `users/${uidv}/plans/`];
   for (const path of Object.keys(synced)) {
     if (!(path in want) && mine.some(p => path.startsWith(p) && !path.slice(p.length).includes('/'))) {
       delete synced[path]; writes.push(['del', path]);
@@ -335,6 +338,7 @@ async function migrateLocal(localUserId) {
   }
   for (const w of L.workouts.filter(w => w.userId === localUserId)) S.workouts.push({ ...w, userId: uidv });
   for (const r of L.routines.filter(r => r.userId === localUserId)) S.routines.push({ ...r, userId: uidv });
+  for (const p of (L.plans || []).filter(p => p.userId === localUserId)) S.plans.push({ ...p, userId: uidv });
   const lu = L.users.find(u => u.id === localUserId);
   const meP = S.users.find(u => u.id === uidv);
   if (meP && lu?.gymId && !meP.gymId) meP.gymId = lu.gymId;
