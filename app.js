@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.19';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.20';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -87,7 +87,7 @@ const CATALOG = [
   ]],
   ['רגליים', [
     ['לחיצת רגליים', 'machine', 'רגליים'], ['פשיטת ברכיים', 'machine', 'רגליים'], ['כפיפת ברכיים בשכיבה', 'machine', 'רגליים'],
-    ['כפיפת ברכיים בישיבה', 'machine', 'רגליים'], ['מקרב ירכיים', 'machine', 'רגליים'], ['מרחיק ירכיים', 'machine', 'ישבן'],
+    ['כפיפת ברכיים בישיבה', 'machine', 'רגליים'], ['מקרב ירכיים', 'machine', 'רגליים'], ['מרחיק ירכיים', 'machine', 'ישבן'], ['בעיטה לאחור במכונה (Glute Kickback)', 'machine', 'ישבן'],
     ['תאומים במכונה', 'machine', 'רגליים'], ['סקוואט משקל גוף', 'bodyweight', 'רגליים'],
   ]],
   ['גב', [
