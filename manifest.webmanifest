@@ -8,8 +8,8 @@
   "background_color": "#060b16",
   "theme_color": "#060b16",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/setou-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/setou-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/setou-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
