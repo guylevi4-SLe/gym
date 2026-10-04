@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.36';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.37';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -279,7 +279,7 @@ function streakWeeks() {
 
 /* ================= UI helpers ================= */
 
-const ui = { planDraft: null, modal: null, exFilter: '', exGym: undefined, exSplit: '', rSplit: '' };
+const ui = { planDraft: null, modal: null, exFilter: '', exGym: null, exSplit: '', rSplit: '' };
 
 function toast(msg, ms = 2600) {
   const el = $('#toast');
@@ -565,7 +565,7 @@ function entryCard(e, i) {
 
 function screenExercises() {
   const f = ui.exFilter.trim();
-  const gym = ui.exGym === undefined ? curGymId() : ui.exGym;
+  const gym = ui.exGym;
   const list = S.exercises.filter(e => (!f || nameHas(e, f) || e.muscle === f) && atGym(e, gym) && (!ui.exSplit || splitOf(e) === ui.exSplit)).sort(byName);
   return `${topbar('המכשירים והתרגילים שלי')}
     <div class="row" style="margin-bottom:12px">
@@ -1013,6 +1013,8 @@ function render() {
   const key = r.name + '/' + (r.id || '');
   if (key !== lastRoute) {
     if (!['exercise-new', 'exercise-edit', 'routine'].includes(r.name)) ui.draft = null;
+    // Machines screen opens on "all gyms · all days"; coming back from a machine page keeps the filter
+    if (r.name === 'exercises' && !/^exercise/.test(lastRoute)) { ui.exGym = null; ui.exSplit = ''; }
     lastRoute = key;
     window.scrollTo(0, 0);
   }
@@ -1226,7 +1228,7 @@ const actions = {
     const p = S.plans.find(p => p.id === ui.planDraft.id); if (p) window.open(googleCalUrl(p), '_blank');
   },
   'set-gym': d => {
-    me().gymId = d.id || null; ui.exGym = undefined;
+    me().gymId = d.id || null;
     const a = myActive(); if (a && !a.entries.length) a.gymId = me().gymId;
     ui.modal = null; save(); render();
   },
