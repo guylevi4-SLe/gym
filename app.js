@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.6';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.7';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -271,8 +271,8 @@ const ICONS = {
 const ico = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 // Logo: an animated dumbbell next to the "Setou" wordmark, "C'est tout" underneath
 const brandMark = `<svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="markGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-2)"/></linearGradient></defs>
-  <g class="lift"><rect x="5" y="14" width="7" height="20" rx="2.5"/><rect x="36" y="14" width="7" height="20" rx="2.5"/><rect x="12.5" y="18" width="4" height="12" rx="1.5"/><rect x="31.5" y="18" width="4" height="12" rx="1.5"/><rect x="16" y="22" width="16" height="4" rx="2"/></g>
-  <ellipse class="shadow" cx="24" cy="44" rx="13" ry="1.8"/></svg>`;
+  <g class="lift"><path class="handle" d="M13 23C10.5 15 12 6.5 24 6.5S37.5 15 35 23"/><path class="bell" d="M24 16.5c9.4 0 16 6.3 16 14.3 0 4.3-1.9 8-4.8 10.7a2.5 2.5 0 0 1-1.7.7h-19a2.5 2.5 0 0 1-1.7-.7C9.9 38.8 8 35.1 8 30.8c0-8 6.6-14.3 16-14.3z"/><text x="24" y="35" text-anchor="middle">8kg</text></g>
+  <ellipse class="shadow" cx="24" cy="46" rx="12" ry="1.6"/></svg>`;
 const brand = (cls = '') => `<div class="brand ${cls}" dir="ltr">${brandMark}<div class="brand-txt"><span class="word">Setou</span><span class="tagline">C'est tout</span></div></div>`;
 
 function thumb(ex, cls = '') {
