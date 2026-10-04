@@ -83,7 +83,7 @@
     'עוד אין מכשירים. בחר מהרשימה המוכנה, או צלם מכשיר בחדר הכושר ותן לו שם.': 'No machines yet. Pick from the ready-made list, or take a photo of a machine at the gym and name it.',
     'שיא (ק״ג)': 'Best (kg)', 'היעד שלי (ימולא אוטומטית כשמתחילים אימון)': 'My target (filled in automatically when a workout starts)',
     'ההערות שלי (גובה מושב, מיקום ידית...)': 'My notes (seat height, handle position...)', 'למשל: מושב בחור 4, משענת 2': 'e.g. seat on hole 4, backrest 2',
-    'פעמים': 'Times', 'עריכה': 'Edit', 'עוד לא עשית את התרגיל הזה': "You haven't done this one yet",
+    'יעד': 'Target', '(לא חובה · אם ריק, מתחילים לפי הפעם האחרונה)': '(optional · empty = start from last time)', 'פעמים': 'Times', 'עריכה': 'Edit', 'עוד לא עשית את התרגיל הזה': "You haven't done this one yet",
     'עריכת תרגיל': 'Edit exercise', 'מכשיר / תרגיל חדש': 'New machine / exercise', 'תמונה': 'Photo', 'צלם': 'Camera',
     'מהגלריה': 'Gallery', 'הסר': 'Remove', 'שם': 'Name', 'למשל: לחיצת חזה במכונה': 'e.g. Chest press machine', 'סוג': 'Type',
     'קבוצת שרירים': 'Muscle group', 'באיזה חדר כושר? (בלי סימון = בכל מקום)': 'Which gym? (none selected = everywhere)',

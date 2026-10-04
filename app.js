@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.33';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.34';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -698,7 +698,7 @@ function screenRoutineEdit(id) {
         <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''} aria-label="למטה">${ico('down')}</button>
         <button class="btn sm danger" data-act="r-remove" data-i="${i}" aria-label="הסר">${ico('x')}</button>
       </div>
-      ${targetFields(ex)}
+      ${targetFields(ex, true)}
       <div class="muted small">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
     </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
     <h2>הוסף תרגיל</h2>
@@ -1073,14 +1073,16 @@ function targetText(t, kind) {
   return parts.join(' × ');
 }
 // Inputs for an exercise's target; the same values show in the exercise screen and the routine editor.
-function targetFields(ex) {
-  const kind = measure(ex), t = myTarget(ex) || {};
+function targetFields(ex, titled) {
+  const kind = measure(ex), t = myTarget(ex) || {}, ls = lastPerformance(ex.id)?.sets || [];
+  const ph = { sets: ls.length || null, reps: ls[0]?.reps, weight: ls.length ? Math.max(...ls.map(x => x.weight || 0)) || null : null, minutes: ls[0]?.minutes, km: ls[0]?.km };
   const f = kind === 'cardio' ? [['minutes', 'דקות'], ['km', 'ק״מ']] : kind === 'time' ? [['minutes', 'דקות']]
     : kind === 'reps' ? [['sets', 'סטים'], ['reps', 'חזרות']]
     : [['sets', 'סטים'], ['reps', 'חזרות'], ['weight', 'ק״ג']];
-  return `<div class="row" style="gap:8px">${f.map(([k, l]) => `<label class="grow" style="min-width:0">
+  return `${titled ? `<div class="small" style="margin-bottom:-2px"><b>יעד</b> <span class="muted">(לא חובה · אם ריק, מתחילים לפי הפעם האחרונה)</span></div>` : ''}
+  <div class="row" style="gap:8px">${f.map(([k, l]) => `<label class="grow" style="min-width:0">
     <span class="muted small" style="display:block;margin-bottom:4px">${l}</span>
-    <input class="input" style="text-align:center;padding:8px 4px" inputmode="decimal" data-in="target" data-id="${ex.id}" data-f="${k}" value="${fmtNum(t[k])}" placeholder="—">
+    <input class="input" style="text-align:center;padding:8px 4px" inputmode="decimal" data-in="target" data-id="${ex.id}" data-f="${k}" value="${fmtNum(t[k])}" placeholder="${ph[k] != null ? fmtNum(ph[k]) : '—'}">
   </label>`).join('')}</div>`;
 }
 function newSetsFor(exId) {
