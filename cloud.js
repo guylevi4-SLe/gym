@@ -362,7 +362,7 @@ function cloudScreen() {
   if (s === 'auth') {
     // One action per screen, so a tap that lands after the keyboard closes can't hit the wrong button.
     const signup = ui.authMode !== 'signin';
-    return `<div class="welcome stack">
+    return `${langToggle()}<div class="welcome stack">
       ${brand('lg')}
       <h1 class="center">${signup ? 'הרשמה' : 'כניסה'}</h1>
       <p class="muted center" style="margin-top:0">${signup ? 'פעם ראשונה? בחר מייל וסיסמה חדשה לאפליקציה.' : 'כניסה לחשבון שכבר יצרת.'}</p>
@@ -374,7 +374,6 @@ function cloudScreen() {
       ${signup ? '' : `<button class="link" style="display:block;margin:0 auto" data-act="reset-pass">שכחתי סיסמה</button>`}
       <hr>
       <button class="link" style="display:block;margin:0 auto;color:var(--muted)" data-act="local-mode">המשך בלי חשבון (נשמר רק בטלפון הזה)</button>
-      ${langSwitch()}
     </div>`;
   }
   if (s === 'setup') return `<div style="padding-top:6vh" class="stack">

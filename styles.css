@@ -430,3 +430,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .ic .pl { fill: color-mix(in srgb, var(--accent) 30%, transparent); stroke: var(--accent); stroke-width: 2.5; }
 .ic .db { stroke-width: 3; }
 .ic .e.thick { stroke-width: 4.5; }
+.lang-top { display: flex; justify-content: flex-end; padding-top: 4px; }
+.lang-top .chip { font-size: 14px; padding: 7px 12px; }
+.lang-top + .welcome { padding-top: 5vh; }
+.card .lang-switch { margin: 0; }

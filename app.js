@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.3';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.4';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -288,18 +288,20 @@ function topbar(title, back) {
 // Hebrew / English switch (labels stay in their own language)
 const langSwitch = () => `<div class="lang-switch"><div class="seg" translate="no">${[['he', 'עברית'], ['en', 'English']].map(([v, l]) =>
   `<button class="${window.LANG === v ? 'on' : ''}" data-act="lang" data-v="${v}">${ico('globe')} ${l}</button>`).join('')}</div></div>`;
+// Small switch in the top corner of the welcome and sign-in screens: shows the other language
+const langToggle = () => { const en = window.LANG === 'en';
+  return `<div class="lang-top"><button class="chip" translate="no" data-act="lang" data-v="${en ? 'he' : 'en'}">${ico('globe')}<span>${en ? 'עברית' : 'English'}</span></button></div>`; };
 const emptyState = (icon, text) => `<div class="empty"><span class="big-ic">${ico(icon)}</span>${text}</div>`;
 
 /* ================= Screens ================= */
 
 function screenOnboarding() {
-  return `<div class="welcome stack">
+  return `${langToggle()}<div class="welcome stack">
     ${brand('lg')}
     <h1>ברוך הבא!</h1>
     <p class="muted">איך קוראים לך? אפשר להוסיף עוד משתמשים אחר כך, למשל את הבן.</p>
     <input class="input" id="new-user-name" placeholder="השם שלך" autocomplete="off">
     <button class="btn primary big" data-act="create-first-user">יאללה, מתחילים</button>
-    ${langSwitch()}
   </div>`;
 }
 
@@ -631,6 +633,7 @@ function screenWorkoutView(id) {
 function screenUsers() {
   const cloud = !!cloudUser;
   return `${topbar(cloud ? 'הגדרות' : 'משתמשים והגדרות', true)}
+    <div class="row between card" style="margin:8px 0 4px"><b>${ico('globe')} <span>שפה</span></b>${langSwitch()}</div>
     ${cloud ? cloudSettingsSection() : `<h2>מי מתאמן?</h2>
     ${S.users.map(u => `<div class="card list-item tap" data-act="switch-user" data-id="${u.id}">
       <span class="avatar" style="background:${u.color}">${esc(u.name.trim()[0] || '?')}</span>
@@ -659,8 +662,6 @@ function screenUsers() {
     <label class="field"><span>יעד אימונים בשבוע</span>
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
-    <h2>שפה</h2>
-    ${langSwitch()}
     <h2>צבעים</h2>
     <div class="chips">${[['blue', 'כחול'], ['green', 'ירוק (המקורי)']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'blue') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${v === 'blue' ? '#3b82f6' : '#34d399'}"></span><span>${l}</span></button>`).join('')}</div>
     <h2>גיבוי</h2>
