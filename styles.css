@@ -90,6 +90,20 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, .28);
   color-scheme: dark;
 }
+/* White & gold: the light version of black & gold, always light */
+:root[data-palette="goldlight"] {
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --surface-2: #ece8de;
+  --border: #ddd6c6;
+  --text: #15130e;
+  --muted: #6b6457;
+  --accent: #c99700;
+  --accent-2: #9a6f00;
+  --accent-ink: #ffffff;
+  --shadow: 0 8px 24px rgba(40, 30, 0, .08);
+  color-scheme: light;
+}
 :root { --grad: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--accent-2))); }
 
 /* ================= Base ================= */
