@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.29';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.30';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -224,7 +224,7 @@ function setText(set, kind) {
 // What the user did last time, as one line (shown in the workout, exercise screen and routine editor)
 function lastLine(ex) {
   const last = lastPerformance(ex.id);
-  return last ? `בפעם הקודמת (${fmtDate(last.date)}): ${setsSummary(last.sets, measure(ex))}` : 'עוד לא עשית את התרגיל הזה';
+  return last ? `בפעם הקודמת (${fmtDate(last.date)}${lastGym(ex, last)}): ${setsSummary(last.sets, measure(ex))}` : 'עוד לא עשית את התרגיל הזה';
 }
 function setsSummary(sets, kind) {
   if (!sets.length) return '';
@@ -236,13 +236,27 @@ function setsSummary(sets, kind) {
 
 /* ================= Queries ================= */
 
-function lastPerformance(exerciseId, userId = S.settings.currentUserId) {
+// A machine marked at 2+ gyms may differ between them (another brand, other weights), so last time, prefill,
+// target and notes are kept per gym: the gym of the active workout, else the gym you're at now.
+const ctxGym = () => myActive() ? myActive().gymId : curGymId();
+const perGym = ex => ex?.gymIds?.length > 1 && ex.gymIds.includes(ctxGym()) ? ctxGym() : null;
+const myKey = ex => S.settings.currentUserId + (perGym(ex) ? '@' + perGym(ex) : '');
+// Notes/targets saved before a machine was kept per gym belong to its first gym
+const oldKeyOk = ex => !perGym(ex) || perGym(ex) === ex.gymIds[0];
+const myNote = ex => ex.notes?.[myKey(ex)] ?? (oldKeyOk(ex) ? ex.notes?.[S.settings.currentUserId] : null) ?? '';
+function lastPerformance(exerciseId, userId = S.settings.currentUserId, gym = perGym(exById(exerciseId))) {
+  let any = null;
   for (const w of S.workouts.filter(w => w.userId === userId).sort((a, b) => b.start - a.start)) {
     const e = w.entries.find(e => e.exerciseId === exerciseId);
-    if (e && e.sets.length) return { date: w.start, sets: e.sets };
+    if (!e || !e.sets.length) continue;
+    const r = { date: w.start, sets: e.sets, gymId: w.gymId || null };
+    if (!gym || w.gymId === gym) return r;
+    any = any || r;
   }
-  return null;
+  return any;  // not done at this gym yet: fall back to the latest anywhere
 }
+// " · gym name" after a last-time line, only for machines kept per gym
+const lastGym = (ex, last) => perGym(ex) && gymById(last?.gymId) ? ` · ${gymById(last.gymId).name}` : '';
 function weekStats() {
   const from = startOfWeek();
   const ws = myWorkouts().filter(w => w.start >= from);
@@ -520,7 +534,7 @@ function entryCard(e, i) {
   if (!ex) return '';
   const kind = measure(ex);
   const last = lastPerformance(ex.id);
-  const note = ex.notes?.[S.settings.currentUserId];
+  const note = myNote(ex);
   const cols = kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'time' ? ['דקות'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
   const fields = kind === 'cardio' ? ['minutes', 'km'] : kind === 'time' ? ['minutes'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
   return `<div class="card ex-card">
@@ -528,7 +542,7 @@ function entryCard(e, i) {
       ${thumb(ex)}
       <div class="grow">
         <b>${esc(ex.name)}</b>
-        <div class="last">${ico('last')}<span>${last ? `בפעם הקודמת (${fmtDate(last.date)}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</span></div>
+        <div class="last">${ico('last')}<span>${last ? `בפעם הקודמת (${fmtDate(last.date)}${esc(lastGym(ex, last))}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</span></div>
         ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">${ico('target')}<span>יעד: ${esc(targetText(myTarget(ex), kind))}</span></div>` : ''}
         ${note ? `<div class="note">${ico('note')}<span>${esc(note)}</span></div>` : ''}
       </div>
@@ -579,7 +593,7 @@ function screenExercise(id) {
   const hist = [];
   for (const w of myWorkouts()) {
     const e = w.entries.find(e => e.exerciseId === id);
-    if (e && e.sets.length) hist.push({ date: w.start, sets: e.sets });
+    if (e && e.sets.length) hist.push({ date: w.start, sets: e.sets, gymId: w.gymId });
   }
   let best = '';
   if (kind === 'weight' && hist.length) {
@@ -596,12 +610,13 @@ function screenExercise(id) {
       <div class="chips">${[...Object.entries(SPLITS), ['none', 'ללא']].map(([k, l]) => `<button class="chip ${(splitOf(ex) || 'none') === k ? 'on' : ''}" data-act="ex-split-set" data-id="${ex.id}" data-v="${k}">${l}</button>`).join('')}</div>
       ${ex.split ? `<button class="link small" style="margin-top:6px" data-act="ex-split-set" data-id="${ex.id}" data-v="">החזר לאוטומטי</button>` : `<div class="muted small" style="margin-top:6px">נקבע אוטומטית לפי השריר. אפשר לשנות.</div>`}
     </div>
-    ${(() => { const last = lastPerformance(ex.id); return `<div class="card field"><span class="label">${ico('last')} <span>הפעם האחרונה</span>${last ? ` <span class="muted">· ${esc(fmtDate(last.date))}</span>` : ''}</span>
+    ${(() => { const last = lastPerformance(ex.id); return `<div class="card field"><span class="label">${ico('last')} <span>הפעם האחרונה</span>${last ? ` <span class="muted">· ${esc(fmtDate(last.date) + lastGym(ex, last))}</span>` : ''}</span>
       ${last ? `<div class="chips" style="margin-top:4px">${last.sets.map((st, j) => `<span class="chip last-set"><span class="muted">${j + 1}</span><b>${esc(setText(st, kind))}</b></span>`).join('')}</div>`
         : '<div class="muted">עוד לא עשית את התרגיל הזה</div>'}
     </div>`; })()}
+    ${perGym(ex) ? `<div class="muted small" style="margin:-4px 0 10px">${ico('pin')} <span>מוצג לפי ${esc(gymById(perGym(ex)).name)}. המשקלים, היעד וההערות נשמרים בנפרד לכל חדר כושר.</span></div>` : ''}
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
-      <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
+      <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(myNote(ex))}</textarea>
     </label>
     <details class="card target-box"><summary>${ico('target')} <span>היעד שלי</span> <span class="muted small open-hint">(לחץ לפתיחה)</span>${targetText(myTarget(ex), kind) ? `<span class="muted tgt-sum">${esc(targetText(myTarget(ex), kind))}</span>` : ''}</summary>
       <div class="muted small" style="margin:8px 0">ימולא אוטומטית כשמתחילים אימון</div>
@@ -614,7 +629,7 @@ function screenExercise(id) {
       <img class="photo-mini" src="${photos[ex.id]}" alt=""><div class="grow"><b>התמונה שלי</b><div class="muted small">לחץ להגדלה</div></div>${ico('camera', 'muted')}
     </div>` : ''}
     <h2>היסטוריה</h2>
-    ${hist.length ? hist.slice(0, 20).map(h => `<div class="card list-item">${dateTile(h.date)}<div class="grow"><div class="card-title">${fmtDate(h.date)}</div><div class="muted small">${esc(setsSummary(h.sets, kind))}</div></div></div>`).join('')
+    ${hist.length ? hist.slice(0, 20).map(h => `<div class="card list-item">${dateTile(h.date)}<div class="grow"><div class="card-title">${fmtDate(h.date)}</div><div class="muted small">${esc(setsSummary(h.sets, kind))}${(ex.gymIds || []).length > 1 && gymById(h.gymId) ? ` · ${esc(gymById(h.gymId).name)}` : ''}</div></div></div>`).join('')
       : emptyState('history', 'עוד לא עשית את התרגיל הזה')}
     <hr>
     <button class="btn block" data-act="go" data-to="#/exercise-edit/${ex.id}">${ico('edit')}<span>עריכה</span></button>`;
@@ -1047,7 +1062,7 @@ function resizeImage(file, max = 900) {
 
 /* ================= Workout actions ================= */
 
-const myTarget = ex => ex?.targets?.[S.settings.currentUserId] || null;
+const myTarget = ex => ex?.targets?.[myKey(ex)] || (oldKeyOk(ex) ? ex?.targets?.[S.settings.currentUserId] : null) || null;
 function targetText(t, kind) {
   if (!t) return '';
   if (timed(kind)) return [t.minutes != null && `${fmtNum(t.minutes)} דק׳`, t.km != null && `${fmtNum(t.km)} ק״מ`].filter(Boolean).join(' · ');
@@ -1087,9 +1102,10 @@ function startWorkout(routine, day, past) {
   S.active[uidv] = {
     id: uid(), userId: uidv, start: past ? past.at : Date.now(),
     routineId: routine?.id || null, routineName: routine?.name || (day ? `יום ${day === 'full' ? 'Full body' : SPLITS[day]}` : null), gymId: past ? past.gymId : curGymId(),
-    entries: ids.map(id => ({ exerciseId: id, sets: newSetsFor(id) })),
+    entries: [],
     ...(past ? { past: past.minutes } : {}),
   };
+  S.active[uidv].entries = ids.map(id => ({ exerciseId: id, sets: newSetsFor(id) }));  // after the line above, so prefill uses this workout's gym
   save();
   go('#/workout');
   if (!ids.length) { ui.modal = { type: 'pick', split: day && day !== 'full' ? day : '' }; renderModal(); }
@@ -1477,17 +1493,17 @@ const inputs = {
   'ex-note': el => {
     const ex = exById(el.dataset.id);
     ex.notes = ex.notes || {};
-    ex.notes[S.settings.currentUserId] = el.value;
+    ex.notes[myKey(ex)] = el.value;
     save();
   },
   draft: el => { ui.draft[el.dataset.f] = el.value; },
   target: el => {
     const ex = exById(el.dataset.id), uidv = S.settings.currentUserId;
     ex.targets = ex.targets || {};
-    const t = { ...(ex.targets[uidv] || {}) };
+    const t = { ...(myTarget(ex) || {}) };
     const v = num(el.value);
     t[el.dataset.f] = el.dataset.f === 'sets' && v != null ? Math.round(v) : v;
-    ex.targets[uidv] = t;
+    ex.targets[myKey(ex)] = t;
     save();
   },
   'my-name': el => { const u = me(); if (u && el.value.trim()) { u.name = el.value.trim(); save(); } },

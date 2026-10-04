@@ -192,6 +192,7 @@
     [/^למחוק את (.+)\? המכשירים שלו יישארו ויופיעו בכל המקומות\.$/, n => `Delete ${n}? Its machines stay and will show at every gym.`],
     [/^נוספו (\d+) ✓$/, n => `Added ${n} ✓`],
     [/^אימון שכבר עשית · (.+) · (.+) · (\d+) דק׳$/, (d, t, m) => `Past workout · ${tr(d)} · ${t} · ${m} min`],
+    [/^מוצג לפי (.+)\. המשקלים, היעד וההערות נשמרים בנפרד לכל חדר כושר\.$/, g => `Showing ${g}. Weights, target and notes are kept separately for each gym.`],
     [/^יום (Push|Pull|Legs|Core|Full body)$/, d => `${d} day`],
     [/^הוכנו (\d+) תרגילים\. אפשר להסיר או להוסיף\.$/, n => `${n} exercises ready. You can remove or add more.`],
     [/^להסיר את "(.+)" מהרשימה שלך\? ההיסטוריה שלו תישאר באימונים שכבר נשמרו\.$/, n => `Remove "${tr(n)}" from your list? Its history stays in saved workouts.`],
