@@ -500,3 +500,6 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .photo-view img { display: block; width: 100%; max-height: 360px; object-fit: contain; }
 .photo-view .tag { position: absolute; top: 10px; inset-inline-start: 10px; background: rgba(0,0,0,.6); color: #fff; }
 .photo-mini { width: 64px; height: 64px; flex: none; border-radius: 12px; object-fit: contain; background: #000; }
+.chip.last-set { gap: 6px; cursor: default; }
+.target-box summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; list-style: none; }
+.target-box summary::-webkit-details-marker { display: none; }

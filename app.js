@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.27';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.28';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -596,13 +596,17 @@ function screenExercise(id) {
       <div class="chips">${[...Object.entries(SPLITS), ['none', 'ללא']].map(([k, l]) => `<button class="chip ${(splitOf(ex) || 'none') === k ? 'on' : ''}" data-act="ex-split-set" data-id="${ex.id}" data-v="${k}">${l}</button>`).join('')}</div>
       ${ex.split ? `<button class="link small" style="margin-top:6px" data-act="ex-split-set" data-id="${ex.id}" data-v="">החזר לאוטומטי</button>` : `<div class="muted small" style="margin-top:6px">נקבע אוטומטית לפי השריר. אפשר לשנות.</div>`}
     </div>
-    <div class="card field"><span class="label">${ico('target')} <span>היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span></span>
-      ${targetFields(ex)}
-      <div class="muted small" style="margin-top:10px">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
-    </div>
+    ${(() => { const last = lastPerformance(ex.id); return `<div class="card field"><span class="label">${ico('last')} <span>הפעם האחרונה</span>${last ? ` <span class="muted">· ${esc(fmtDate(last.date))}</span>` : ''}</span>
+      ${last ? `<div class="chips" style="margin-top:4px">${last.sets.map((st, j) => `<span class="chip last-set"><span class="muted">${j + 1}</span><b>${esc(setText(st, kind))}</b></span>`).join('')}</div>`
+        : '<div class="muted">עוד לא עשית את התרגיל הזה</div>'}
+    </div>`; })()}
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
       <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
     </label>
+    <details class="card target-box"><summary>${ico('target')} <span>היעד שלי</span>${targetText(myTarget(ex), kind) ? ` <span class="muted">· ${esc(targetText(myTarget(ex), kind))}</span>` : ''}</summary>
+      <div class="muted small" style="margin:8px 0">ימולא אוטומטית כשמתחילים אימון</div>
+      ${targetFields(ex)}
+    </details>
     <div class="stats" style="grid-template-columns:repeat(${best ? 2 : 1},1fr);margin-top:6px">
       <div class="stat"><b>${hist.length}</b><span>פעמים</span></div>${best}
     </div>
