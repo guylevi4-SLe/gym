@@ -1,6 +1,6 @@
 // Offline support: try the network first (so updates arrive), fall back to the cached copy
 // when there is no reception or the network is slow.
-const CACHE = 'setou-v20.25';
+const CACHE = 'setou-v20.26';
 const SHELL = ['./', 'index.html', 'styles.css', 'i18n.js', 'app.js', 'icons.js', 'cloud.js', 'config.js', 'vendor/firebase.js', 'manifest.webmanifest',
   'icons/setou-gold-180.png', 'icons/setou-gold-192.png', 'icons/setou-gold-512.png',
   'fonts/heebo-hebrew.woff2', 'fonts/heebo-latin.woff2', 'fonts/barlow-condensed-800i.woff2'];

@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.25';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.26';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -347,8 +347,8 @@ const brandMark = `<svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><def
   <ellipse class="shadow" cx="24" cy="46" rx="12" ry="1.6"/></svg>`;
 const brand = (cls = '') => `<div class="brand ${cls}" dir="ltr">${brandMark}<div class="brand-txt"><span class="word">Setou</span><span class="tagline">C'est tout</span></div></div>`;
 
+// The animated illustration always shows; a machine photo is extra (on the machine page and a button in the workout).
 function thumb(ex, cls = '') {
-  if (ex && photos[ex.id]) return `<img class="thumb ${cls}" src="${photos[ex.id]}" alt="">`;
   return `<div class="thumb ${cls}">${window.exerciseIcon ? exerciseIcon(ex) : ico('dumbbell')}</div>`;
 }
 function avatar(u, act = 'go-users') {
@@ -532,6 +532,7 @@ function entryCard(e, i) {
         ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">${ico('target')}<span>יעד: ${esc(targetText(myTarget(ex), kind))}</span></div>` : ''}
         ${note ? `<div class="note">${ico('note')}<span>${esc(note)}</span></div>` : ''}
       </div>
+      ${photos[ex.id] ? `<button class="del-set" data-act="photo-open" data-id="${ex.id}" aria-label="תמונה">${ico('camera')}</button>` : ''}
       <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">${ico('more')}</button>
     </div>
     <table class="sets">
@@ -587,6 +588,7 @@ function screenExercise(id) {
   }
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
+    ${photos[ex.id] ? `<button class="photo-view" data-act="photo-open" data-id="${ex.id}"><img src="${photos[ex.id]}" alt=""><span class="tag">${ico('camera')}<span>התמונה שלי</span></span></button>` : ''}
     <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}</div>
     ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
       <div class="chips">${S.gyms.map(g => `<button class="chip ${(ex.gymIds || []).includes(g.id) ? 'on' : ''}" data-act="ex-gym-toggle" data-id="${ex.id}" data-gym="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
@@ -619,7 +621,7 @@ function screenExerciseEdit(id) {
   draft.gymIds = draft.gymIds || [];
   return `${topbar(ex ? 'עריכת תרגיל' : 'מכשיר / תרגיל חדש', true)}
     <label class="field"><span>תמונה</span>
-      ${draft.photo ? `<img class="thumb lg" src="${draft.photo}" alt="">` : `<div class="thumb lg">${ico('camera')}</div>`}
+      ${draft.photo ? `<div class="photo-view"><img src="${draft.photo}" alt=""></div>` : `<div class="thumb lg">${ico('camera')}</div>`}
     </label>
     <div class="btns" style="margin:-4px 0 16px">
       <label class="btn">${ico('camera')}<span>צלם</span><input type="file" accept="image/*" capture="environment" data-in="photo" hidden></label>
@@ -848,6 +850,12 @@ function renderModal() {
       <button class="btn primary block" data-act="plan-save">${saved ? 'שמור שינויים' : 'שמור'}</button>
       ${saved ? `<div class="btns"><button class="btn" data-act="plan-ics">${ico('calendar')}<span>ליומן באייפון</span></button><button class="btn" data-act="plan-google">${ico('calendar')}<span>ליומן גוגל</span></button></div>
       <button class="btn block danger" data-act="plan-delete" data-id="${d.id}">מחק</button>` : ''}
+    </div>`;
+  } else if (m.type === 'photo') {
+    const ex = exById(m.id);
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <div class="row between"><h2>${esc(ex?.name || '')}</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <img src="${photos[m.id] || ''}" alt="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:16px;background:#000">
     </div>`;
   } else if (m.type === 'past') {
     const d = ui.pastDraft, rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
@@ -1361,6 +1369,7 @@ const actions = {
   'rest-stop': () => { rest.endsAt = 0; tick(); },
 
   'draft-set': d => { ui.draft[d.f] = ui.draft[d.f] === d.v && d.f === 'muscle' ? '' : d.v; render(); },
+  'photo-open': d => { ui.modal = { type: 'photo', id: d.id }; renderModal(); },
   'photo-clear': () => { ui.draft.photo = null; render(); },
   'save-exercise': async d => {
     const dr = ui.draft;

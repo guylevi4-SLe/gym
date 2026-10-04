@@ -494,3 +494,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .time-pick { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 8px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
 .tp-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .tp-col b, .tp-sep { font-size: 40px; line-height: 1; }
+
+/* Machine photo, shown whole (not cropped) next to the animated illustration */
+.photo-view { display: block; position: relative; width: 100%; margin-top: 10px; padding: 0; border: 1px solid var(--border); border-radius: 22px; overflow: hidden; background: #000; }
+.photo-view img { display: block; width: 100%; max-height: 360px; object-fit: contain; }
+.photo-view .tag { position: absolute; top: 10px; inset-inline-start: 10px; background: rgba(0,0,0,.6); color: #fff; }
