@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.21';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.22';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -131,6 +131,32 @@ function topicOf(ex) {
   if (ex.type === 'free') return 'משקולות';
   return MUSCLE_TOPIC[ex.muscle] || 'רב־תכליתי';
 }
+// Workout-day tags (Push / Pull / Legs / Core). Set automatically from the muscle; ex.split overrides ('none' = no tag).
+const SPLITS = { push: 'Push', pull: 'Pull', legs: 'Legs', core: 'Core' };
+const MUSCLE_SPLIT = { 'חזה': 'push', 'כתפיים': 'push', 'יד אחורית': 'push', 'גב': 'pull', 'יד קדמית': 'pull', 'רגליים': 'legs', 'ישבן': 'legs', 'בטן': 'core' };
+const autoSplit = ex => ex.type === 'cardio' || ex.type === 'stretch' ? null : /פרפר הפוך|reverse fly|rear delt/i.test(ex.name) ? 'pull' : MUSCLE_SPLIT[ex.muscle] || null;
+const splitOf = ex => ex.split ? (ex.split === 'none' ? null : ex.split) : autoSplit(ex);
+const splitChips = (act, cur, extra = '') => `<div class="chips" style="margin-bottom:12px">
+  <button class="chip ${!cur ? 'on' : ''}" data-act="${act}" data-v="" ${extra}>כל הימים</button>
+  ${Object.entries(SPLITS).map(([k, l]) => `<button class="chip ${cur === k ? 'on' : ''}" data-act="${act}" data-v="${k}" ${extra}>${l}</button>`).join('')}
+</div>`;
+// Exercises for a day workout at the current gym: up to 6 of that tag, the ones you've done first; Full body = one per area, least recently done
+function dayExercises(day) {
+  const gym = curGymId(), at = S.exercises.filter(e => atGym(e, gym));
+  const lastDone = id => lastPerformance(id)?.date || 0;
+  const order = e => TOPICS.indexOf(topicOf(e));
+  if (day === 'full') {
+    return ['רגליים', 'גב', 'חזה', 'כתפיים', 'ידיים', 'בטן / ליבה'].map(t => {
+      const l = at.filter(e => topicOf(e) === t || (t !== 'בטן / ליבה' && topicOf(e) === 'משקולות' && MUSCLE_TOPIC[e.muscle] === t));
+      const used = l.filter(e => lastDone(e.id)).sort((a, b) => lastDone(a.id) - lastDone(b.id));
+      return used[0] || l[0];
+    }).filter(Boolean);
+  }
+  return at.filter(e => splitOf(e) === day)
+    .sort((a, b) => (!lastDone(a.id) - !lastDone(b.id)) || order(a) - order(b))
+    .slice(0, 6).sort((a, b) => order(a) - order(b));
+}
+
 // Exercises split into topic sections, in TOPICS order: [[topic, exercises], …]
 const byTopic = list => TOPICS.map(t => [t, list.filter(e => topicOf(e) === t)]).filter(([, l]) => l.length);
 
@@ -239,7 +265,7 @@ function streakWeeks() {
 
 /* ================= UI helpers ================= */
 
-const ui = { planDraft: null, modal: null, exFilter: '', exGym: undefined };
+const ui = { planDraft: null, modal: null, exFilter: '', exGym: undefined, exSplit: '', rSplit: '' };
 
 function toast(msg, ms = 2600) {
   const el = $('#toast');
@@ -392,6 +418,8 @@ function screenHome() {
       ${a ? `<button class="btn primary big cta" data-act="go-workout">${ico('play')}<span>המשך אימון</span> · <span data-elapsed></span></button>`
           : `<button class="btn primary big cta" data-act="start-empty">${ico('play')}<span>התחל אימון</span></button>`}
     </div>
+    ${!a && S.exercises.length ? `<div class="section-head"><h2>אימון לפי יום</h2></div>
+      <div class="chips day-chips">${[...Object.entries(SPLITS).filter(([k]) => k !== 'core'), ['full', 'Full body']].map(([k, l]) => `<button class="chip" data-act="start-day" data-v="${k}">${ico('play')}<span>${l}</span></button>`).join('')}</div>` : ''}
     ${!a && routines.length ? `<div class="section-head"><h2>התחל מתוכנית</h2></div>
       <div class="rail">${routines.map(r => `<button class="rcard tap" data-act="start-routine" data-id="${r.id}">
         <b>${esc(r.name)}</b><span class="muted">${r.exerciseIds.filter(exById).length} תרגילים</span><span class="go">${ico('play')}</span>
@@ -520,7 +548,7 @@ function entryCard(e, i) {
 function screenExercises() {
   const f = ui.exFilter.trim();
   const gym = ui.exGym === undefined ? curGymId() : ui.exGym;
-  const list = S.exercises.filter(e => (!f || nameHas(e, f) || e.muscle === f) && atGym(e, gym)).sort(byName);
+  const list = S.exercises.filter(e => (!f || nameHas(e, f) || e.muscle === f) && atGym(e, gym) && (!ui.exSplit || splitOf(e) === ui.exSplit)).sort(byName);
   return `${topbar('המכשירים והתרגילים שלי')}
     <div class="row" style="margin-bottom:12px">
       <label class="search grow">${ico('search')}<input class="input" data-in="ex-filter" placeholder="חיפוש" value="${esc(ui.exFilter)}"></label>
@@ -531,6 +559,7 @@ function screenExercises() {
       <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">הכל</button>
       ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
     </div>` : ''}
+    ${splitChips('ex-split', ui.exSplit)}
     ${list.length ? byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid">${l.map(ex => `
       <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
         ${thumb(ex)}
@@ -559,6 +588,10 @@ function screenExercise(id) {
     ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
       <div class="chips">${S.gyms.map(g => `<button class="chip ${(ex.gymIds || []).includes(g.id) ? 'on' : ''}" data-act="ex-gym-toggle" data-id="${ex.id}" data-gym="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
     </div>` : ''}
+    <div class="field"><span class="label">${ico('plan')} <span>מתאים ליום</span></span>
+      <div class="chips">${[...Object.entries(SPLITS), ['none', 'ללא']].map(([k, l]) => `<button class="chip ${(splitOf(ex) || 'none') === k ? 'on' : ''}" data-act="ex-split-set" data-id="${ex.id}" data-v="${k}">${l}</button>`).join('')}</div>
+      ${ex.split ? `<button class="link small" style="margin-top:6px" data-act="ex-split-set" data-id="${ex.id}" data-v="">החזר לאוטומטי</button>` : `<div class="muted small" style="margin-top:6px">נקבע אוטומטית לפי השריר. אפשר לשנות.</div>`}
+    </div>
     <div class="card field"><span class="label">${ico('target')} <span>היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span></span>
       ${targetFields(ex)}
       <div class="muted small" style="margin-top:10px">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
@@ -642,7 +675,8 @@ function screenRoutineEdit(id) {
       <div class="muted small">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
     </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
     <h2>הוסף תרגיל</h2>
-    ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">${ico('plus')}<span>${esc(e.name)}</span></button>`).join('')}</div>`
+    ${sorted.length ? splitChips('r-split', ui.rSplit) : ''}
+    ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id) && (!ui.rSplit || splitOf(e) === ui.rSplit)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">${ico('plus')}<span>${esc(e.name)}</span></button>`).join('')}</div>`
       : `<p class="muted">קודם צריך להוסיף מכשירים בלשונית "מכשירים".</p>`}
     <div class="stack" style="margin-top:22px">
       <button class="btn primary big" data-act="save-routine" data-id="${r ? r.id : ''}">שמור</button>
@@ -746,10 +780,11 @@ function renderModal() {
     const a = myActive();
     const inWorkout = new Set(a ? a.entries.map(e => e.exerciseId) : []);
     const f = (m.filter || '').trim();
-    const list = S.exercises.filter(e => (!f || nameHas(e, f)) && atGym(e, a?.gymId)).sort(byName);
+    const list = S.exercises.filter(e => (!f || nameHas(e, f)) && atGym(e, a?.gymId) && (!m.split || splitOf(e) === m.split)).sort(byName);
     el.innerHTML = `<div class="sheet" data-stop>
       <div class="row between"><h2>בחר תרגיל</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
       <label class="search" style="display:block;margin-bottom:10px">${ico('search')}<input class="input" data-in="pick-filter" placeholder="חיפוש" value="${esc(m.filter || '')}"></label>
+      ${splitChips('pick-split', m.split)}
       ${byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${l.map(ex => `<div class="card list-item tap" data-act="add-entry" data-id="${ex.id}">
         ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(ex.muscle || TYPES[ex.type].label)}${inWorkout.has(ex.id) ? ' · כבר באימון' : ''}</div></div>
       </div>`).join('')}`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
@@ -993,16 +1028,18 @@ function newSetsFor(exId) {
   const blank = timed(kind) ? { minutes: null, km: null } : kind === 'reps' ? { reps: null } : { weight: null, reps: null };
   return Array.from({ length: timed(kind) ? 1 : 3 }, () => ({ ...blank, done: false }));
 }
-function startWorkout(routine) {
+function startWorkout(routine, day) {
   const uidv = S.settings.currentUserId;
+  const ids = day ? dayExercises(day).map(e => e.id) : (routine?.exerciseIds || []).filter(exById);
   S.active[uidv] = {
     id: uid(), userId: uidv, start: Date.now(),
-    routineId: routine?.id || null, routineName: routine?.name || null, gymId: curGymId(),
-    entries: (routine?.exerciseIds || []).filter(exById).map(id => ({ exerciseId: id, sets: newSetsFor(id) })),
+    routineId: routine?.id || null, routineName: routine?.name || (day ? `יום ${day === 'full' ? 'Full body' : SPLITS[day]}` : null), gymId: curGymId(),
+    entries: ids.map(id => ({ exerciseId: id, sets: newSetsFor(id) })),
   };
   save();
   go('#/workout');
-  if (!routine) { ui.modal = { type: 'pick' }; renderModal(); }
+  if (!ids.length) { ui.modal = { type: 'pick', split: day && day !== 'full' ? day : '' }; renderModal(); }
+  else if (day) toast(`הוכנו ${ids.length} תרגילים. אפשר להסיר או להוסיף.`);
 }
 async function finishWorkout() {
   const a = myActive();
@@ -1196,6 +1233,15 @@ const actions = {
     render();
   },
   'start-empty': () => startWorkout(null),
+  'start-day': d => startWorkout(null, d.v),
+  'ex-split': d => { ui.exSplit = d.v; render(); },
+  'r-split': d => { ui.rSplit = d.v; render(); },
+  'pick-split': d => { ui.modal.split = d.v; keepSheetScroll(renderModal); },
+  'ex-split-set': d => {
+    const ex = exById(d.id);
+    if (!d.v || d.v === (autoSplit(ex) || 'none')) delete ex.split; else ex.split = d.v;
+    save(); render();
+  },
   'start-routine': d => {
     if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
     startWorkout(S.routines.find(r => r.id === d.id));
@@ -1205,7 +1251,10 @@ const actions = {
     if (!await ask('לבטל את האימון? מה שרשמת בו לא יישמר.')) return;
     delete S.active[S.settings.currentUserId]; rest.endsAt = 0; save(); go('#/home');
   },
-  'pick-exercise': () => { ui.modal = { type: 'pick' }; renderModal(); },
+  'pick-exercise': () => {
+    const a = myActive(), day = Object.keys(SPLITS).find(k => a?.routineName === `יום ${SPLITS[k]}`);
+    ui.modal = { type: 'pick', split: day || '' }; renderModal();
+  },
   'add-entry': d => {
     const a = myActive();
     a.entries.push({ exerciseId: d.id, sets: newSetsFor(d.id) });

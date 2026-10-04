@@ -23,6 +23,8 @@
     // Ready-made exercise list
     'חימום ואירובי': 'Warm-up & cardio', 'מכשירים': 'Machines',
     'ידיים': 'Arms', 'בטן / ליבה': 'Abs / core', 'משקולות': 'Weights', 'רב־תכליתי': 'Multi-purpose', 'שחרור / מתיחות': 'Release / stretching',
+    'כל הימים': 'All days', 'מתאים ליום': 'Workout day', 'ללא': 'None', 'החזר לאוטומטי': 'Back to automatic',
+    'נקבע אוטומטית לפי השריר. אפשר לשנות.': 'Set automatically from the muscle. You can change it.', 'אימון לפי יום': 'Workout by day',
     'פשיטת ירך לאחור במכונה (Glute Kickback)': 'Glute kickback machine', 'גליל שחרור (פומרולר)': 'Foam roller', 'מתיחת רגליים': 'Leg stretch', 'מתיחת גב וכתפיים': 'Back & shoulder stretch',
     'הליכון': 'Treadmill', 'אליפטי': 'Elliptical', 'אופני כושר': 'Exercise bike', 'אופני כושר עם משענת': 'Recumbent bike',
     'מכונת חתירה': 'Rowing machine', 'מדרגות': 'Stair climber', 'אופני ידיים': 'Arm bike', 'קפיצה בחבל': 'Jump rope',
@@ -177,6 +179,8 @@
     [/^(.+) נוסף ✓$/, n => `${n} added ✓`],
     [/^למחוק את (.+)\? המכשירים שלו יישארו ויופיעו בכל המקומות\.$/, n => `Delete ${n}? Its machines stay and will show at every gym.`],
     [/^נוספו (\d+) ✓$/, n => `Added ${n} ✓`],
+    [/^יום (Push|Pull|Legs|Core|Full body)$/, d => `${d} day`],
+    [/^הוכנו (\d+) תרגילים\. אפשר להסיר או להוסיף\.$/, n => `${n} exercises ready. You can remove or add more.`],
     [/^להסיר את "(.+)" מהרשימה שלך\? ההיסטוריה שלו תישאר באימונים שכבר נשמרו\.$/, n => `Remove "${tr(n)}" from your list? Its history stays in saved workouts.`],
     [/^למחוק את "(.+)"\? ההיסטוריה שלו תישאר באימונים שכבר נשמרו\.$/, n => `Delete "${tr(n)}"? Its history stays in saved workouts.`],
     [/^כל הכבוד! 💪 (.+?), (\d+) סטים\.(.*)$/, (d, n, extra) => `Well done! 💪 ${tr(d)}, ${plural(n, 'set', 'sets')}.` +
