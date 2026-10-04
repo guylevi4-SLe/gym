@@ -37,7 +37,7 @@
     'מה שרשום כאן יישמר, בלי צורך לסמן ✓. תקן את המספרים והסר תרגיל שלא עשית.': "Whatever is filled in here is saved, no need to tick ✓. Fix the numbers and remove anything you didn't do.",
     'כל הימים': 'All days', 'מתאים ליום': 'Workout day', 'ללא': 'None', 'החזר לאוטומטי': 'Back to automatic',
     'נקבע אוטומטית לפי השריר. אפשר לשנות.': 'Set automatically from the muscle. You can change it.', 'אימון לפי יום': 'Workout by day',
-    'פשיטת ירך לאחור במכונה (Glute Kickback)': 'Glute kickback machine', 'גליל שחרור (פומרולר)': 'Foam roller', 'מתיחת רגליים': 'Leg stretch', 'מתיחת גב וכתפיים': 'Back & shoulder stretch',
+    'לחיצת רגליים בישיבה (Seated Leg Press)': 'Seated leg press', 'פשיטת ירך לאחור במכונה (Glute Kickback)': 'Glute kickback machine', 'גליל שחרור (פומרולר)': 'Foam roller', 'מתיחת רגליים': 'Leg stretch', 'מתיחת גב וכתפיים': 'Back & shoulder stretch',
     'הליכון': 'Treadmill', 'אליפטי': 'Elliptical', 'אופני כושר': 'Exercise bike', 'אופני כושר עם משענת': 'Recumbent bike',
     'מכונת חתירה': 'Rowing machine', 'מדרגות': 'Stair climber', 'אופני ידיים': 'Arm bike', 'קפיצה בחבל': 'Jump rope',
     'לחיצת חזה במכונה': 'Chest press machine', 'פרפר (Pec Deck)': 'Pec deck', 'לחיצת חזה בשיפוע במכונה': 'Incline chest press machine',
