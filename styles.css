@@ -76,7 +76,7 @@
     --shadow: 0 8px 24px rgba(15, 35, 80, .08);
   }
 }
-/* Black & gold palette (Technogym style) */
+/* Black & gold palette (Technogym style). Always dark, even when the phone is in light mode. */
 :root[data-palette="gold"] {
   --bg: #090909;
   --surface: #141414;
@@ -87,20 +87,8 @@
   --accent: #f5c518;
   --accent-2: #d49b0b;
   --accent-ink: #141005;
-}
-@media (prefers-color-scheme: light) {
-  :root[data-palette="gold"] {
-    --bg: #f5f3ee;
-    --surface: #ffffff;
-    --surface-2: #ece8de;
-    --border: #ddd6c6;
-    --text: #15130e;
-    --muted: #6b6457;
-    --accent: #c99700;
-    --accent-2: #9a6f00;
-    --accent-ink: #ffffff;
-    --shadow: 0 8px 24px rgba(40, 30, 0, .08);
-  }
+  --shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  color-scheme: dark;
 }
 :root { --grad: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--accent-2))); }
 
