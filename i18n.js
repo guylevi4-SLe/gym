@@ -95,6 +95,9 @@
     // Sheets
     'בחר תרגיל': 'Choose exercise', 'סגור': 'Close', 'עוד אין מכשירים': 'No machines yet', 'מהרשימה': 'From list',
     'רשימה מוכנה': 'Ready-made list', 'בחר את מה שיש. אפשר לשנות שם ולהוסיף תמונה אחר כך.': "Pick what's there. You can rename and add a photo later.",
+    'באיזה חדר כושר יש את המכשירים?': 'Which gym has these machines?', 'משקולות חופשיות ותרגילים בלי ציוד זמינים בכל מקום.': 'Free weights and no-equipment exercises are available everywhere.',
+    'בחר מה להוסיף. מה שכבר ברשימה שלך מסומן ב־✓, ולחיצה עליו מסירה אותו.': "Choose what to add. Items already in your list have a ✓; tap one to remove it.",
+    'באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)': 'Which gym has it? (none selected = everywhere)', 'הסר': 'Remove',
     'בחר תרגילים': 'Choose exercises', 'אימון מתוכנן': 'Planned workout', 'תכנון אימון': 'Plan a workout', 'מתי?': 'When?',
     'איפה?': 'Where?', 'איזו תוכנית? (לא חובה)': 'Which routine? (optional)', 'הערות': 'Notes',
     'למשל: יום רגליים, להביא אוזניות': 'e.g. leg day, bring headphones', 'שמור שינויים': 'Save changes',
@@ -172,6 +175,7 @@
     [/^(.+) נוסף ✓$/, n => `${n} added ✓`],
     [/^למחוק את (.+)\? המכשירים שלו יישארו ויופיעו בכל המקומות\.$/, n => `Delete ${n}? Its machines stay and will show at every gym.`],
     [/^נוספו (\d+) ✓$/, n => `Added ${n} ✓`],
+    [/^להסיר את "(.+)" מהרשימה שלך\? ההיסטוריה שלו תישאר באימונים שכבר נשמרו\.$/, n => `Remove "${tr(n)}" from your list? Its history stays in saved workouts.`],
     [/^למחוק את "(.+)"\? ההיסטוריה שלו תישאר באימונים שכבר נשמרו\.$/, n => `Delete "${tr(n)}"? Its history stays in saved workouts.`],
     [/^כל הכבוד! 💪 (.+?), (\d+) סטים\.(.*)$/, (d, n, extra) => `Well done! 💪 ${tr(d)}, ${plural(n, 'set', 'sets')}.` +
       (/עמדת ביעד/.test(extra) ? ' Weekly goal reached! 🏆' : (extra.match(/\d+/) ? ` ${extra.match(/\d+/)[0]} more to your weekly goal.` : ''))],

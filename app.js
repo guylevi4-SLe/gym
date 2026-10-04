@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.17';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.18';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -228,6 +228,21 @@ function closeModal() {
   if (r) r(false);
 }
 function go(hash) { location.hash = hash; }
+function keepSheetScroll(fn) {
+  const top = document.querySelector('.sheet')?.scrollTop;
+  fn();
+  const s2 = document.querySelector('.sheet'); if (s2) s2.scrollTop = top;
+}
+// Gyms a catalog item gets: machines and cardio equipment belong to the chosen gyms; free weights and bodyweight work anywhere
+function catalogGyms(m, name, type) {
+  return (type === 'machine' || type === 'cardio') && name !== 'קפיצה בחבל' ? m.gymIds.filter(id => gymById(id)) : [];
+}
+async function removeExercise(id) {
+  S.exercises = S.exercises.filter(e => e.id !== id);
+  S.routines.forEach(r => { r.exerciseIds = r.exerciseIds.filter(x => x !== id); });
+  Object.values(S.active).forEach(a => { a.entries = a.entries.filter(e => e.exerciseId !== id); });
+  delete photos[id]; await photoDel(id);
+}
 
 // Line icons (24×24, stroke = currentColor). Class "flip" mirrors direction-dependent ones in English.
 const ICONS = {
@@ -509,7 +524,10 @@ function screenExercise(id) {
   }
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
-    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}${(ex.gymIds || []).map(gymById).filter(Boolean).map(g => `<span class="tag">${ico('pin')}${esc(g.name)}</span>`).join('')}</div>
+    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}</div>
+    ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
+      <div class="chips">${S.gyms.map(g => `<button class="chip ${(ex.gymIds || []).includes(g.id) ? 'on' : ''}" data-act="ex-gym-toggle" data-id="${ex.id}" data-gym="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
+    </div>` : ''}
     <div class="card field"><span class="label">${ico('target')} <span>היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span></span>
       ${targetFields(ex)}
       <div class="muted small" style="margin-top:10px">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
@@ -710,15 +728,21 @@ function renderModal() {
       </div>
     </div>`;
   } else if (m.type === 'catalog') {
-    const have = new Set(S.exercises.map(e => e.name));
-    const n = m.picked.length, g = gymById(curGymId());
+    const n = m.picked.length;
     el.innerHTML = `<div class="sheet" data-stop>
       <div class="row between"><h2>רשימה מוכנה</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      <p class="muted small" style="margin-top:0">בחר את מה שיש${g ? ` ב${esc(g.name)}` : ''}. אפשר לשנות שם ולהוסיף תמונה אחר כך.</p>
+      ${S.gyms.length ? `<div class="field" style="margin-top:0"><span class="label">באיזה חדר כושר יש את המכשירים?</span>
+        <div class="chips">${S.gyms.map(g => `<button class="chip ${m.gymIds.includes(g.id) ? 'on' : ''}" data-act="catalog-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
+        <div class="muted small" style="margin-top:6px">משקולות חופשיות ותרגילים בלי ציוד זמינים בכל מקום.</div>
+      </div>` : ''}
+      <p class="muted small" style="margin-top:0">בחר מה להוסיף. מה שכבר ברשימה שלך מסומן ב־✓, ולחיצה עליו מסירה אותו.</p>
       ${CATALOG.map(([title, items]) => `<h2 style="font-size:16px">${title}</h2>
-        <div class="chips">${items.map(([name]) => have.has(name)
-          ? `<span class="chip" style="opacity:.45">${ico('check')}<span>${esc(name)}</span></span>`
-          : `<button class="chip ${m.picked.includes(name) ? 'on' : ''}" data-act="catalog-toggle" data-v="${esc(name)}">${esc(name)}</button>`).join('')}</div>`).join('')}
+        <div class="chips">${items.map(([name, type]) => {
+          const ex = S.exercises.find(e => e.name === name);
+          if (ex && !(catalogGyms(m, name, type).some(id => !(ex.gymIds || []).includes(id)) && (ex.gymIds || []).length))
+            return `<button class="chip" style="opacity:.55" data-act="catalog-remove" data-id="${ex.id}">${ico('check')}<span>${esc(name)}</span>${ico('x')}</button>`;
+          return `<button class="chip ${m.picked.includes(name) ? 'on' : ''}" data-act="catalog-toggle" data-v="${esc(name)}">${esc(name)}</button>`;
+        }).join('')}</div>`).join('')}
       <div style="position:sticky;bottom:0;padding-top:12px;background:var(--bg)">
         <button class="btn primary big" data-act="catalog-add" ${n ? '' : 'disabled'}>${n ? `הוסף ${n}` : 'בחר תרגילים'}</button>
       </div>
@@ -1089,24 +1113,39 @@ const actions = {
   },
   'ex-gym': d => { ui.exGym = d.id || null; render(); },
   'open-catalog': () => {
-    ui.modal = { type: 'catalog', picked: [], fromWorkout: ui.modal?.type === 'pick' || location.hash === '#/workout' };
+    const gym = curGymId();
+    ui.modal = { type: 'catalog', picked: [], gymIds: gym ? [gym] : [], fromWorkout: ui.modal?.type === 'pick' || location.hash === '#/workout' };
     renderModal();
   },
   'catalog-toggle': d => {
     const p = ui.modal.picked, i = p.indexOf(d.v);
     if (i >= 0) p.splice(i, 1); else p.push(d.v);
-    const sheet = document.querySelector('.sheet'), top = sheet?.scrollTop;
-    renderModal();
+    keepSheetScroll(renderModal);
+  },
+  'catalog-gym': d => {
+    const ids = ui.modal.gymIds, i = ids.indexOf(d.id);
+    if (i >= 0) ids.splice(i, 1); else ids.push(d.id);
+    keepSheetScroll(renderModal);
+  },
+  'catalog-remove': async d => {
+    const back = ui.modal, ex = exById(d.id);
+    const top = document.querySelector('.sheet')?.scrollTop;
+    if (await ask(`להסיר את "${ex.name}" מהרשימה שלך? ההיסטוריה שלו תישאר באימונים שכבר נשמרו.`, 'הסר')) {
+      await removeExercise(d.id); save(); render();
+    }
+    ui.modal = back; renderModal();
     const s2 = document.querySelector('.sheet'); if (s2) s2.scrollTop = top;
   },
   'catalog-add': () => {
-    const m = ui.modal, gym = curGymId();
+    const m = ui.modal;
     const all = CATALOG.flatMap(([, items]) => items);
     const added = [];
     for (const name of m.picked) {
       const [, type, muscle] = all.find(x => x[0] === name);
-      // machines and cardio equipment belong to the gym you're in; free weights and bodyweight work anywhere
-      const gymIds = gym && (type === 'machine' || type === 'cardio') && !['קפיצה בחבל'].includes(name) ? [gym] : [];
+      const gymIds = catalogGyms(m, name, type);
+      const old = S.exercises.find(e => e.name === name);
+      // already in the list at another gym: just mark it at the chosen gyms too
+      if (old) { old.gymIds = [...new Set([...(old.gymIds || []), ...gymIds])]; added.push(old); continue; }
       const ex = { id: uid(), name, type, muscle, gymIds, notes: {}, created: Date.now() };
       S.exercises.push(ex); added.push(ex);
     }
@@ -1192,11 +1231,13 @@ const actions = {
   'delete-exercise': async d => {
     const ex = exById(d.id);
     if (!await ask(`למחוק את "${ex.name}"? ההיסטוריה שלו תישאר באימונים שכבר נשמרו.`)) return;
-    S.exercises = S.exercises.filter(e => e.id !== d.id);
-    S.routines.forEach(r => { r.exerciseIds = r.exerciseIds.filter(x => x !== d.id); });
-    Object.values(S.active).forEach(a => { a.entries = a.entries.filter(e => e.exerciseId !== d.id); });
-    delete photos[d.id]; await photoDel(d.id);
+    await removeExercise(d.id);
     ui.draft = null; save(); go('#/exercises');
+  },
+  'ex-gym-toggle': d => {
+    const ex = exById(d.id), ids = ex.gymIds = ex.gymIds || [], i = ids.indexOf(d.gym);
+    if (i >= 0) ids.splice(i, 1); else ids.push(d.gym);
+    save(); render();
   },
 
   'r-add': d => { ui.draft.exerciseIds.push(d.id); render(); },
