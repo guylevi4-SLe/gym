@@ -406,7 +406,7 @@ function cloudSettingsSection() {
     <div class="card"><div class="muted small">מחובר בתור</div><b style="display:block"><bdi dir="ltr">${esc(cloudUser.email)}</bdi></b></div>
     <h2>המשפחה</h2>
     ${fam.map(u => `<div class="card list-item">
-      <span class="avatar" style="background:${u.color || COLORS[0]}">${esc((u.name || '?').trim()[0] || '?')}</span>
+      <span class="avatar">${esc((u.name || '?').trim()[0] || '?')}</span>
       <b class="grow">${esc(u.name)}</b>${u.id === cloudUser.uid ? '<span class="tag">אני</span>' : ''}
     </div>`).join('')}
     <div class="card stack" style="margin-top:10px">

@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.13';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.14';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -281,7 +281,7 @@ function thumb(ex, cls = '') {
 }
 function avatar(u, act = 'go-users') {
   if (!u) return '';
-  return `<button class="avatar" style="background:${u.color}" data-act="${act}" aria-label="${esc(u.name)}">${esc(u.name.trim()[0] || '?')}</button>`;
+  return `<button class="avatar" data-act="${act}" aria-label="${esc(u.name)}">${esc(u.name.trim()[0] || '?')}</button>`;
 }
 function topbar(title, back) {
   return `<div class="topbar">
@@ -640,7 +640,7 @@ function screenUsers() {
     <div class="row between card" style="margin:8px 0 4px"><b>${ico('globe')} <span>שפה</span></b>${langSwitch()}</div>
     ${cloud ? cloudSettingsSection() : `<h2>מי מתאמן?</h2>
     ${S.users.map(u => `<div class="card list-item tap" data-act="switch-user" data-id="${u.id}">
-      <span class="avatar" style="background:${u.color}">${esc(u.name.trim()[0] || '?')}</span>
+      <span class="avatar">${esc(u.name.trim()[0] || '?')}</span>
       <b class="grow">${esc(u.name)}</b>
       ${u.id === S.settings.currentUserId ? '<span class="tag accent">פעיל</span>' : ''}
     </div>`).join('')}
@@ -667,7 +667,7 @@ function screenUsers() {
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
     <h2>צבעים</h2>
-    <div class="chips">${[['blue', 'כחול'], ['gold', 'שחור וזהב'], ['green', 'ירוק']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'blue') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${{ blue: '#3b82f6', gold: '#f5c518', green: '#34d399' }[v]}"></span><span>${l}</span></button>`).join('')}</div>
+    <div class="chips">${[['gold', 'שחור וזהב'], ['blue', 'כחול'], ['green', 'ירוק']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'gold') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${{ blue: '#3b82f6', gold: '#f5c518', green: '#34d399' }[v]}"></span><span>${l}</span></button>`).join('')}</div>
     <h2>גיבוי</h2>
     ${cloud ? `<p class="muted small" style="margin-top:0">הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.</p>
     <div class="btns"><button class="btn" data-act="export">${ico('download')}<span>שמור גיבוי</span></button></div>`
@@ -676,8 +676,13 @@ function screenUsers() {
       <button class="btn" data-act="export">${ico('download')}<span>שמור גיבוי</span></button>
       <label class="btn">${ico('upload')}<span>שחזר מגיבוי</span><input type="file" accept="application/json,.json" data-in="import" hidden></label>
     </div>`}
-    <h2>התקנה באייפון</h2>
-    <p class="muted small" style="margin-top:0">בספארי: לחץ על כפתור השיתוף ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p>
+    <h2>התקנה</h2>
+    <div class="card list-item" style="align-items:flex-start"><span class="tag accent" style="padding:8px">${ico('phone')}</span><div class="grow"><b>באייפון</b>
+      <p class="muted small" style="margin:4px 0 0">בספארי: לחץ על כפתור השיתוף ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p></div></div>
+    <div class="card list-item" style="align-items:flex-start"><span class="tag accent" style="padding:8px">${ico('download')}</span><div class="grow"><b>במחשב (כרום או אדג׳)</b>
+      <p class="muted small" style="margin:4px 0 0">פתח את האתר בדפדפן ולחץ על סמל ההתקנה בצד שורת הכתובת. אם הוא לא מופיע: תפריט שלוש הנקודות, ואז "שמירה ושיתוף" ואז "התקנת Setou". אחרי ההתקנה אפשר להצמיד לשורת המשימות.</p></div></div>
+    <div class="card list-item" style="align-items:flex-start"><span class="tag accent" style="padding:8px">${ico('download')}</span><div class="grow"><b>במק (ספארי)</b>
+      <p class="muted small" style="margin:4px 0 0">בתפריט "קובץ" בחר "הוסף ל־Dock".</p></div></div>
     <div class="center" style="margin-top:30px">${brand()}<p class="muted small" style="margin:6px 0 0">גרסה ${APP_VERSION}</p></div>
     ${cloud ? '' : `<hr>
     <button class="btn block danger" data-act="delete-user" data-id="${S.settings.currentUserId}">מחק את המשתמש ${esc(me()?.name)}</button>`}`;

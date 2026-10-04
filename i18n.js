@@ -88,7 +88,9 @@
     'שפה': 'Language', 'צבעים': 'Colors', 'כחול': 'Blue', 'ירוק (המקורי)': 'Green (original)', 'ירוק': 'Green', 'שחור וזהב': 'Black & gold', 'גיבוי': 'Backup',
     'הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.': 'Your data is saved in the cloud. You can also keep a copy as a file.',
     'שמור גיבוי': 'Save backup', 'כרגע הנתונים שמורים רק בטלפון הזה. מומלץ לשמור גיבוי מדי פעם.': 'Right now your data lives only on this phone. Save a backup now and then.',
-    'שחזר מגיבוי': 'Restore backup', 'התקנה באייפון': 'Install on iPhone',
+    'שחזר מגיבוי': 'Restore backup', 'התקנה באייפון': 'Install on iPhone', 'התקנה': 'Install', 'באייפון': 'iPhone',
+    'במחשב (כרום או אדג׳)': 'Computer (Chrome or Edge)', 'במק (ספארי)': 'Mac (Safari)', 'בתפריט "קובץ" בחר "הוסף ל־Dock".': 'In the File menu choose "Add to Dock".',
+    'פתח את האתר בדפדפן ולחץ על סמל ההתקנה בצד שורת הכתובת. אם הוא לא מופיע: תפריט שלוש הנקודות, ואז "שמירה ושיתוף" ואז "התקנת Setou". אחרי ההתקנה אפשר להצמיד לשורת המשימות.': 'Open the site and click the install icon at the side of the address bar. If it is not there: the three-dot menu, then "Cast, save and share", then "Install Setou". After installing you can pin it to the taskbar.',
     'בספארי: לחץ על כפתור השיתוף ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.': 'In Safari: tap the Share button, then "Add to Home Screen". The app opens full screen and works without reception too.',
     // Sheets
     'בחר תרגיל': 'Choose exercise', 'סגור': 'Close', 'עוד אין מכשירים': 'No machines yet', 'מהרשימה': 'From list',
