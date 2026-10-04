@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.22';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.23';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -141,8 +141,8 @@ const splitChips = (act, cur, extra = '') => `<div class="chips" style="margin-b
   ${Object.entries(SPLITS).map(([k, l]) => `<button class="chip ${cur === k ? 'on' : ''}" data-act="${act}" data-v="${k}" ${extra}>${l}</button>`).join('')}
 </div>`;
 // Exercises for a day workout at the current gym: up to 6 of that tag, the ones you've done first; Full body = one per area, least recently done
-function dayExercises(day) {
-  const gym = curGymId(), at = S.exercises.filter(e => atGym(e, gym));
+function dayExercises(day, gym = curGymId()) {
+  const at = S.exercises.filter(e => atGym(e, gym));
   const lastDone = id => lastPerformance(id)?.date || 0;
   const order = e => TOPICS.indexOf(topicOf(e));
   if (day === 'full') {
@@ -416,7 +416,8 @@ function screenHome() {
     </div>
     <div style="margin-top:16px">
       ${a ? `<button class="btn primary big cta" data-act="go-workout">${ico('play')}<span>המשך אימון</span> · <span data-elapsed></span></button>`
-          : `<button class="btn primary big cta" data-act="start-empty">${ico('play')}<span>התחל אימון</span></button>`}
+          : `<button class="btn primary big cta" data-act="start-empty">${ico('play')}<span>התחל אימון</span></button>
+             <button class="link block" style="margin:6px auto 0" data-act="past-new">${ico('history')}<span> הוסף אימון שכבר עשיתי</span></button>`}
     </div>
     ${!a && S.exercises.length ? `<div class="section-head"><h2>אימון לפי יום</h2></div>
       <div class="chips day-chips">${[...Object.entries(SPLITS).filter(([k]) => k !== 'core'), ['full', 'Full body']].map(([k, l]) => `<button class="chip" data-act="start-day" data-v="${k}">${ico('play')}<span>${l}</span></button>`).join('')}</div>` : ''}
@@ -502,8 +503,9 @@ function screenWorkout() {
   const a = myActive();
   if (!a) { go('#/home'); return ''; }
   return `<div class="wk-head row between">
-      <div><div class="meta" style="margin:0"><span>${a.routineName ? esc(a.routineName) : 'אימון'}</span>${gymById(a.gymId) ? `<span>${ico('pin')}${esc(gymById(a.gymId).name)}</span>` : ''}</div><div class="elapsed" style="font-size:34px;line-height:1.1" data-elapsed></div></div>
-      <button class="btn primary" data-act="finish-workout">${ico('check')}<span>סיים אימון</span></button>
+      <div><div class="meta" style="margin:0"><span>${a.routineName ? esc(a.routineName) : 'אימון'}</span>${gymById(a.gymId) ? `<span>${ico('pin')}${esc(gymById(a.gymId).name)}</span>` : ''}</div>${a.past ? `<div class="muted small" style="margin-top:4px">אימון שכבר עשית · ${esc(fmtDate(a.start))} · ${new Date(a.start).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' })} · ${a.past} דק׳</div>
+        <div class="muted small">מה שרשום כאן יישמר, בלי צורך לסמן ✓. תקן את המספרים והסר תרגיל שלא עשית.</div>` : `<div class="elapsed" style="font-size:34px;line-height:1.1" data-elapsed></div>`}</div>
+      <button class="btn primary" data-act="finish-workout">${ico('check')}<span>${a.past ? 'שמור אימון' : 'סיים אימון'}</span></button>
     </div>
     ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : emptyState('dumbbell', 'הוסף את התרגיל או המכשיר הראשון')}
     <div class="stack" style="margin-top:14px">
@@ -691,6 +693,7 @@ function screenHistory() {
   const st = weekStats();
   let lastMonth = '';
   return `${topbar('היסטוריה')}
+    <button class="btn block" style="margin-bottom:12px" data-act="past-new">${ico('plus')}<span>הוסף אימון שכבר עשיתי</span></button>
     <div class="stats">
       <div class="stat"><b>${st.count}</b><span>השבוע</span></div>
       <div class="stat"><b>${month.length}</b><span>החודש</span></div>
@@ -825,6 +828,19 @@ function renderModal() {
       ${saved ? `<div class="btns"><button class="btn" data-act="plan-ics">${ico('calendar')}<span>ליומן באייפון</span></button><button class="btn" data-act="plan-google">${ico('calendar')}<span>ליומן גוגל</span></button></div>
       <button class="btn block danger" data-act="plan-delete" data-id="${d.id}">מחק</button>` : ''}
     </div>`;
+  } else if (m.type === 'past') {
+    const d = ui.pastDraft, rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
+    const how = [['', 'אימון ריק'], ...Object.entries(SPLITS).filter(([k]) => k !== 'core').map(([k, l]) => ['day:' + k, `יום ${l}`]), ['day:full', 'יום Full body'], ...rs.map(r => ['r:' + r.id, r.name])];
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <div class="row between"><h2>אימון שכבר עשית</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <div class="row" style="gap:10px">
+        <label class="field grow" style="margin:0"><span>מתי התחלת?</span><input class="input" type="datetime-local" data-in="past" data-f="at" value="${toLocalInput(d.at)}"></label>
+        <label class="field" style="margin:0;width:96px"><span>כמה דקות?</span><input class="input" inputmode="numeric" data-in="past" data-f="minutes" value="${d.minutes}"></label>
+      </div>
+      ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="past-set" data-f="gymId" data-v="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div></div>` : ''}
+      <div><span class="muted small">מה עשית?</span><div class="chips" style="margin-top:6px">${how.map(([k, l]) => `<button class="chip ${d.how === k ? 'on' : ''}" data-act="past-set" data-f="how" data-v="${k}">${esc(l)}</button>`).join('')}</div></div>
+      <button class="btn primary block" data-act="past-start">${ico('edit')}<span>המשך לרישום התרגילים</span></button>
+    </div>`;
   } else if (m.type === 'gym') {
     const cur = curGymId();
     el.innerHTML = `<div class="sheet stack" data-stop>
@@ -907,7 +923,7 @@ function renderRest() {
 
 let wakeLock = null;
 async function updateWakeLock() {
-  const want = !!myActive() && document.visibilityState === 'visible';
+  const want = !!myActive() && !myActive().past && document.visibilityState === 'visible';
   try {
     if (want && !wakeLock && navigator.wakeLock) {
       wakeLock = await navigator.wakeLock.request('screen');
@@ -969,7 +985,7 @@ function render() {
 
 function tick() {
   const a = myActive();
-  document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = a ? clock(Date.now() - a.start) : ''; });
+  document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = !a ? '' : a.past ? fmtDate(a.start) : clock(Date.now() - a.start); });
   renderRest();
 }
 setInterval(tick, 1000);
@@ -1028,13 +1044,15 @@ function newSetsFor(exId) {
   const blank = timed(kind) ? { minutes: null, km: null } : kind === 'reps' ? { reps: null } : { weight: null, reps: null };
   return Array.from({ length: timed(kind) ? 1 : 3 }, () => ({ ...blank, done: false }));
 }
-function startWorkout(routine, day) {
+// past = { at, minutes, gymId } logs a workout that already happened (entered later, e.g. at home)
+function startWorkout(routine, day, past) {
   const uidv = S.settings.currentUserId;
-  const ids = day ? dayExercises(day).map(e => e.id) : (routine?.exerciseIds || []).filter(exById);
+  const ids = day ? dayExercises(day, past ? past.gymId : curGymId()).map(e => e.id) : (routine?.exerciseIds || []).filter(exById);
   S.active[uidv] = {
-    id: uid(), userId: uidv, start: Date.now(),
-    routineId: routine?.id || null, routineName: routine?.name || (day ? `יום ${day === 'full' ? 'Full body' : SPLITS[day]}` : null), gymId: curGymId(),
+    id: uid(), userId: uidv, start: past ? past.at : Date.now(),
+    routineId: routine?.id || null, routineName: routine?.name || (day ? `יום ${day === 'full' ? 'Full body' : SPLITS[day]}` : null), gymId: past ? past.gymId : curGymId(),
     entries: ids.map(id => ({ exerciseId: id, sets: newSetsFor(id) })),
+    ...(past ? { past: past.minutes } : {}),
   };
   save();
   go('#/workout');
@@ -1043,16 +1061,18 @@ function startWorkout(routine, day) {
 }
 async function finishWorkout() {
   const a = myActive();
+  // in a workout logged afterwards, any set with numbers counts, no need to tick each one
+  const filled = s => s.done || (a.past && Object.entries(s).some(([k, v]) => k !== 'done' && v != null));
   const entries = a.entries
-    .map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(s => s.done).map(({ done, ...s }) => s) }))
+    .map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(filled).map(({ done, ...s }) => s) }))
     .filter(e => e.sets.length);
   if (!entries.length) {
-    if (!await ask('לא סימנת אף סט כמבוצע (✓). לסיים בלי לשמור?')) return;
+    if (!await ask(a.past ? 'לא רשמת אף סט. לצאת בלי לשמור?' : 'לא סימנת אף סט כמבוצע (✓). לסיים בלי לשמור?')) return;
     delete S.active[a.userId];
     rest.endsAt = 0; save(); go('#/home');
     return;
   }
-  const w = { id: a.id, userId: a.userId, start: a.start, end: Date.now(), routineId: a.routineId, gymId: a.gymId || null, entries };
+  const w = { id: a.id, userId: a.userId, start: a.start, end: a.past ? a.start + a.past * 60000 : Date.now(), routineId: a.routineId, gymId: a.gymId || null, entries };
   S.workouts.push(w);
   delete S.active[a.userId];
   rest.endsAt = 0;
@@ -1062,7 +1082,7 @@ async function finishWorkout() {
   const goal = S.settings.weeklyGoal;
   const extra = st.count === goal ? ' עמדת ביעד השבועי! 🏆' : st.count < goal ? ` עוד ${goal - st.count} ליעד השבועי.` : '';
   toast(`כל הכבוד! 💪 ${fmtDur(w.end - w.start)}, ${sets} סטים.${extra}`, 4500);
-  go('#/home');
+  go(a.past ? '#/history' : '#/home');
 }
 
 /* ================= Event handling ================= */
@@ -1234,6 +1254,26 @@ const actions = {
   },
   'start-empty': () => startWorkout(null),
   'start-day': d => startWorkout(null, d.v),
+  'past-new': () => {
+    if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
+    const t = new Date(Date.now() - 90 * 60000); t.setMinutes(Math.floor(t.getMinutes() / 15) * 15, 0, 0);
+    ui.pastDraft = { at: t.getTime(), minutes: 60, gymId: curGymId(), how: '' };
+    ui.modal = { type: 'past' }; renderModal();
+  },
+  'past-set': d => {
+    const p = ui.pastDraft;
+    p[d.f] = d.f === 'how' ? d.v : (p[d.f] === d.v ? null : d.v);
+    keepSheetScroll(renderModal);
+  },
+  'past-start': () => {
+    const p = ui.pastDraft, mins = Math.round(num(p.minutes));
+    if (!(mins > 0)) { toast('כמה דקות נמשך האימון?'); return; }
+    if (p.at > Date.now()) { toast('האימון צריך להיות בעבר'); return; }
+    ui.modal = null;
+    const day = p.how.startsWith('day:') ? p.how.slice(4) : null;
+    const routine = p.how.startsWith('r:') ? S.routines.find(r => r.id === p.how.slice(2)) : null;
+    startWorkout(routine, day, { at: p.at, minutes: mins, gymId: p.gymId || null });
+  },
   'ex-split': d => { ui.exSplit = d.v; render(); },
   'r-split': d => { ui.rSplit = d.v; render(); },
   'pick-split': d => { ui.modal.split = d.v; keepSheetScroll(renderModal); },
@@ -1282,7 +1322,7 @@ const actions = {
     const e = myActive().entries[+d.i], s = e.sets[+d.j];
     s.done = !s.done;
     save(); render();
-    if (s.done && !timed(measure(exById(e.exerciseId)))) startRest();
+    if (s.done && !myActive().past && !timed(measure(exById(e.exerciseId)))) startRest();
   },
   'rest-add': d => { rest.endsAt += +d.v * 1000; rest.total += +d.v * 1000; rest.alerted = false; tick(); },
   'rest-stop': () => { rest.endsAt = 0; tick(); },
@@ -1358,6 +1398,10 @@ const actions = {
 };
 
 const inputs = {
+  past: el => {
+    if (el.dataset.f === 'at') { const t = new Date(el.value).getTime(); if (!isNaN(t)) ui.pastDraft.at = t; }
+    else ui.pastDraft[el.dataset.f] = el.value;
+  },
   plan: el => {
     if (el.dataset.f === 'at') { const t = new Date(el.value).getTime(); if (!isNaN(t)) ui.planDraft.at = t; }
     else ui.planDraft[el.dataset.f] = el.value;
