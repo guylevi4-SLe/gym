@@ -24,7 +24,7 @@
     'חימום ואירובי': 'Warm-up & cardio', 'מכשירים': 'Machines',
     'ידיים': 'Arms', 'בטן / ליבה': 'Abs / core', 'משקולות': 'Weights', 'רב־תכליתי': 'Multi-purpose', 'שחרור / מתיחות': 'Release / stretching',
     'הפעם האחרונה': 'Last time',
-    'היעד שלי': 'My target',
+    'היעד שלי': 'My target', '(לחץ לפתיחה)': '(tap to open)',
     'ימולא אוטומטית כשמתחילים אימון': 'Filled in automatically when you start a workout',
     'התמונה שלי': 'My photo', 'לחץ להגדלה': 'Tap to enlarge',
     'מחרתיים': 'Day after tomorrow', 'באיזו שעה?': 'What time?', 'הזמן שבחרת כבר עבר': 'That time has already passed',

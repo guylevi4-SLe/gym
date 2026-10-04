@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.28';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.29';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -603,7 +603,7 @@ function screenExercise(id) {
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
       <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
     </label>
-    <details class="card target-box"><summary>${ico('target')} <span>היעד שלי</span>${targetText(myTarget(ex), kind) ? ` <span class="muted">· ${esc(targetText(myTarget(ex), kind))}</span>` : ''}</summary>
+    <details class="card target-box"><summary>${ico('target')} <span>היעד שלי</span> <span class="muted small open-hint">(לחץ לפתיחה)</span>${targetText(myTarget(ex), kind) ? `<span class="muted tgt-sum">${esc(targetText(myTarget(ex), kind))}</span>` : ''}</summary>
       <div class="muted small" style="margin:8px 0">ימולא אוטומטית כשמתחילים אימון</div>
       ${targetFields(ex)}
     </details>

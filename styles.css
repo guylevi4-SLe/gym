@@ -503,3 +503,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .chip.last-set { gap: 6px; cursor: default; }
 .target-box summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; list-style: none; }
 .target-box summary::-webkit-details-marker { display: none; }
+.target-box[open] .open-hint { display: none; }
+.target-box summary { flex-wrap: wrap; }
+.target-box summary > span { white-space: nowrap; }
+.target-box .tgt-sum { flex-basis: 100%; white-space: normal; font-weight: 500; }
