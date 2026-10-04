@@ -183,6 +183,8 @@ h2 { font-size: 19px; font-weight: 800; letter-spacing: -.01em; margin: 26px 0 1
 .meta > span { display: inline-flex; align-items: center; gap: 5px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 12px; }
 .section-head h2 { margin: 0; }
+h2.topic { font-size: 16px; color: var(--accent); margin: 22px 0 10px; }
+.sheet h2.topic { margin-top: 18px; }
 
 /* Home hero: weekly ring + numbers */
 .hero {

@@ -22,6 +22,8 @@
     'ישבן': 'Glutes', 'בטן': 'Abs', 'כל הגוף': 'Full body', 'אירובי': 'Cardio',
     // Ready-made exercise list
     'חימום ואירובי': 'Warm-up & cardio', 'מכשירים': 'Machines',
+    'ידיים': 'Arms', 'בטן / ליבה': 'Abs / core', 'משקולות': 'Weights', 'רב־תכליתי': 'Multi-purpose', 'שחרור / מתיחות': 'Release / stretching',
+    'גליל שחרור (פומרולר)': 'Foam roller', 'מתיחת רגליים': 'Leg stretch', 'מתיחת גב וכתפיים': 'Back & shoulder stretch',
     'הליכון': 'Treadmill', 'אליפטי': 'Elliptical', 'אופני כושר': 'Exercise bike', 'אופני כושר עם משענת': 'Recumbent bike',
     'מכונת חתירה': 'Rowing machine', 'מדרגות': 'Stair climber', 'אופני ידיים': 'Arm bike', 'קפיצה בחבל': 'Jump rope',
     'לחיצת חזה במכונה': 'Chest press machine', 'פרפר (Pec Deck)': 'Pec deck', 'לחיצת חזה בשיפוע במכונה': 'Incline chest press machine',

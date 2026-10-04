@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.18';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.19';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -73,37 +73,65 @@ const TYPES = {
   free: { label: 'משקולות חופשיות', icon: '💪' },
   bodyweight: { label: 'משקל גוף', icon: '🤸' },
   cardio: { label: 'אירובי / חימום', icon: '🏃' },
+  stretch: { label: 'שחרור / מתיחות', icon: '🧘' },
 };
 const MUSCLES = ['חזה', 'גב', 'כתפיים', 'יד קדמית', 'יד אחורית', 'רגליים', 'ישבן', 'בטן', 'כל הגוף', 'אירובי'];
-// Ready-made list so nobody starts from an empty screen: [name, type, muscle]
+// Topics the machines are grouped by (Guy's order), in the ready-made list, the machines screen and the workout picker
+const TOPICS = ['אירובי / חימום', 'רגליים', 'גב', 'חזה', 'כתפיים', 'ידיים', 'בטן / ליבה', 'משקולות', 'רב־תכליתי', 'שחרור / מתיחות'];
+// Ready-made list so nobody starts from an empty screen: [topic, [[name, type, muscle], …]]
 const CATALOG = [
-  ['חימום ואירובי', [
+  ['אירובי / חימום', [
     ['הליכון', 'cardio', 'אירובי'], ['אליפטי', 'cardio', 'אירובי'], ['אופני כושר', 'cardio', 'אירובי'],
     ['אופני כושר עם משענת', 'cardio', 'אירובי'], ['מכונת חתירה', 'cardio', 'אירובי'], ['מדרגות', 'cardio', 'אירובי'],
     ['אופני ידיים', 'cardio', 'אירובי'], ['קפיצה בחבל', 'cardio', 'אירובי'],
   ]],
-  ['מכשירים', [
-    ['לחיצת חזה במכונה', 'machine', 'חזה'], ['פרפר (Pec Deck)', 'machine', 'חזה'], ['לחיצת חזה בשיפוע במכונה', 'machine', 'חזה'],
-    ['פולי עליון', 'machine', 'גב'], ['חתירה בכבל בישיבה', 'machine', 'גב'], ['חתירה במכונה', 'machine', 'גב'], ['פשיטת גב', 'machine', 'גב'],
-    ['לחיצת כתפיים במכונה', 'machine', 'כתפיים'], ['הרחקת כתפיים במכונה', 'machine', 'כתפיים'], ['פרפר הפוך', 'machine', 'כתפיים'],
-    ['כפיפת מרפקים במכונה', 'machine', 'יד קדמית'], ['פשיטת מרפקים בכבל', 'machine', 'יד אחורית'], ['מקבילים עם סיוע', 'machine', 'יד אחורית'],
+  ['רגליים', [
     ['לחיצת רגליים', 'machine', 'רגליים'], ['פשיטת ברכיים', 'machine', 'רגליים'], ['כפיפת ברכיים בשכיבה', 'machine', 'רגליים'],
     ['כפיפת ברכיים בישיבה', 'machine', 'רגליים'], ['מקרב ירכיים', 'machine', 'רגליים'], ['מרחיק ירכיים', 'machine', 'ישבן'],
-    ['תאומים במכונה', 'machine', 'רגליים'], ['סמית׳ סקוואט', 'machine', 'רגליים'], ['מתח עם סיוע', 'machine', 'גב'],
-    ['כפיפות בטן במכונה', 'machine', 'בטן'], ['הצלבת כבלים', 'machine', 'חזה'],
+    ['תאומים במכונה', 'machine', 'רגליים'], ['סקוואט משקל גוף', 'bodyweight', 'רגליים'],
   ]],
-  ['משקולות חופשיות', [
+  ['גב', [
+    ['פולי עליון', 'machine', 'גב'], ['חתירה בכבל בישיבה', 'machine', 'גב'], ['חתירה במכונה', 'machine', 'גב'], ['פשיטת גב', 'machine', 'גב'],
+    ['מתח', 'bodyweight', 'גב'],
+  ]],
+  ['חזה', [
+    ['לחיצת חזה במכונה', 'machine', 'חזה'], ['פרפר (Pec Deck)', 'machine', 'חזה'], ['לחיצת חזה בשיפוע במכונה', 'machine', 'חזה'],
+    ['שכיבות סמיכה', 'bodyweight', 'חזה'],
+  ]],
+  ['כתפיים', [
+    ['לחיצת כתפיים במכונה', 'machine', 'כתפיים'], ['הרחקת כתפיים במכונה', 'machine', 'כתפיים'], ['פרפר הפוך', 'machine', 'כתפיים'],
+  ]],
+  ['ידיים', [
+    ['כפיפת מרפקים במכונה', 'machine', 'יד קדמית'], ['פשיטת מרפקים בכבל', 'machine', 'יד אחורית'], ['מקבילים', 'bodyweight', 'יד אחורית'],
+  ]],
+  ['בטן / ליבה', [
+    ['כפיפות בטן במכונה', 'machine', 'בטן'], ['כפיפות בטן', 'bodyweight', 'בטן'], ['הרמות רגליים בתלייה', 'bodyweight', 'בטן'],
+  ]],
+  ['משקולות', [
     ['לחיצת חזה במוט', 'free', 'חזה'], ['לחיצת חזה במשקולות', 'free', 'חזה'], ['סקוואט במוט', 'free', 'רגליים'],
     ['דדליפט', 'free', 'גב'], ['חתירה במוט', 'free', 'גב'], ['חתירה במשקולת יד', 'free', 'גב'],
     ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקה לצדדים', 'free', 'כתפיים'],
     ['כפיפת מרפקים במשקולות', 'free', 'יד קדמית'], ['פטישים', 'free', 'יד קדמית'], ['פשיטת מרפקים מעל הראש', 'free', 'יד אחורית'],
     ['מכרעים (לאנג׳ים)', 'free', 'רגליים'], ['גשר ישבן (היפ תראסט)', 'free', 'ישבן'],
   ]],
-  ['משקל גוף', [
-    ['שכיבות סמיכה', 'bodyweight', 'חזה'], ['מתח', 'bodyweight', 'גב'], ['מקבילים', 'bodyweight', 'יד אחורית'],
-    ['כפיפות בטן', 'bodyweight', 'בטן'], ['הרמות רגליים בתלייה', 'bodyweight', 'בטן'], ['סקוואט משקל גוף', 'bodyweight', 'רגליים'],
+  ['רב־תכליתי', [
+    ['הצלבת כבלים', 'machine', 'חזה'], ['סמית׳ סקוואט', 'machine', 'רגליים'], ['מתח עם סיוע', 'machine', 'גב'], ['מקבילים עם סיוע', 'machine', 'יד אחורית'],
+  ]],
+  ['שחרור / מתיחות', [
+    ['גליל שחרור (פומרולר)', 'stretch', 'כל הגוף'], ['מתיחת רגליים', 'stretch', 'רגליים'], ['מתיחת גב וכתפיים', 'stretch', 'גב'],
   ]],
 ];
+const CATALOG_TOPIC = Object.fromEntries(CATALOG.flatMap(([t, items]) => items.map(([n]) => [n, t])));
+const MUSCLE_TOPIC = { 'רגליים': 'רגליים', 'ישבן': 'רגליים', 'גב': 'גב', 'חזה': 'חזה', 'כתפיים': 'כתפיים', 'יד קדמית': 'ידיים', 'יד אחורית': 'ידיים', 'בטן': 'בטן / ליבה', 'אירובי': 'אירובי / חימום' };
+function topicOf(ex) {
+  if (CATALOG_TOPIC[ex.name]) return CATALOG_TOPIC[ex.name];
+  if (ex.type === 'cardio') return 'אירובי / חימום';
+  if (ex.type === 'stretch') return 'שחרור / מתיחות';
+  if (ex.type === 'free') return 'משקולות';
+  return MUSCLE_TOPIC[ex.muscle] || 'רב־תכליתי';
+}
+// Exercises split into topic sections, in TOPICS order: [[topic, exercises], …]
+const byTopic = list => TOPICS.map(t => [t, list.filter(e => topicOf(e) === t)]).filter(([, l]) => l.length);
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
@@ -127,6 +155,7 @@ const byName = (a, b) => trName(a.name).localeCompare(trName(b.name), window.LAN
 function measure(ex) {
   if (!ex) return 'weight';
   if (ex.type === 'cardio') return 'cardio';
+  if (ex.type === 'stretch') return 'time';
   if (ex.type === 'bodyweight') return 'reps';
   return 'weight';
 }
@@ -159,8 +188,9 @@ function clock(ms) {
   const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = s % 60;
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
 }
+const timed = kind => kind === 'cardio' || kind === 'time';
 function setText(set, kind) {
-  if (kind === 'cardio') return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`].filter(Boolean).join(' · ');
+  if (timed(kind)) return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`].filter(Boolean).join(' · ');
   if (kind === 'reps') return `${set.reps ?? '?'} חזרות`;
   return `\u2066${fmtNum(set.weight) || 0}×${set.reps ?? '?'}\u2069`;  // isolate so RTL keeps weight×reps order
 }
@@ -459,8 +489,8 @@ function entryCard(e, i) {
   const kind = measure(ex);
   const last = lastPerformance(ex.id);
   const note = ex.notes?.[S.settings.currentUserId];
-  const cols = kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
-  const fields = kind === 'cardio' ? ['minutes', 'km'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
+  const cols = kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'time' ? ['דקות'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
+  const fields = kind === 'cardio' ? ['minutes', 'km'] : kind === 'time' ? ['minutes'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
   return `<div class="card ex-card">
     <div class="ex-head">
       ${thumb(ex)}
@@ -500,11 +530,11 @@ function screenExercises() {
       <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">הכל</button>
       ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
     </div>` : ''}
-    ${list.length ? `<div class="grid">${list.map(ex => `
+    ${list.length ? byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid">${l.map(ex => `
       <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
         ${thumb(ex)}
         <div class="body"><div class="name">${esc(ex.name)}</div><span class="tag accent">${esc(ex.muscle || TYPES[ex.type].label)}</span></div>
-      </div>`).join('')}</div>`
+      </div>`).join('')}</div>`).join('')
     : emptyState(S.exercises.length ? 'search' : 'camera', S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחר מהרשימה המוכנה, או צלם מכשיר בחדר הכושר ותן לו שם.')}`;
 }
 
@@ -719,9 +749,9 @@ function renderModal() {
     el.innerHTML = `<div class="sheet" data-stop>
       <div class="row between"><h2>בחר תרגיל</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
       <label class="search" style="display:block;margin-bottom:10px">${ico('search')}<input class="input" data-in="pick-filter" placeholder="חיפוש" value="${esc(m.filter || '')}"></label>
-      ${list.map(ex => `<div class="card list-item tap" data-act="add-entry" data-id="${ex.id}">
+      ${byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${l.map(ex => `<div class="card list-item tap" data-act="add-entry" data-id="${ex.id}">
         ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(ex.muscle || TYPES[ex.type].label)}${inWorkout.has(ex.id) ? ' · כבר באימון' : ''}</div></div>
-      </div>`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
+      </div>`).join('')}`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
       <div class="btns" style="margin-top:12px">
         <button class="btn" data-act="open-catalog">${ico('list')}<span>מהרשימה</span></button>
         <button class="btn" data-act="new-ex-from-workout">${ico('plus')}<span>חדש</span></button>
@@ -736,7 +766,7 @@ function renderModal() {
         <div class="muted small" style="margin-top:6px">משקולות חופשיות ותרגילים בלי ציוד זמינים בכל מקום.</div>
       </div>` : ''}
       <p class="muted small" style="margin-top:0">בחר מה להוסיף. מה שכבר ברשימה שלך מסומן ב־✓, ולחיצה עליו מסירה אותו.</p>
-      ${CATALOG.map(([title, items]) => `<h2 style="font-size:16px">${title}</h2>
+      ${CATALOG.map(([title, items]) => `<h2 class="topic">${title}</h2>
         <div class="chips">${items.map(([name, type]) => {
           const ex = S.exercises.find(e => e.name === name);
           if (ex && !(catalogGyms(m, name, type).some(id => !(ex.gymIds || []).includes(id)) && (ex.gymIds || []).length))
@@ -930,7 +960,7 @@ function resizeImage(file, max = 900) {
 const myTarget = ex => ex?.targets?.[S.settings.currentUserId] || null;
 function targetText(t, kind) {
   if (!t) return '';
-  if (kind === 'cardio') return [t.minutes != null && `${fmtNum(t.minutes)} דק׳`, t.km != null && `${fmtNum(t.km)} ק״מ`].filter(Boolean).join(' · ');
+  if (timed(kind)) return [t.minutes != null && `${fmtNum(t.minutes)} דק׳`, t.km != null && `${fmtNum(t.km)} ק״מ`].filter(Boolean).join(' · ');
   const parts = [`${t.sets || 3} סטים`];
   if (t.reps != null) parts.push(`${t.reps} חזרות`);
   if (kind === 'weight' && t.weight != null) parts.push(`${fmtNum(t.weight)} ק״ג`);
@@ -939,7 +969,7 @@ function targetText(t, kind) {
 // Inputs for an exercise's target; the same values show in the exercise screen and the routine editor.
 function targetFields(ex) {
   const kind = measure(ex), t = myTarget(ex) || {};
-  const f = kind === 'cardio' ? [['minutes', 'דקות'], ['km', 'ק״מ']]
+  const f = kind === 'cardio' ? [['minutes', 'דקות'], ['km', 'ק״מ']] : kind === 'time' ? [['minutes', 'דקות']]
     : kind === 'reps' ? [['sets', 'סטים'], ['reps', 'חזרות']]
     : [['sets', 'סטים'], ['reps', 'חזרות'], ['weight', 'ק״ג']];
   return `<div class="row" style="gap:8px">${f.map(([k, l]) => `<label class="grow" style="min-width:0">
@@ -951,14 +981,14 @@ function newSetsFor(exId) {
   const ex = exById(exId), kind = measure(ex);
   const t = myTarget(ex);
   if (t && Object.values(t).some(v => v != null)) {
-    if (kind === 'cardio') return [{ minutes: t.minutes ?? null, km: t.km ?? null, done: false }];
+    if (timed(kind)) return [{ minutes: t.minutes ?? null, km: t.km ?? null, done: false }];
     const one = kind === 'reps' ? { reps: t.reps ?? null } : { weight: t.weight ?? null, reps: t.reps ?? null };
     return Array.from({ length: Math.max(1, Math.min(10, t.sets || 3)) }, () => ({ ...one, done: false }));
   }
   const last = lastPerformance(exId);
   if (last) return last.sets.map(s => ({ ...s, done: false }));
-  const blank = kind === 'cardio' ? { minutes: null, km: null } : kind === 'reps' ? { reps: null } : { weight: null, reps: null };
-  return Array.from({ length: kind === 'cardio' ? 1 : 3 }, () => ({ ...blank, done: false }));
+  const blank = timed(kind) ? { minutes: null, km: null } : kind === 'reps' ? { reps: null } : { weight: null, reps: null };
+  return Array.from({ length: timed(kind) ? 1 : 3 }, () => ({ ...blank, done: false }));
 }
 function startWorkout(routine) {
   const uidv = S.settings.currentUserId;
@@ -1191,7 +1221,7 @@ const actions = {
     const e = myActive().entries[+d.i];
     const prev = e.sets[e.sets.length - 1];
     const ex = exById(e.exerciseId), kind = measure(ex);
-    e.sets.push(prev ? { ...prev, done: false } : (kind === 'cardio' ? { minutes: null, km: null, done: false } : { weight: null, reps: null, done: false }));
+    e.sets.push(prev ? { ...prev, done: false } : (timed(kind) ? { minutes: null, km: null, done: false } : kind === 'reps' ? { reps: null, done: false } : { weight: null, reps: null, done: false }));
     save(); render();
   },
   'del-set': d => { myActive().entries[+d.i].sets.splice(+d.j, 1); save(); render(); },
@@ -1200,7 +1230,7 @@ const actions = {
     const e = myActive().entries[+d.i], s = e.sets[+d.j];
     s.done = !s.done;
     save(); render();
-    if (s.done && measure(exById(e.exerciseId)) !== 'cardio') startRest();
+    if (s.done && !timed(measure(exById(e.exerciseId)))) startRest();
   },
   'rest-add': d => { rest.endsAt += +d.v * 1000; rest.total += +d.v * 1000; rest.alerted = false; tick(); },
   'rest-stop': () => { rest.endsAt = 0; tick(); },

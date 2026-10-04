@@ -292,6 +292,16 @@
     recumbent: { A: { p: [18, 47], n: [13, 31], h: [12, 24], k1: [32, 38], f1: [44, 41], k2: [32, 44], f2: [46, 51], e: [17, 40], w: [23, 46] },
       B: { p: [18, 47], n: [13, 31], h: [12, 24], k1: [32, 44], f1: [46, 51], k2: [32, 38], f2: [44, 41], e: [17, 40], w: [23, 46] }, dur: 1.1,
       eq: () => [['e', 'M10 50 H28 M14 50 L9 28 M20 50 V58 M10 58 H52 M45 46 V58'], ['circle', 'e', 45, 46, 6]] },
+    // Release and stretching
+    foamroll: { A: { h: [12, 38], n: [18, 43], p: [33, 48], k: [44, 49], f: [56, 54], e: [18, 51], w: [14, 57] },
+      B: { h: [20, 38], n: [26, 43], p: [41, 46], k: [48, 50], f: [58, 56], e: [26, 51], w: [22, 57] }, dur: 2.2,
+      eq: () => [['e', 'M6 58 H60'], ['circle', 'ef over', 37, 53, 4.5]] },
+    legstretch: { A: V(STAND, { e: [32, 27], w: [32, 35] }),
+      B: { h: [43, 46], n: [40, 39], p: [31, 33], k1: [31, 46], f1: [31, 57], k2: [33, 46], f2: [34, 57], e: [38, 48], w: [35, 56] }, dur: 2.6,
+      eq: () => [floor] },
+    stretch: { A: V(FRONT, { e1: [23, 9], w1: [29, 1], e2: [41, 9], w2: [35, 1] }),
+      B: V(FRONT, { n: [35, 19], h: [38, 12], p: [32, 35], e1: [30, 8], w1: [40, 1], e2: [47, 14], w2: [45, 4] }), dur: 2.6,
+      eq: () => [floor] },
     armbike: { A: V(SEAT, { e: [27, 38], w: [37, 25] }), B: V(SEAT, { e: [27, 41], w: [43, 35] }), dur: 1.1,
       eq: () => [seat, ['e', 'M40 30 V58 M34 58 H50'], ['circle', 'e', 40, 30, 6]] },
   };
@@ -299,6 +309,7 @@
 
   // First matching keyword wins, so the specific names come before the general ones.
   const RULES = [
+    [/פומרולר|גליל|שחרור|foam|roller/i, 'foamroll'], [/מתיח(ת|ות) רגליים|leg stretch|hamstring stretch/i, 'legstretch'], [/מתיח|stretch|yoga|יוגה/i, 'stretch'],
     [/הליכון|ריצה/, 'treadmill'], [/אליפטי/, 'elliptical'], [/מכונת חתירה|חתירה במכונת/, 'rower'],
     [/אופני ידיים/, 'armbike'], [/אופני.*משענת|שכיבה/, 'recumbent'], [/אופני/, 'bike'], [/מדרגות|סטפר/, 'stairs'], [/חבל/, 'rope'],
     [/לחיצת חזה בשיפוע|שיפוע/, 'inclinepress'], [/לחיצת חזה במכונה/, 'chestpress'], [/לחיצת חזה במשקולות/, 'dbbench'], [/לחיצת חזה|בנץ׳|בנץ'/, 'bench'],
@@ -329,7 +340,7 @@
     [/leg raise/i, 'legraise'], [/crunch machine|ab machine/i, 'machinecrunch'], [/crunch|sit.?up|\babs?\b/i, 'crunch'],
     [/curl|biceps/i, 'curl'], [/barbell/i, 'barbell'],
   ];
-  const BY_TYPE = { cardio: 'heart', machine: 'stack', free: 'curl', bodyweight: 'pushup' };
+  const BY_TYPE = { stretch: 'stretch', cardio: 'heart', machine: 'stack', free: 'curl', bodyweight: 'pushup' };
 
   window.exerciseIcon = ex => {
     const name = ex?.name || '';
