@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.2';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.3';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -120,6 +120,10 @@ const myWorkouts = () => S.workouts.filter(w => w.userId === S.settings.currentU
 const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
 const fmtNum = n => n == null ? '' : (Math.round(n * 100) / 100).toString();
 
+// Search and sort by the name as shown (built-in names are translated in English)
+const nameHas = (e, f) => e.name.includes(f) || trName(e.name).toLowerCase().includes(f.toLowerCase());
+const byName = (a, b) => trName(a.name).localeCompare(trName(b.name), window.LANG === 'en' ? 'en' : 'he');
+
 function measure(ex) {
   if (!ex) return 'weight';
   if (ex.type === 'cardio') return 'cardio';
@@ -129,14 +133,19 @@ function measure(ex) {
 
 /* ================= Formatting ================= */
 
+// Language comes from i18n.js (window.LANG); dates follow it.
+const loc = () => window.LANG === 'en' ? (/^en/.test(navigator.language) ? navigator.language : 'en-GB') : 'he-IL';
+// Built-in exercise names are stored in Hebrew; show them translated when the app is in English.
+const trName = n => window.tr ? tr(n) : n;
+
 const DAY = 864e5;
 function fmtDate(t) {
   const d = new Date(t), today = new Date();
   const days = Math.round((startOfDay(today) - startOfDay(d)) / DAY);
   if (days === 0) return 'היום';
   if (days === 1) return 'אתמול';
-  if (days < 7) return d.toLocaleDateString('he-IL', { weekday: 'long' });
-  return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'long' });
+  if (days < 7) return d.toLocaleDateString(loc(), { weekday: 'long' });
+  return d.toLocaleDateString(loc(), { day: 'numeric', month: 'long' });
 }
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); }
 function startOfWeek(d = new Date()) { const x = new Date(startOfDay(d)); x.setDate(x.getDate() - x.getDay()); return x.getTime(); }
@@ -219,9 +228,52 @@ function closeModal() {
   if (r) r(false);
 }
 function go(hash) { location.hash = hash; }
+
+// Line icons (24×24, stroke = currentColor). Class "flip" mirrors direction-dependent ones in English.
+const ICONS = {
+  home: '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v10.5a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9"/>',
+  dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2 10v4M22 10v4M8 12h8"/>',
+  plan: '<rect x="4.5" y="4" width="15" height="17" rx="2.5"/><path d="M9 4V2.8h6V4"/><path d="m8.5 10.5 1.5 1.5 2.5-2.5M14.5 11h1.5M8.5 16h7"/>',
+  history: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/>',
+  back: '<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>',
+  next: '<path d="m14.5 5.5-6.5 6.5 6.5 6.5"/>',
+  pin: '<path d="M12 21s-6.5-5.8-6.5-11a6.5 6.5 0 0 1 13 0c0 5.2-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  play: '<path class="fill" d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  flame: '<path d="M12 21.5c3.9 0 6.5-2.6 6.5-6.3 0-3.3-2.2-5.4-3.7-7.2-.4 1.8-1.3 3-2.4 3.5.3-2.8-.7-5.9-3.3-8.5.2 3.4-1.5 5.3-2.8 7C5.2 11.6 5.5 13.4 5.5 15.2c0 3.7 2.6 6.3 6.5 6.3z"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" class="fill"/>',
+  down: '<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>',
+  edit: '<path d="M4 20h4.2L19.4 8.8a2 2 0 0 0 0-2.8l-1.4-1.4a2 2 0 0 0-2.8 0L4 15.8V20z"/><path d="m13.5 6.5 4 4"/>',
+  trash: '<path d="M4.5 7h15M10 11v6M14 11v6M6 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5L18 7M9 7V4.5h6V7"/>',
+  download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 16V5M7 9.5l5-5 5 5M5 20h14"/>',
+  share: '<path d="M12 14.5V3.5M8 7.5l4-4 4 4"/><path d="M7 10.5H6a1.5 1.5 0 0 0-1.5 1.5v7.5A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5h-1"/>',
+  camera: '<path d="M4.5 7.5h3l1.8-2.5h5.4l1.8 2.5h3a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5V9a1.5 1.5 0 0 1 1.5-1.5z"/><circle cx="12" cy="13.3" r="3.5"/>',
+  image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-5-5-9.5 8.5"/>',
+  more: '<circle cx="5.5" cy="12" r="1.4" class="fill"/><circle cx="12" cy="12" r="1.4" class="fill"/><circle cx="18.5" cy="12" r="1.4" class="fill"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  up: '<path d="m6.5 14.5 5.5-5.5 5.5 5.5"/>',
+  note: '<path d="M7 3.5h10a1 1 0 0 1 1 1v16l-6-3.8-6 3.8v-16a1 1 0 0 1 1-1z"/>',
+  last: '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5M12 7.5V12l3 2"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5S9.7 5.9 12 3.5z"/>',
+  list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.5" cy="6.5" r="1" class="fill"/><circle cx="4.5" cy="12" r="1" class="fill"/><circle cx="4.5" cy="17.5" r="1" class="fill"/>',
+  trophy: '<path d="M8 4h8v5.5a4 4 0 0 1-8 0V4z"/><path d="M8 6H4.5v1.5A3 3 0 0 0 8 10.4M16 6h3.5v1.5a3 3 0 0 1-3.5 2.9M12 13.5V17M8.5 20.5h7M9.5 17h5v3.5h-5z"/>',
+  bolt: '<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6l1-8z"/>',
+  users: '<circle cx="9" cy="8" r="3.3"/><path d="M3 19.5c.5-3.3 2.9-5.2 6-5.2s5.5 1.9 6 5.2"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.8 14.6c1.8.7 2.9 2.3 3.2 4.9"/>',
+  palette: '<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.5-1-2.6 0-1 .8-1.7 1.8-1.7h2.2a3.7 3.7 0 0 0 3.7-3.7C20.5 6.8 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11" r="1.1" class="fill"/><circle cx="10.5" cy="7.3" r="1.1" class="fill"/><circle cx="15" cy="7.6" r="1.1" class="fill"/>',
+  cloud: '<path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.7 4.7 0 0 0 7 18.5z"/>',
+  phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
+};
+const ico = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+const brand = (cls = '') => `<div class="brand ${cls}" dir="ltr"><span class="word">Setou</span><span class="tagline">C'est tout</span></div>`;
+
 function thumb(ex, cls = '') {
   if (ex && photos[ex.id]) return `<img class="thumb ${cls}" src="${photos[ex.id]}" alt="">`;
-  return `<div class="thumb ${cls}">${window.exerciseIcon ? exerciseIcon(ex) : (TYPES[ex?.type]?.icon || '🏋️')}</div>`;
+  return `<div class="thumb ${cls}">${window.exerciseIcon ? exerciseIcon(ex) : ico('dumbbell')}</div>`;
 }
 function avatar(u, act = 'go-users') {
   if (!u) return '';
@@ -229,56 +281,73 @@ function avatar(u, act = 'go-users') {
 }
 function topbar(title, back) {
   return `<div class="topbar">
-    ${back ? `<button class="back" data-act="back">→ חזרה</button>` : `<h1>${title}</h1>`}
+    ${back ? `<button class="back" data-act="back" aria-label="חזרה">${ico('back', 'flip')}</button>` : `<h1>${title}</h1>`}
     ${avatar(me())}
   </div>${back ? `<h1>${title}</h1>` : ''}`;
 }
+// Hebrew / English switch (labels stay in their own language)
+const langSwitch = () => `<div class="lang-switch"><div class="seg" translate="no">${[['he', 'עברית'], ['en', 'English']].map(([v, l]) =>
+  `<button class="${window.LANG === v ? 'on' : ''}" data-act="lang" data-v="${v}">${ico('globe')} ${l}</button>`).join('')}</div></div>`;
+const emptyState = (icon, text) => `<div class="empty"><span class="big-ic">${ico(icon)}</span>${text}</div>`;
 
 /* ================= Screens ================= */
 
 function screenOnboarding() {
-  return `<div style="padding-top:12vh" class="center stack">
-    <div style="font-size:64px">💪</div>
+  return `<div class="welcome stack">
+    ${brand('lg')}
     <h1>ברוך הבא!</h1>
     <p class="muted">איך קוראים לך? אפשר להוסיף עוד משתמשים אחר כך, למשל את הבן.</p>
     <input class="input" id="new-user-name" placeholder="השם שלך" autocomplete="off">
     <button class="btn primary big" data-act="create-first-user">יאללה, מתחילים</button>
+    ${langSwitch()}
   </div>`;
+}
+
+// Weekly goal ring for the home screen
+function ring(done, goal) {
+  const C = 2 * Math.PI * 50, f = Math.min(1, done / Math.max(1, goal));
+  return `<div class="ring"><svg viewBox="0 0 120 120"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-2)"/></linearGradient></defs>
+    <circle class="track" cx="60" cy="60" r="50"/><circle class="val" cx="60" cy="60" r="50" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - f)).toFixed(1)}" ${f ? '' : 'stroke-opacity="0"'}/></svg>
+    <div class="txt"><b class="num" dir="ltr">${done}<small style="font-size:20px;opacity:.55">/${goal}</small></b><span>אימונים</span></div></div>`;
 }
 
 function screenHome() {
   const u = me(), a = myActive(), st = weekStats(), goal = S.settings.weeklyGoal;
-  const pct = Math.min(100, Math.round(st.count / goal * 100));
   const streak = streakWeeks();
   const recent = myWorkouts().slice(0, 3);
   const routines = S.routines.filter(r => r.userId === u.id);
+  const plans = upcomingPlans();
   let msg;
   if (st.count >= goal) msg = 'עמדת ביעד השבועי! כל אימון נוסף הוא בונוס 🔥';
   else if (st.count === 0) msg = 'שבוע חדש, הזדמנות חדשה. בוא נפתח אותו!';
   else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
 
-  return `${topbar(`שלום ${esc(u.name)}`)}
-    <p class="muted" style="margin-top:0">${msg}</p>
+  return `<div class="topbar">${brand()}${avatar(u)}</div>
+    <h1 class="greet">שלום ${esc(u.name)}</h1>
     ${gymChip()}
-    <div class="card">
-      <div class="row between"><b>השבוע</b><span class="muted small">יעד: ${goal} אימונים</span></div>
-      <div class="goal-bar"><i style="width:${pct}%"></i></div>
-      <div class="stats" style="margin-top:12px">
-        <div class="stat"><b>${st.count}</b><span>אימונים</span></div>
-        <div class="stat"><b>${st.minutes}</b><span>דקות</span></div>
-        <div class="stat"><b>${streak}</b><span>שבועות ברצף</span></div>
+    <div class="hero">
+      <div class="hero-top">
+        ${ring(st.count, goal)}
+        <div class="grow"><div class="hero-label">השבוע</div><div class="hero-msg">${msg}</div></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span class="k-ic">${ico('bolt')}</span><b class="num">${st.count}</b><span>אימונים</span></div>
+        <div class="kpi"><span class="k-ic">${ico('clock')}</span><b class="num">${st.minutes}</b><span>דקות</span></div>
+        <div class="kpi"><span class="k-ic">${ico('flame')}</span><b class="num">${streak}</b><span>שבועות ברצף</span></div>
       </div>
     </div>
     <div style="margin-top:16px">
-      ${a ? `<button class="btn primary big" data-act="go-workout">המשך אימון · <span data-elapsed></span></button>`
-          : `<button class="btn primary big" data-act="start-empty">▶ התחל אימון</button>`}
+      ${a ? `<button class="btn primary big cta" data-act="go-workout">${ico('play')}<span>המשך אימון</span> · <span data-elapsed></span></button>`
+          : `<button class="btn primary big cta" data-act="start-empty">${ico('play')}<span>התחל אימון</span></button>`}
     </div>
-    ${!a && routines.length ? `<h2>התחל מתוכנית</h2>
-      <div class="chips">${routines.map(r => `<button class="chip" data-act="start-routine" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>` : ''}
-    <h2>אימונים אחרונים</h2>
-    ${recent.length ? recent.map(workoutRow).join('') : `<div class="empty"><span class="big-ic">📅</span>עוד אין אימונים. האימון הראשון מחכה לך!</div>`}
-    <div class="row between" style="margin-top:22px"><h2 style="margin:0">אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">+ תכנן אימון</button></div>
-    <div style="margin-top:10px">${upcomingPlans().map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}</div>`;
+    ${!a && routines.length ? `<div class="section-head"><h2>התחל מתוכנית</h2></div>
+      <div class="rail">${routines.map(r => `<button class="rcard tap" data-act="start-routine" data-id="${r.id}">
+        <b>${esc(r.name)}</b><span class="muted">${r.exerciseIds.filter(exById).length} תרגילים</span><span class="go">${ico('play')}</span>
+      </button>`).join('')}</div>` : ''}
+    <div class="section-head"><h2>אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">${ico('plus')}<span>תכנן אימון</span></button></div>
+    ${plans.map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}
+    <div class="section-head"><h2>אימונים אחרונים</h2>${recent.length ? `<button class="link" data-act="go" data-to="#/history">הכל</button>` : ''}</div>
+    ${recent.length ? recent.map(workoutRow).join('') : emptyState('history', 'עוד אין אימונים. האימון הראשון מחכה לך!')}`;
 }
 
 /* ---- Planned workouts ---- */
@@ -287,16 +356,20 @@ const upcomingPlans = () => S.plans
   .sort((a, b) => a.at - b.at);
 function fmtPlanWhen(t) {
   const d = new Date(t), days = Math.round((startOfDay(d) - startOfDay(new Date())) / DAY);
-  const day = days === 0 ? 'היום' : days === 1 ? 'מחר' : d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
-  return `${day} · ${d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+  const day = days === 0 ? 'היום' : days === 1 ? 'מחר' : d.toLocaleDateString(loc(), { weekday: 'long', day: 'numeric', month: 'long' });
+  return `${day} · ${d.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' })}`;
 }
 function planRow(p) {
   const r = S.routines.find(r => r.id === p.routineId), g = gymById(p.gymId);
   const today = startOfDay(new Date(p.at)) === startOfDay(new Date());
-  return `<div class="card tap" data-act="plan-edit" data-id="${p.id}">
-    <div class="row between"><b>🗓️ ${fmtPlanWhen(p.at)}</b>${today && !myActive() ? `<button class="btn sm primary" data-act="plan-start" data-id="${p.id}">▶ התחל</button>` : ''}</div>
-    ${g || r ? `<div class="small" style="margin-top:2px">${[g && '📍 ' + esc(g.name), r && '📋 ' + esc(r.name)].filter(Boolean).join(' · ')}</div>` : ''}
-    ${p.notes ? `<div class="muted small" style="margin-top:4px;white-space:pre-line">${esc(p.notes)}</div>` : ''}
+  return `<div class="card tap list-item" data-act="plan-edit" data-id="${p.id}">
+    ${dateTile(p.at)}
+    <div class="grow">
+      <div class="card-title">${fmtPlanWhen(p.at)}</div>
+      ${g || r ? `<div class="meta">${g ? `<span>${ico('pin')}${esc(g.name)}</span>` : ''}${r ? `<span>${ico('plan')}${esc(r.name)}</span>` : ''}</div>` : ''}
+      ${p.notes ? `<div class="muted small" style="margin-top:4px;white-space:pre-line">${esc(p.notes)}</div>` : ''}
+    </div>
+    ${today && !myActive() ? `<button class="btn sm primary" data-act="plan-start" data-id="${p.id}">${ico('play')}<span>התחל</span></button>` : ''}
   </div>`;
 }
 const pad2 = n => String(n).padStart(2, '0');
@@ -304,11 +377,11 @@ const toLocalInput = t => { const d = new Date(t); return `${d.getFullYear()}-${
 const icsTime = t => new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 function planEvent(p) {
   const r = S.routines.find(r => r.id === p.routineId), g = gymById(p.gymId);
-  return { title: `אימון${r ? ' – ' + r.name : ''}`, where: g?.name || '', notes: p.notes || '', start: p.at, end: p.at + 75 * 60000 };
+  return { title: `${trName('אימון')}${r ? ' – ' + r.name : ''}`, where: g?.name || '', notes: p.notes || '', start: p.at, end: p.at + 75 * 60000 };
 }
 function planIcs(p) {
   const ev = planEvent(p), x = s => s.replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//gym//he', 'BEGIN:VEVENT', `UID:${p.id}@gym-app`, `DTSTAMP:${icsTime(Date.now())}`,
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Setou//EN', 'BEGIN:VEVENT', `UID:${p.id}@gym-app`, `DTSTAMP:${icsTime(Date.now())}`,
     `DTSTART:${icsTime(ev.start)}`, `DTEND:${icsTime(ev.end)}`, `SUMMARY:${x(ev.title)}`,
     ev.where && `LOCATION:${x(ev.where)}`, ev.notes && `DESCRIPTION:${x(ev.notes)}`,
     'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', `DESCRIPTION:${x(ev.title)}`, 'END:VALARM',
@@ -321,31 +394,40 @@ function googleCalUrl(p) {
   });
 }
 
+// Calendar-style day tile used by planned and past workouts
+function dateTile(t) {
+  const d = new Date(t);
+  return `<div class="when"><b class="num">${d.getDate()}</b><span>${d.toLocaleDateString(loc(), { month: 'short' })}</span></div>`;
+}
+
 function gymChip() {
   const g = gymById(curGymId());
-  return `<button class="chip" style="margin-bottom:12px" data-act="pick-gym">📍 ${g ? esc(g.name) : 'בחר חדר כושר'} ▾</button>`;
+  return `<button class="chip gym-chip" data-act="pick-gym">${ico('pin')}<span>${g ? esc(g.name) : 'בחר חדר כושר'}</span>${ico('down')}</button>`;
 }
 
 function workoutRow(w) {
   const sets = w.entries.reduce((t, e) => t + e.sets.length, 0);
   const names = w.entries.map(e => exById(e.exerciseId)?.name).filter(Boolean);
-  return `<div class="card tap" data-act="go" data-to="#/workout/${w.id}">
-    <div class="row between"><b>${fmtDate(w.start)}</b><span class="muted small">${fmtDur(w.end - w.start)} · ${sets} סטים</span></div>
-    ${gymById(w.gymId) ? `<div class="small" style="margin-top:2px">📍 ${esc(gymById(w.gymId).name)}</div>` : ''}
-    <div class="muted small" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(names.join(' · ')) || '—'}</div>
+  return `<div class="card tap list-item" data-act="go" data-to="#/workout/${w.id}">
+    ${dateTile(w.start)}
+    <div class="grow">
+      <div class="row between"><span class="card-title">${fmtDate(w.start)}</span>${ico('next', 'flip muted')}</div>
+      <div class="meta"><span>${ico('clock')}${fmtDur(w.end - w.start)}</span><span>${ico('list')}${sets} סטים</span>${gymById(w.gymId) ? `<span>${ico('pin')}${esc(gymById(w.gymId).name)}</span>` : ''}</div>
+      <div class="muted small" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(names.map(trName).join(' · ')) || '—'}</div>
+    </div>
   </div>`;
 }
 
 function screenWorkout() {
   const a = myActive();
   if (!a) { go('#/home'); return ''; }
-  return `<div class="topbar">
-      <div><div class="muted small">${a.routineName ? esc(a.routineName) : 'אימון'}${gymById(a.gymId) ? ' · 📍 ' + esc(gymById(a.gymId).name) : ''}</div><div class="elapsed" style="font-size:24px" data-elapsed></div></div>
-      <button class="btn primary" data-act="finish-workout">סיים אימון</button>
+  return `<div class="wk-head row between">
+      <div><div class="meta" style="margin:0"><span>${a.routineName ? esc(a.routineName) : 'אימון'}</span>${gymById(a.gymId) ? `<span>${ico('pin')}${esc(gymById(a.gymId).name)}</span>` : ''}</div><div class="elapsed" style="font-size:34px;line-height:1.1" data-elapsed></div></div>
+      <button class="btn primary" data-act="finish-workout">${ico('check')}<span>סיים אימון</span></button>
     </div>
-    ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : `<div class="empty"><span class="big-ic">🏋️</span>הוסף את התרגיל או המכשיר הראשון</div>`}
+    ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : emptyState('dumbbell', 'הוסף את התרגיל או המכשיר הראשון')}
     <div class="stack" style="margin-top:14px">
-      <button class="btn big" data-act="pick-exercise">+ הוסף תרגיל</button>
+      <button class="btn big" data-act="pick-exercise">${ico('plus')}<span>הוסף תרגיל</span></button>
       <button class="btn block danger" data-act="cancel-workout">בטל אימון</button>
     </div>`;
 }
@@ -363,11 +445,11 @@ function entryCard(e, i) {
       ${thumb(ex)}
       <div class="grow">
         <b>${esc(ex.name)}</b>
-        <div class="last">${last ? `בפעם הקודמת (${fmtDate(last.date)}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</div>
-        ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">🎯 יעד: ${esc(targetText(myTarget(ex), kind))}</div>` : ''}
-        ${note ? `<div class="note">📌 ${esc(note)}</div>` : ''}
+        <div class="last">${ico('last')}<span>${last ? `בפעם הקודמת (${fmtDate(last.date)}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</span></div>
+        ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">${ico('target')}<span>יעד: ${esc(targetText(myTarget(ex), kind))}</span></div>` : ''}
+        ${note ? `<div class="note">${ico('note')}<span>${esc(note)}</span></div>` : ''}
       </div>
-      <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">⋯</button>
+      <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">${ico('more')}</button>
     </div>
     <table class="sets">
       <tr><th>סט</th>${last ? '<th>קודם</th>' : ''}${cols.map(c => `<th>${c}</th>`).join('')}<th></th><th></th></tr>
@@ -375,34 +457,34 @@ function entryCard(e, i) {
         <td class="num">${j + 1}</td>
         ${last ? `<td class="prev">${last.sets[j] ? esc(setText(last.sets[j], kind)) : '–'}</td>` : ''}
         ${fields.map(f => `<td><input inputmode="decimal" data-in="set" data-i="${i}" data-j="${j}" data-f="${f}" value="${fmtNum(s[f])}" placeholder="${f === 'weight' ? 'ק״ג' : '0'}"></td>`).join('')}
-        <td style="width:50px"><button class="check" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-label="סיימתי">✓</button></td>
-        <td style="width:28px"><button class="del-set" data-act="del-set" data-i="${i}" data-j="${j}" aria-label="מחק סט">×</button></td>
+        <td style="width:50px"><button class="check" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-label="סיימתי">${ico('check')}</button></td>
+        <td style="width:28px"><button class="del-set" data-act="del-set" data-i="${i}" data-j="${j}" aria-label="מחק סט">${ico('x')}</button></td>
       </tr>`).join('')}
     </table>
-    <button class="btn sm block" data-act="add-set" data-i="${i}" style="margin-top:4px">+ סט</button>
+    <button class="btn sm block" data-act="add-set" data-i="${i}" style="margin-top:4px">${ico('plus')}<span>סט</span></button>
   </div>`;
 }
 
 function screenExercises() {
   const f = ui.exFilter.trim();
   const gym = ui.exGym === undefined ? curGymId() : ui.exGym;
-  const list = S.exercises.filter(e => (!f || e.name.includes(f) || e.muscle === f) && atGym(e, gym)).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  const list = S.exercises.filter(e => (!f || nameHas(e, f) || e.muscle === f) && atGym(e, gym)).sort(byName);
   return `${topbar('המכשירים והתרגילים שלי')}
     <div class="row" style="margin-bottom:12px">
-      <input class="input grow" data-in="ex-filter" placeholder="🔍 חיפוש" value="${esc(ui.exFilter)}">
-      <button class="btn primary" data-act="go" data-to="#/exercise-new">+ חדש</button>
+      <label class="search grow">${ico('search')}<input class="input" data-in="ex-filter" placeholder="חיפוש" value="${esc(ui.exFilter)}"></label>
+      <button class="btn primary" data-act="go" data-to="#/exercise-new">${ico('plus')}<span>חדש</span></button>
     </div>
-    <button class="btn block" style="margin-bottom:12px" data-act="open-catalog">📋 הוסף מהרשימה המוכנה</button>
+    <button class="btn block" style="margin-bottom:12px" data-act="open-catalog">${ico('list')}<span>הוסף מהרשימה המוכנה</span></button>
     ${S.gyms.length ? `<div class="chips" style="margin-bottom:12px">
       <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">הכל</button>
-      ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}
+      ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
     </div>` : ''}
     ${list.length ? `<div class="grid">${list.map(ex => `
       <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
         ${thumb(ex)}
-        <div class="body"><div class="name">${esc(ex.name)}</div><span class="tag">${esc(ex.muscle || TYPES[ex.type].label)}</span></div>
+        <div class="body"><div class="name">${esc(ex.name)}</div><span class="tag accent">${esc(ex.muscle || TYPES[ex.type].label)}</span></div>
       </div>`).join('')}</div>`
-    : `<div class="empty"><span class="big-ic">📸</span>${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחר מהרשימה המוכנה, או צלם מכשיר בחדר הכושר ותן לו שם.'}</div>`}`;
+    : emptyState(S.exercises.length ? 'search' : 'camera', S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחר מהרשימה המוכנה, או צלם מכשיר בחדר הכושר ותן לו שם.')}`;
 }
 
 function screenExercise(id) {
@@ -421,22 +503,22 @@ function screenExercise(id) {
   }
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
-    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag">${esc(ex.muscle)}</span>` : ''}${(ex.gymIds || []).map(gymById).filter(Boolean).map(g => `<span class="tag">📍 ${esc(g.name)}</span>`).join('')}</div>
-    <div class="field"><span class="muted small" style="display:block;margin-bottom:6px">🎯 היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span>
+    <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}${(ex.gymIds || []).map(gymById).filter(Boolean).map(g => `<span class="tag">${ico('pin')}${esc(g.name)}</span>`).join('')}</div>
+    <div class="card field"><span class="label">${ico('target')} <span>היעד שלי (ימולא אוטומטית כשמתחילים אימון)</span></span>
       ${targetFields(ex)}
-      <div class="muted small" style="margin-top:6px">⏮ ${esc(lastLine(ex))}</div>
+      <div class="muted small" style="margin-top:10px">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
     </div>
     <label class="field"><span>ההערות שלי (גובה מושב, מיקום ידית...)</span>
       <textarea class="input" data-in="ex-note" data-id="${ex.id}" placeholder="למשל: מושב בחור 4, משענת 2">${esc(ex.notes?.[S.settings.currentUserId] || '')}</textarea>
     </label>
-    <div class="stats" style="grid-template-columns:repeat(${best ? 2 : 1},1fr)">
+    <div class="stats" style="grid-template-columns:repeat(${best ? 2 : 1},1fr);margin-top:6px">
       <div class="stat"><b>${hist.length}</b><span>פעמים</span></div>${best}
     </div>
     <h2>היסטוריה</h2>
-    ${hist.length ? hist.slice(0, 20).map(h => `<div class="card"><div class="row between"><b>${fmtDate(h.date)}</b></div><div class="muted small">${esc(setsSummary(h.sets, kind))}</div></div>`).join('')
-      : `<div class="empty">עוד לא עשית את התרגיל הזה</div>`}
+    ${hist.length ? hist.slice(0, 20).map(h => `<div class="card list-item">${dateTile(h.date)}<div class="grow"><div class="card-title">${fmtDate(h.date)}</div><div class="muted small">${esc(setsSummary(h.sets, kind))}</div></div></div>`).join('')
+      : emptyState('history', 'עוד לא עשית את התרגיל הזה')}
     <hr>
-    <button class="btn block" data-act="go" data-to="#/exercise-edit/${ex.id}">✏️ עריכה</button>`;
+    <button class="btn block" data-act="go" data-to="#/exercise-edit/${ex.id}">${ico('edit')}<span>עריכה</span></button>`;
 }
 
 function screenExerciseEdit(id) {
@@ -446,24 +528,24 @@ function screenExerciseEdit(id) {
   draft.gymIds = draft.gymIds || [];
   return `${topbar(ex ? 'עריכת תרגיל' : 'מכשיר / תרגיל חדש', true)}
     <label class="field"><span>תמונה</span>
-      ${draft.photo ? `<img class="thumb lg" src="${draft.photo}" alt="">` : `<div class="thumb lg">📷</div>`}
+      ${draft.photo ? `<img class="thumb lg" src="${draft.photo}" alt="">` : `<div class="thumb lg">${ico('camera')}</div>`}
     </label>
     <div class="btns" style="margin:-4px 0 16px">
-      <label class="btn">📸 צלם<input type="file" accept="image/*" capture="environment" data-in="photo" hidden></label>
-      <label class="btn">🖼️ מהגלריה<input type="file" accept="image/*" data-in="photo" hidden></label>
+      <label class="btn">${ico('camera')}<span>צלם</span><input type="file" accept="image/*" capture="environment" data-in="photo" hidden></label>
+      <label class="btn">${ico('image')}<span>מהגלריה</span><input type="file" accept="image/*" data-in="photo" hidden></label>
       ${draft.photo ? `<button class="btn danger" data-act="photo-clear">הסר</button>` : ''}
     </div>
     <label class="field"><span>שם</span>
       <input class="input" data-in="draft" data-f="name" value="${esc(draft.name)}" placeholder="למשל: לחיצת חזה במכונה" autocomplete="off">
     </label>
-    <div class="field"><span class="muted small" style="display:block;margin-bottom:6px">סוג</span>
-      <div class="chips">${Object.entries(TYPES).map(([k, t]) => `<button class="chip ${draft.type === k ? 'on' : ''}" data-act="draft-set" data-f="type" data-v="${k}">${t.icon} ${t.label}</button>`).join('')}</div>
+    <div class="field"><span class="label">סוג</span>
+      <div class="chips">${Object.entries(TYPES).map(([k, t]) => `<button class="chip ${draft.type === k ? 'on' : ''}" data-act="draft-set" data-f="type" data-v="${k}">${t.label}</button>`).join('')}</div>
     </div>
-    <div class="field" style="margin-top:14px"><span class="muted small" style="display:block;margin-bottom:6px">קבוצת שרירים</span>
+    <div class="field"><span class="label">קבוצת שרירים</span>
       <div class="chips">${MUSCLES.map(m => `<button class="chip ${draft.muscle === m ? 'on' : ''}" data-act="draft-set" data-f="muscle" data-v="${m}">${m}</button>`).join('')}</div>
     </div>
-    ${S.gyms.length ? `<div class="field" style="margin-top:14px"><span class="muted small" style="display:block;margin-bottom:6px">באיזה חדר כושר? (בלי סימון = בכל מקום)</span>
-      <div class="chips">${S.gyms.map(g => `<button class="chip ${draft.gymIds.includes(g.id) ? 'on' : ''}" data-act="draft-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}</div>
+    ${S.gyms.length ? `<div class="field"><span class="label">באיזה חדר כושר? (בלי סימון = בכל מקום)</span>
+      <div class="chips">${S.gyms.map(g => `<button class="chip ${draft.gymIds.includes(g.id) ? 'on' : ''}" data-act="draft-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
     </div>` : ''}
     <div class="stack" style="margin-top:22px">
       <button class="btn primary big" data-act="save-exercise" data-id="${ex ? ex.id : ''}">שמור</button>
@@ -476,18 +558,19 @@ function screenRoutines() {
   return `${topbar('תוכניות האימון שלי')}
     <p class="muted" style="margin-top:0">תוכנית היא רשימה קבועה של תרגילים, למשל "אימון א" ו"אימון ב". מתחילים אותה בלחיצה אחת.</p>
     ${rs.map(r => `<div class="card">
-      <div class="row between"><b>${esc(r.name)}</b><button class="btn sm" data-act="go" data-to="#/routine/${r.id}">עריכה</button></div>
-      <div class="muted small" style="margin:4px 0 10px">${esc(r.exerciseIds.map(id => exById(id)?.name).filter(Boolean).join(' · ')) || 'אין תרגילים'}</div>
-      <button class="btn primary block" data-act="start-routine" data-id="${r.id}">▶ התחל</button>
-    </div>`).join('') || `<div class="empty"><span class="big-ic">📋</span>עוד אין תוכניות</div>`}
-    <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">+ תוכנית חדשה</button>`;
+      <div class="row between"><span class="card-title" style="font-size:18px">${esc(r.name)}</span><button class="btn sm ghost" data-act="go" data-to="#/routine/${r.id}">${ico('edit')}<span>עריכה</span></button></div>
+      <div class="meta" style="margin:2px 0 4px"><span>${ico('list')}${r.exerciseIds.filter(exById).length} תרגילים</span></div>
+      <div class="muted small" style="margin:0 0 12px">${esc(r.exerciseIds.map(id => exById(id)?.name).filter(Boolean).map(trName).join(' · ')) || 'אין תרגילים'}</div>
+      <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
+    </div>`).join('') || emptyState('plan', 'עוד אין תוכניות')}
+    <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>`;
 }
 
 function screenRoutineEdit(id) {
   const r = id === 'new' ? null : S.routines.find(r => r.id === id);
   if (id !== 'new' && !r) { go('#/routines'); return ''; }
   const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds] } : { name: '', exerciseIds: [] });
-  const sorted = [...S.exercises].sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  const sorted = [...S.exercises].sort(byName);
   return `${topbar(r ? 'עריכת תוכנית' : 'תוכנית חדשה', true)}
     <label class="field"><span>שם התוכנית</span>
       <input class="input" data-in="draft" data-f="name" value="${esc(draft.name)}" placeholder="למשל: אימון א - פלג גוף עליון" autocomplete="off">
@@ -495,16 +578,16 @@ function screenRoutineEdit(id) {
     <h2>תרגילים בתוכנית (${draft.exerciseIds.length})</h2>
     ${draft.exerciseIds.map((xid, i) => { const ex = exById(xid); return ex ? `<div class="card stack">
       <div class="list-item">
-        <b class="muted">${i + 1}</b><div class="grow">${esc(ex.name)}</div>
-        <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''}>▲</button>
-        <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''}>▼</button>
-        <button class="btn sm danger" data-act="r-remove" data-i="${i}">×</button>
+        <b class="num muted" style="font-size:20px">${i + 1}</b><div class="grow card-title">${esc(ex.name)}</div>
+        <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">${ico('up')}</button>
+        <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''} aria-label="למטה">${ico('down')}</button>
+        <button class="btn sm danger" data-act="r-remove" data-i="${i}" aria-label="הסר">${ico('x')}</button>
       </div>
       ${targetFields(ex)}
-      <div class="muted small">⏮ ${esc(lastLine(ex))}</div>
+      <div class="muted small">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
     </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
     <h2>הוסף תרגיל</h2>
-    ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">+ ${esc(e.name)}</button>`).join('')}</div>`
+    ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">${ico('plus')}<span>${esc(e.name)}</span></button>`).join('')}</div>`
       : `<p class="muted">קודם צריך להוסיף מכשירים בלשונית "מכשירים".</p>`}
     <div class="stack" style="margin-top:22px">
       <button class="btn primary big" data-act="save-routine" data-id="${r ? r.id : ''}">שמור</button>
@@ -525,11 +608,11 @@ function screenHistory() {
       <div class="stat"><b>${ws.length}</b><span>סה״כ</span></div>
     </div>
     ${ws.length ? ws.map(w => {
-      const m = new Date(w.start).toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+      const m = new Date(w.start).toLocaleDateString(loc(), { month: 'long', year: 'numeric' });
       const head = m !== lastMonth ? `<h2>${m}</h2>` : '';
       lastMonth = m;
       return head + workoutRow(w);
-    }).join('') : `<div class="empty"><span class="big-ic">📅</span>כאן יופיעו האימונים שלך</div>`}`;
+    }).join('') : emptyState('history', 'כאן יופיעו האימונים שלך')}`;
 }
 
 function screenWorkoutView(id) {
@@ -537,12 +620,12 @@ function screenWorkoutView(id) {
   if (!w) { go('#/history'); return ''; }
   const d = new Date(w.start);
   return `${topbar(fmtDate(w.start), true)}
-    <p class="muted" style="margin-top:0">${d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} · ${fmtDur(w.end - w.start)}</p>
+    <p class="muted" style="margin-top:0">${d.toLocaleDateString(loc(), { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' })} · ${fmtDur(w.end - w.start)}</p>
     ${w.entries.map(e => { const ex = exById(e.exerciseId); return `<div class="card list-item">
       ${thumb(ex)}<div class="grow"><b>${esc(ex?.name || 'תרגיל שנמחק')}</b><div class="muted small">${esc(setsSummary(e.sets, measure(ex)))}</div></div>
     </div>`; }).join('')}
     <hr>
-    <button class="btn block danger" data-act="delete-workout" data-id="${w.id}">מחק אימון</button>`;
+    <button class="btn block danger" data-act="delete-workout" data-id="${w.id}">${ico('trash')}<span>מחק אימון</span></button>`;
 }
 
 function screenUsers() {
@@ -552,7 +635,7 @@ function screenUsers() {
     ${S.users.map(u => `<div class="card list-item tap" data-act="switch-user" data-id="${u.id}">
       <span class="avatar" style="background:${u.color}">${esc(u.name.trim()[0] || '?')}</span>
       <b class="grow">${esc(u.name)}</b>
-      ${u.id === S.settings.currentUserId ? '<span class="tag">פעיל</span>' : ''}
+      ${u.id === S.settings.currentUserId ? '<span class="tag accent">פעיל</span>' : ''}
     </div>`).join('')}
     <div class="row" style="margin-top:12px">
       <input class="input grow" id="add-user-name" placeholder="שם משתמש חדש" autocomplete="off">
@@ -561,9 +644,9 @@ function screenUsers() {
     ${window.FIREBASE_CONFIG ? cloudSettingsSection() : ''}`}
     <h2>חדרי כושר</h2>
     ${S.gyms.map(g => `<div class="card list-item">
-      <b class="grow">📍 ${esc(g.name)}</b>
-      <button class="btn sm" data-act="rename-gym" data-id="${g.id}">שנה שם</button>
-      <button class="btn sm danger" data-act="delete-gym" data-id="${g.id}">מחק</button>
+      <span class="tag accent" style="padding:8px">${ico('pin')}</span><b class="grow">${esc(g.name)}</b>
+      <button class="btn sm" data-act="rename-gym" data-id="${g.id}" aria-label="שנה שם">${ico('edit')}</button>
+      <button class="btn sm danger" data-act="delete-gym" data-id="${g.id}" aria-label="מחק">${ico('trash')}</button>
     </div>`).join('') || '<p class="muted small" style="margin-top:0">עוד אין חדרי כושר</p>'}
     <div class="row" style="margin-top:12px">
       <input class="input grow" id="new-gym-name" placeholder="שם חדר כושר חדש" autocomplete="off">
@@ -576,19 +659,21 @@ function screenUsers() {
     <label class="field"><span>יעד אימונים בשבוע</span>
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
+    <h2>שפה</h2>
+    ${langSwitch()}
     <h2>צבעים</h2>
-    <div class="chips">${[['blue', 'כחול'], ['green', 'ירוק (המקורי)']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'blue') === v ? 'on' : ''}" data-act="palette" data-v="${v}">${l}</button>`).join('')}</div>
+    <div class="chips">${[['blue', 'כחול'], ['green', 'ירוק (המקורי)']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'blue') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${v === 'blue' ? '#3b82f6' : '#34d399'}"></span><span>${l}</span></button>`).join('')}</div>
     <h2>גיבוי</h2>
     ${cloud ? `<p class="muted small" style="margin-top:0">הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.</p>
-    <div class="btns"><button class="btn" data-act="export">⬇️ שמור גיבוי</button></div>`
+    <div class="btns"><button class="btn" data-act="export">${ico('download')}<span>שמור גיבוי</span></button></div>`
     : `<p class="muted small" style="margin-top:0">כרגע הנתונים שמורים רק בטלפון הזה. מומלץ לשמור גיבוי מדי פעם.</p>
     <div class="btns">
-      <button class="btn" data-act="export">⬇️ שמור גיבוי</button>
-      <label class="btn">⬆️ שחזר מגיבוי<input type="file" accept="application/json,.json" data-in="import" hidden></label>
+      <button class="btn" data-act="export">${ico('download')}<span>שמור גיבוי</span></button>
+      <label class="btn">${ico('upload')}<span>שחזר מגיבוי</span><input type="file" accept="application/json,.json" data-in="import" hidden></label>
     </div>`}
     <h2>התקנה באייפון</h2>
-    <p class="muted small" style="margin-top:0">בספארי: לחץ על כפתור השיתוף ⬆️ ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p>
-    <p class="muted small center" style="margin-top:24px">גרסה ${APP_VERSION}</p>
+    <p class="muted small" style="margin-top:0">בספארי: לחץ על כפתור השיתוף ואז "הוסף למסך הבית". האפליקציה תיפתח במסך מלא ותעבוד גם בלי קליטה.</p>
+    <div class="center" style="margin-top:30px">${brand()}<p class="muted small" style="margin:6px 0 0">גרסה ${APP_VERSION}</p></div>
     ${cloud ? '' : `<hr>
     <button class="btn block danger" data-act="delete-user" data-id="${S.settings.currentUserId}">מחק את המשתמש ${esc(me()?.name)}</button>`}`;
 }
@@ -602,16 +687,16 @@ function renderModal() {
     const a = myActive();
     const inWorkout = new Set(a ? a.entries.map(e => e.exerciseId) : []);
     const f = (m.filter || '').trim();
-    const list = S.exercises.filter(e => (!f || e.name.includes(f)) && atGym(e, a?.gymId)).sort((x, y) => x.name.localeCompare(y.name, 'he'));
+    const list = S.exercises.filter(e => (!f || nameHas(e, f)) && atGym(e, a?.gymId)).sort(byName);
     el.innerHTML = `<div class="sheet" data-stop>
       <div class="row between"><h2>בחר תרגיל</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      <input class="input" data-in="pick-filter" placeholder="🔍 חיפוש" value="${esc(m.filter || '')}" style="margin-bottom:10px">
+      <label class="search" style="display:block;margin-bottom:10px">${ico('search')}<input class="input" data-in="pick-filter" placeholder="חיפוש" value="${esc(m.filter || '')}"></label>
       ${list.map(ex => `<div class="card list-item tap" data-act="add-entry" data-id="${ex.id}">
         ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(ex.muscle || TYPES[ex.type].label)}${inWorkout.has(ex.id) ? ' · כבר באימון' : ''}</div></div>
       </div>`).join('') || `<div class="empty">${S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים'}</div>`}
       <div class="btns" style="margin-top:12px">
-        <button class="btn" data-act="open-catalog">📋 מהרשימה</button>
-        <button class="btn" data-act="new-ex-from-workout">+ חדש</button>
+        <button class="btn" data-act="open-catalog">${ico('list')}<span>מהרשימה</span></button>
+        <button class="btn" data-act="new-ex-from-workout">${ico('plus')}<span>חדש</span></button>
       </div>
     </div>`;
   } else if (m.type === 'catalog') {
@@ -622,7 +707,7 @@ function renderModal() {
       <p class="muted small" style="margin-top:0">בחר את מה שיש${g ? ` ב${esc(g.name)}` : ''}. אפשר לשנות שם ולהוסיף תמונה אחר כך.</p>
       ${CATALOG.map(([title, items]) => `<h2 style="font-size:16px">${title}</h2>
         <div class="chips">${items.map(([name]) => have.has(name)
-          ? `<span class="chip" style="opacity:.45">✓ ${esc(name)}</span>`
+          ? `<span class="chip" style="opacity:.45">${ico('check')}<span>${esc(name)}</span></span>`
           : `<button class="chip ${m.picked.includes(name) ? 'on' : ''}" data-act="catalog-toggle" data-v="${esc(name)}">${esc(name)}</button>`).join('')}</div>`).join('')}
       <div style="position:sticky;bottom:0;padding-top:12px;background:var(--bg)">
         <button class="btn primary big" data-act="catalog-add" ${n ? '' : 'disabled'}>${n ? `הוסף ${n}` : 'בחר תרגילים'}</button>
@@ -633,18 +718,18 @@ function renderModal() {
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>${saved ? 'אימון מתוכנן' : 'תכנון אימון'}</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
       <label class="field" style="margin:0"><span>מתי?</span><input class="input" type="datetime-local" data-in="plan" data-f="at" value="${toLocalInput(d.at)}"></label>
-      ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="plan-set" data-f="gymId" data-v="${g.id}">📍 ${esc(g.name)}</button>`).join('')}</div></div>` : ''}
+      ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="plan-set" data-f="gymId" data-v="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div></div>` : ''}
       ${rs.length ? `<div><span class="muted small">איזו תוכנית? (לא חובה)</span><div class="chips" style="margin-top:6px">${rs.map(r => `<button class="chip ${d.routineId === r.id ? 'on' : ''}" data-act="plan-set" data-f="routineId" data-v="${r.id}">${esc(r.name)}</button>`).join('')}</div></div>` : ''}
       <label class="field" style="margin:0"><span>הערות</span><textarea class="input" data-in="plan" data-f="notes" placeholder="למשל: יום רגליים, להביא אוזניות">${esc(d.notes || '')}</textarea></label>
       <button class="btn primary block" data-act="plan-save">${saved ? 'שמור שינויים' : 'שמור'}</button>
-      ${saved ? `<div class="btns"><button class="btn" data-act="plan-ics">📅 ליומן באייפון</button><button class="btn" data-act="plan-google">📅 ליומן גוגל</button></div>
+      ${saved ? `<div class="btns"><button class="btn" data-act="plan-ics">${ico('calendar')}<span>ליומן באייפון</span></button><button class="btn" data-act="plan-google">${ico('calendar')}<span>ליומן גוגל</span></button></div>
       <button class="btn block danger" data-act="plan-delete" data-id="${d.id}">מחק</button>` : ''}
     </div>`;
   } else if (m.type === 'gym') {
     const cur = curGymId();
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>איפה אתה מתאמן?</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      ${S.gyms.map(g => `<button class="btn block ${g.id === cur ? 'primary' : ''}" data-act="set-gym" data-id="${g.id}">📍 ${esc(g.name)}</button>`).join('')}
+      ${S.gyms.map(g => `<button class="btn block ${g.id === cur ? 'primary' : ''}" data-act="set-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
       ${S.gyms.length ? `<button class="btn block ${!cur ? 'primary' : ''}" data-act="set-gym" data-id="">בלי חדר כושר מסוים</button>` : '<p class="muted">עוד אין חדרי כושר. הוסף את הראשון:</p>'}
       <div class="row"><input class="input grow" id="new-gym-name" placeholder="למשל: אייקון רעננה" autocomplete="off"><button class="btn primary" data-act="add-gym">הוסף</button></div>
     </div>`;
@@ -665,8 +750,8 @@ function renderModal() {
     const a = myActive(), n = a.entries.length;
     el.innerHTML = `<div class="sheet stack" data-stop>
       <h2>${esc(exById(a.entries[m.i].exerciseId)?.name)}</h2>
-      <button class="btn block" data-act="entry-move" data-i="${m.i}" data-d="-1" ${m.i === 0 ? 'disabled' : ''}>▲ הזז למעלה</button>
-      <button class="btn block" data-act="entry-move" data-i="${m.i}" data-d="1" ${m.i === n - 1 ? 'disabled' : ''}>▼ הזז למטה</button>
+      <button class="btn block" data-act="entry-move" data-i="${m.i}" data-d="-1" ${m.i === 0 ? 'disabled' : ''}>${ico('up')}<span>הזז למעלה</span></button>
+      <button class="btn block" data-act="entry-move" data-i="${m.i}" data-d="1" ${m.i === n - 1 ? 'disabled' : ''}>${ico('down')}<span>הזז למטה</span></button>
       <button class="btn block danger" data-act="entry-remove" data-i="${m.i}">הסר מהאימון</button>
       <button class="btn block" data-act="close-modal">סגור</button>
     </div>`;
@@ -712,7 +797,7 @@ function renderRest() {
   el.className = left <= 0 ? 'over' : '';
   const pct = Math.max(0, Math.min(100, (1 - left / rest.total) * 100));
   el.innerHTML = `<div class="bar" style="width:${pct}%"></div>
-    <div class="time">${left > 0 ? '⏱ ' + clock(left + 999) : 'יאללה, סט הבא! 💪'}</div>
+    <div class="time">${left > 0 ? ico('clock') + clock(left + 999) : 'יאללה, סט הבא! 💪'}</div>
     <button class="btn sm" data-act="rest-add" data-v="-15">−15</button>
     <button class="btn sm" data-act="rest-add" data-v="15">+15</button>
     <button class="btn sm" data-act="rest-stop">${left > 0 ? 'דלג' : 'סגור'}</button>`;
@@ -772,9 +857,9 @@ function render() {
   app.innerHTML = (screens[r.name] || screenHome)();
 
   const tab = { home: 'home', workout: r.id ? 'history' : 'home', exercises: 'exercises', exercise: 'exercises', 'exercise-new': 'exercises', 'exercise-edit': 'exercises', routines: 'routines', routine: 'routines', history: 'history' }[r.name];
-  const tabs = [['home', '🏠', 'בית'], ['exercises', '🏋️', 'מכשירים'], ['routines', '📋', 'תוכניות'], ['history', '📅', 'היסטוריה']];
-  $('#nav').innerHTML = tabs.map(([k, ic, l]) => `<a href="#/${k}" class="${tab === k ? 'on' : ''}"><span class="ic">${ic}</span>${l}</a>`).join('');
-  $('#banner').innerHTML = myActive() && !(r.name === 'workout' && !r.id) ? `<div data-act="go-workout">🏋️ אימון פעיל · <span data-elapsed></span> · לחץ לחזרה</div>` : '';
+  const tabs = [['home', 'home', 'בית'], ['exercises', 'dumbbell', 'מכשירים'], ['routines', 'plan', 'תוכניות'], ['history', 'history', 'היסטוריה']];
+  $('#nav').innerHTML = tabs.map(([k, ic, l]) => `<a href="#/${k}" class="${tab === k ? 'on' : ''}"><span class="pill">${ico(ic)}</span><span>${l}</span></a>`).join('');
+  $('#banner').innerHTML = myActive() && !(r.name === 'workout' && !r.id) ? `<div data-act="go-workout">${ico('dumbbell')}<span>אימון פעיל</span> · <span data-elapsed></span> · <span>לחץ לחזרה</span></div>` : '';
   renderModal();
   tick();
   updateWakeLock();
@@ -886,6 +971,7 @@ const actions = {
   'close-modal': () => closeModal(),
   'confirm-ok': () => { const r = ui.modal.resolve; ui.modal = null; renderModal(); r(true); },
   'confirm-no': () => closeModal(),
+  lang: d => { window.setLang?.(d.v); render(); },
   palette: d => {
     document.documentElement.dataset.palette = d.v;
     try { localStorage.setItem('gym-palette', d.v); } catch (e) {}
@@ -1128,9 +1214,9 @@ const actions = {
 
   export: async () => {
     const data = JSON.stringify({ app: 'gym', exported: Date.now(), state: S, photos });
-    const file = new File([data], `gym-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
+    const file = new File([data], `setou-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'גיבוי כושר' }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      try { await navigator.share({ files: [file], title: 'Setou backup' }); return; } catch (e) { if (e.name === 'AbortError') return; }
     }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(file); a.download = file.name; a.click();

@@ -306,7 +306,9 @@ function familyCode() { return cloudDoc?.familyId || ''; }
 
 async function shareInvite() {
   const url = location.origin + location.pathname;
-  const text = `בוא להתאמן איתי באפליקציה! פתח את ${url} בספארי, הוסף למסך הבית, הירשם והצטרף עם הקוד: ${familyCode()}`;
+  const text = window.LANG === 'en'
+    ? `Come train with me on Setou! Open ${url} in Safari, add it to your Home Screen, sign up and join with the code: ${familyCode()}`
+    : `בוא להתאמן איתי ב־Setou! פתח את ${url} בספארי, הוסף למסך הבית, הירשם והצטרף עם הקוד: ${familyCode()}`;
   if (navigator.share) { try { await navigator.share({ text }); return; } catch (e) { if (e.name === 'AbortError') return; } }
   try { await navigator.clipboard.writeText(text); toast('ההזמנה הועתקה. הדבק אותה בוואטסאפ'); }
   catch (_) { toast(`הקוד: ${familyCode()}`, 5000); }
@@ -352,26 +354,27 @@ async function migrateLocal(localUserId) {
 
 function cloudScreen() {
   const s = ui.cloudScreen;
-  const err = ui.authError ? `<p style="color:var(--danger);margin:0">${esc(ui.authError)}</p>${ui.authDetail ? `<p class="muted small" dir="ltr" style="margin:0;text-align:right">${esc(ui.authDetail)}</p>` : ''}` : '';
-  if (s === 'loading') return `<div class="empty" style="padding-top:30vh"><span class="big-ic">💪</span>טוען...</div>`;
-  if (s === 'offline-first') return `<div class="empty" style="padding-top:20vh"><span class="big-ic">📶</span>
+  const err = ui.authError ? `<p style="color:var(--danger);margin:0">${esc(ui.authError)}</p>${ui.authDetail ? `<p class="muted small" style="margin:0"><bdi dir="ltr">${esc(ui.authDetail)}</bdi></p>` : ''}` : '';
+  if (s === 'loading') return `<div class="welcome" style="padding-top:28vh">${brand('lg')}<p class="muted">טוען...</p></div>`;
+  if (s === 'offline-first') return `<div class="empty plain" style="padding-top:20vh"><span class="big-ic">${ico('cloud')}</span>
       בפתיחה הראשונה צריך חיבור לאינטרנט. התחבר ונסה שוב.
       <div style="margin-top:16px"><button class="btn primary" data-act="reload">נסה שוב</button></div></div>`;
   if (s === 'auth') {
     // One action per screen, so a tap that lands after the keyboard closes can't hit the wrong button.
     const signup = ui.authMode !== 'signin';
-    return `<div style="padding-top:8vh" class="stack">
-      <div class="center" style="font-size:56px">💪</div>
+    return `<div class="welcome stack">
+      ${brand('lg')}
       <h1 class="center">${signup ? 'הרשמה' : 'כניסה'}</h1>
       <p class="muted center" style="margin-top:0">${signup ? 'פעם ראשונה? בחר מייל וסיסמה חדשה לאפליקציה.' : 'כניסה לחשבון שכבר יצרת.'}</p>
       <input class="input" id="auth-email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="מייל" value="${esc(ui.authEmail || '')}" dir="ltr">
       <input class="input" id="auth-pass" type="password" autocapitalize="off" autocorrect="off" autocomplete="${signup ? 'new-password' : 'current-password'}" placeholder="${signup ? 'סיסמה חדשה (לפחות 6 תווים)' : 'סיסמה'}" dir="ltr">
       ${err}
       <button class="btn primary big" data-act="${signup ? 'sign-up' : 'sign-in'}">${signup ? 'צור חשבון' : 'כניסה'}</button>
-      <button class="back" style="display:block;margin:8px auto 0" data-act="auth-mode" data-v="${signup ? 'signin' : 'signup'}">${signup ? 'כבר יש לך חשבון? כניסה' : 'אין לך חשבון? הרשמה'}</button>
-      ${signup ? '' : `<button class="back" style="display:block;margin:0 auto" data-act="reset-pass">שכחתי סיסמה</button>`}
+      <button class="link" style="display:block;margin:8px auto 0" data-act="auth-mode" data-v="${signup ? 'signin' : 'signup'}">${signup ? 'כבר יש לך חשבון? כניסה' : 'אין לך חשבון? הרשמה'}</button>
+      ${signup ? '' : `<button class="link" style="display:block;margin:0 auto" data-act="reset-pass">שכחתי סיסמה</button>`}
       <hr>
-      <button class="back muted" style="display:block;margin:0 auto;color:var(--muted)" data-act="local-mode">המשך בלי חשבון (נשמר רק בטלפון הזה)</button>
+      <button class="link" style="display:block;margin:0 auto;color:var(--muted)" data-act="local-mode">המשך בלי חשבון (נשמר רק בטלפון הזה)</button>
+      ${langSwitch()}
     </div>`;
   }
   if (s === 'setup') return `<div style="padding-top:6vh" class="stack">
@@ -389,7 +392,7 @@ function cloudScreen() {
         <p class="muted small" style="margin:0">תיצור משפחה חדשה ותקבל קוד שאפשר לשלוח לשגב, לאחים ולאחיינים.</p>
         <button class="btn block" data-act="setup-new">צור משפחה חדשה</button>
       </div>
-      <button class="back" style="display:block;margin:0 auto;color:var(--muted)" data-act="sign-out-now">התנתק</button>
+      <button class="link" style="display:block;margin:0 auto;color:var(--muted)" data-act="sign-out-now">התנתק</button>
     </div>`;
   return '';
 }
@@ -401,7 +404,7 @@ function cloudSettingsSection() {
   const fam = S.users;
   const migr = localUsersToMigrate();
   return `<h2>חשבון</h2>
-    <div class="card"><div class="muted small">מחובר בתור</div><b dir="ltr" style="display:block;text-align:right">${esc(cloudUser.email)}</b></div>
+    <div class="card"><div class="muted small">מחובר בתור</div><b style="display:block"><bdi dir="ltr">${esc(cloudUser.email)}</bdi></b></div>
     <h2>המשפחה</h2>
     ${fam.map(u => `<div class="card list-item">
       <span class="avatar" style="background:${u.color || COLORS[0]}">${esc((u.name || '?').trim()[0] || '?')}</span>
@@ -410,7 +413,7 @@ function cloudSettingsSection() {
     <div class="card stack" style="margin-top:10px">
       <div class="muted small">קוד הצטרפות. מי שנרשם עם הקוד הזה רואה את חדרי הכושר והמכשירים, אבל לא את האימונים שלך.</div>
       <div style="font-size:26px;font-weight:800;letter-spacing:4px;text-align:center" dir="ltr">${esc(familyCode())}</div>
-      <button class="btn primary block" data-act="share-invite">📤 שלח הזמנה</button>
+      <button class="btn primary block" data-act="share-invite">${ico('share')}<span>שלח הזמנה</span></button>
     </div>
     ${migr.length ? `<h2>נתונים מהטלפון</h2>
       <p class="muted small" style="margin-top:0">יש בטלפון הזה נתונים מלפני שהתחברת. של מי להעביר לחשבון שלך?</p>

@@ -314,6 +314,20 @@
     [/שכיבות סמיכה/, 'pushup'], [/מתח עם סיוע/, 'assistedpullup'], [/מתח/, 'pullup'],
     [/הרמות רגליים/, 'legraise'], [/כפיפות בטן במכונה/, 'machinecrunch'], [/בטן/, 'crunch'],
     [/מוט/, 'barbell'], [/משקול/, 'curl'], [/כתפיים/, 'dbpress'], [/חזה/, 'chestpress'], [/גב/, 'pulldown'], [/רגליים/, 'legpress'],
+    // English names (for exercises added in English)
+    [/treadmill|\brun/i, 'treadmill'], [/elliptical|cross.?trainer/i, 'elliptical'], [/row(ing)? machine|rower|\berg\b/i, 'rower'],
+    [/arm (bike|ergometer)/i, 'armbike'], [/recumbent/i, 'recumbent'], [/bike|cycl|spin/i, 'bike'], [/stair|stepper/i, 'stairs'], [/rope|skip/i, 'rope'],
+    [/incline/i, 'inclinepress'], [/chest press/i, 'chestpress'], [/dumbbell (bench|chest)/i, 'dbbench'], [/bench/i, 'bench'],
+    [/reverse fly|rear delt/i, 'reversefly'], [/fly|flye/i, 'pecdeck'], [/crossover/i, 'crossover'],
+    [/pull.?down/i, 'pulldown'], [/cable row|seated row/i, 'cablerow'], [/machine row/i, 'machinerow'], [/dumbbell row|one.arm row/i, 'dbrow'], [/row/i, 'bentrow'],
+    [/back ext|hyperext/i, 'backext'], [/deadlift/i, 'deadlift'],
+    [/shoulder press machine|machine shoulder/i, 'shoulderpress'], [/shoulder press|overhead press|military/i, 'dbpress'], [/lateral raise machine/i, 'lateralmachine'], [/lateral|side raise/i, 'lateral'],
+    [/preacher|curl machine/i, 'preacher'], [/hammer/i, 'hammer'], [/overhead (triceps|ext)/i, 'ohext'], [/push.?down|triceps/i, 'pushdown'],
+    [/assisted dip/i, 'assisteddips'], [/dip/i, 'dips'], [/leg press/i, 'legpress'], [/leg ext/i, 'legext'], [/lying leg curl/i, 'legcurl'], [/leg curl|hamstring/i, 'seatedcurl'],
+    [/adduct/i, 'adduct'], [/abduct/i, 'abduct'], [/calf/i, 'calf'], [/smith/i, 'smith'], [/bodyweight squat|air squat/i, 'bwsquat'], [/squat/i, 'squat'],
+    [/lunge/i, 'lunge'], [/hip thrust|glute/i, 'hipthrust'], [/push.?up/i, 'pushup'], [/assisted pull/i, 'assistedpullup'], [/pull.?up|chin.?up/i, 'pullup'],
+    [/leg raise/i, 'legraise'], [/crunch machine|ab machine/i, 'machinecrunch'], [/crunch|sit.?up|\babs?\b/i, 'crunch'],
+    [/curl|biceps/i, 'curl'], [/barbell/i, 'barbell'],
   ];
   const BY_TYPE = { cardio: 'heart', machine: 'stack', free: 'curl', bodyweight: 'pushup' };
 
