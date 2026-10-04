@@ -23,6 +23,8 @@
     // Ready-made exercise list
     'חימום ואירובי': 'Warm-up & cardio', 'מכשירים': 'Machines',
     'ידיים': 'Arms', 'בטן / ליבה': 'Abs / core', 'משקולות': 'Weights', 'רב־תכליתי': 'Multi-purpose', 'שחרור / מתיחות': 'Release / stretching',
+    'באיזה יום?': 'Which day?', 'תאריך אחר': 'Other date', 'באיזו שעה התחלת?': 'What time did you start?',
+    'כמה זמן נמשך? (דקות)': 'How long? (minutes)', 'שלשום': '2 days ago', 'אחר': 'Other',
     'הוסף אימון שכבר עשיתי': 'Add a workout I already did', 'אימון שכבר עשית': 'Past workout', 'מתי התחלת?': 'When did you start?',
     'כמה דקות?': 'Minutes?', 'מה עשית?': 'What did you do?', 'אימון ריק': 'Empty workout', 'המשך לרישום התרגילים': 'Continue to log exercises',
     'שמור אימון': 'Save workout', 'לא רשמת אף סט. לצאת בלי לשמור?': "You didn't log any set. Leave without saving?",

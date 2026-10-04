@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.23';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.24';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -486,13 +486,14 @@ function gymChip() {
   return `<button class="chip gym-chip" data-act="pick-gym">${ico('pin')}<span>${g ? esc(g.name) : 'בחר חדר כושר'}</span>${ico('down')}</button>`;
 }
 
+const wName = w => w.name || S.routines.find(r => r.id === w.routineId)?.name || '';
 function workoutRow(w) {
   const sets = w.entries.reduce((t, e) => t + e.sets.length, 0);
   const names = w.entries.map(e => exById(e.exerciseId)?.name).filter(Boolean);
   return `<div class="card tap list-item" data-act="go" data-to="#/workout/${w.id}">
     ${dateTile(w.start)}
     <div class="grow">
-      <div class="row between"><span class="card-title">${fmtDate(w.start)}</span>${ico('next', 'flip muted')}</div>
+      <div class="row between"><span class="card-title">${fmtDate(w.start)}${wName(w) ? ` · <span>${esc(wName(w))}</span>` : ''}</span>${ico('next', 'flip muted')}</div>
       <div class="meta"><span>${ico('clock')}${fmtDur(w.end - w.start)}</span><span>${ico('list')}${sets} סטים</span>${gymById(w.gymId) ? `<span>${ico('pin')}${esc(gymById(w.gymId).name)}</span>` : ''}</div>
       <div class="muted small" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(names.map(trName).join(' · ')) || '—'}</div>
     </div>
@@ -713,6 +714,7 @@ function screenWorkoutView(id) {
   const d = new Date(w.start);
   return `${topbar(fmtDate(w.start), true)}
     <p class="muted" style="margin-top:0">${d.toLocaleDateString(loc(), { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' })} · ${fmtDur(w.end - w.start)}</p>
+    ${wName(w) || gymById(w.gymId) ? `<div class="meta" style="margin:-4px 0 12px">${wName(w) ? `<span>${ico('plan')}${esc(wName(w))}</span>` : ''}${gymById(w.gymId) ? `<span>${ico('pin')}${esc(gymById(w.gymId).name)}</span>` : ''}</div>` : ''}
     ${w.entries.map(e => { const ex = exById(e.exerciseId); return `<div class="card list-item">
       ${thumb(ex)}<div class="grow"><b>${esc(ex?.name || 'תרגיל שנמחק')}</b><div class="muted small">${esc(setsSummary(e.sets, measure(ex)))}</div></div>
     </div>`; }).join('')}
@@ -830,13 +832,25 @@ function renderModal() {
     </div>`;
   } else if (m.type === 'past') {
     const d = ui.pastDraft, rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
+    const at = new Date(d.at), dayN = Math.round((startOfDay(new Date()) - startOfDay(at)) / DAY);
     const how = [['', 'אימון ריק'], ...Object.entries(SPLITS).filter(([k]) => k !== 'core').map(([k, l]) => ['day:' + k, `יום ${l}`]), ['day:full', 'יום Full body'], ...rs.map(r => ['r:' + r.id, r.name])];
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>אימון שכבר עשית</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      <div class="row" style="gap:10px">
-        <label class="field grow" style="margin:0"><span>מתי התחלת?</span><input class="input" type="datetime-local" data-in="past" data-f="at" value="${toLocalInput(d.at)}"></label>
-        <label class="field" style="margin:0;width:96px"><span>כמה דקות?</span><input class="input" inputmode="numeric" data-in="past" data-f="minutes" value="${d.minutes}"></label>
-      </div>
+      <div><span class="muted small">באיזה יום?</span><div class="chips" style="margin-top:6px">
+        ${[0, 1, 2].map(n => `<button class="chip ${dayN === n ? 'on' : ''}" data-act="past-day" data-v="${n}">${['היום', 'אתמול', 'שלשום'][n]}</button>`).join('')}
+        <label class="chip ${dayN > 2 ? 'on' : ''}" style="position:relative">${ico('calendar')}<span>${dayN > 2 ? esc(at.toLocaleDateString(loc(), { day: 'numeric', month: 'numeric' })) : 'תאריך אחר'}</span>
+          <input type="date" data-in="past" data-f="date" max="${toLocalInput(Date.now()).slice(0, 10)}" value="${toLocalInput(d.at).slice(0, 10)}" style="position:absolute;inset:0;opacity:0;width:100%"></label>
+      </div></div>
+      <div><span class="muted small">באיזו שעה התחלת?</span>
+        <div class="time-pick" dir="ltr">
+          <div class="tp-col"><button class="btn sm" data-act="past-time" data-v="60" aria-label="+1h">${ico('up')}</button><b class="num">${pad2(at.getHours())}</b><button class="btn sm" data-act="past-time" data-v="-60" aria-label="-1h">${ico('down')}</button></div>
+          <b class="num tp-sep">:</b>
+          <div class="tp-col"><button class="btn sm" data-act="past-time" data-v="5" aria-label="+5m">${ico('up')}</button><b class="num">${pad2(at.getMinutes())}</b><button class="btn sm" data-act="past-time" data-v="-5" aria-label="-5m">${ico('down')}</button></div>
+        </div></div>
+      <div><span class="muted small">כמה זמן נמשך? (דקות)</span><div class="chips" style="margin-top:6px">
+        ${[30, 45, 60, 75, 90, 120].map(n => `<button class="chip ${+d.minutes === n ? 'on' : ''}" data-act="past-set" data-f="minutes" data-v="${n}">${n}</button>`).join('')}
+        <input class="input" style="width:76px;padding:8px;text-align:center" inputmode="numeric" data-in="past" data-f="minutes" value="${[30, 45, 60, 75, 90, 120].includes(+d.minutes) ? '' : esc(d.minutes)}" placeholder="אחר">
+      </div></div>
       ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="past-set" data-f="gymId" data-v="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div></div>` : ''}
       <div><span class="muted small">מה עשית?</span><div class="chips" style="margin-top:6px">${how.map(([k, l]) => `<button class="chip ${d.how === k ? 'on' : ''}" data-act="past-set" data-f="how" data-v="${k}">${esc(l)}</button>`).join('')}</div></div>
       <button class="btn primary block" data-act="past-start">${ico('edit')}<span>המשך לרישום התרגילים</span></button>
@@ -1072,7 +1086,7 @@ async function finishWorkout() {
     rest.endsAt = 0; save(); go('#/home');
     return;
   }
-  const w = { id: a.id, userId: a.userId, start: a.start, end: a.past ? a.start + a.past * 60000 : Date.now(), routineId: a.routineId, gymId: a.gymId || null, entries };
+  const w = { id: a.id, userId: a.userId, start: a.start, end: a.past ? a.start + a.past * 60000 : Date.now(), routineId: a.routineId, name: a.routineName || null, gymId: a.gymId || null, entries };
   S.workouts.push(w);
   delete S.active[a.userId];
   rest.endsAt = 0;
@@ -1262,8 +1276,18 @@ const actions = {
   },
   'past-set': d => {
     const p = ui.pastDraft;
-    p[d.f] = d.f === 'how' ? d.v : (p[d.f] === d.v ? null : d.v);
+    p[d.f] = d.v;
     keepSheetScroll(renderModal);
+  },
+  'past-day': d => {
+    const p = ui.pastDraft, t = new Date(p.at), n = new Date(); n.setDate(n.getDate() - +d.v);
+    n.setHours(t.getHours(), t.getMinutes(), 0, 0); p.at = n.getTime(); keepSheetScroll(renderModal);
+  },
+  'past-time': d => {
+    const p = ui.pastDraft, t = new Date(p.at), day = t.getDate();
+    t.setMinutes(t.getMinutes() + +d.v);
+    if (t.getDate() !== day) t.setMinutes(t.getMinutes() - Math.sign(+d.v) * 1440);  // wrap within the same day
+    p.at = t.getTime(); keepSheetScroll(renderModal);
   },
   'past-start': () => {
     const p = ui.pastDraft, mins = Math.round(num(p.minutes));
@@ -1399,8 +1423,11 @@ const actions = {
 
 const inputs = {
   past: el => {
-    if (el.dataset.f === 'at') { const t = new Date(el.value).getTime(); if (!isNaN(t)) ui.pastDraft.at = t; }
-    else ui.pastDraft[el.dataset.f] = el.value;
+    const p = ui.pastDraft;
+    if (el.dataset.f === 'date') {
+      const [y, m, dd] = el.value.split('-').map(Number); if (!y) return;
+      const t = new Date(p.at); t.setFullYear(y, m - 1, dd); p.at = t.getTime(); keepSheetScroll(renderModal);
+    } else if (el.value) p[el.dataset.f] = el.value;
   },
   plan: el => {
     if (el.dataset.f === 'at') { const t = new Date(el.value).getTime(); if (!isNaN(t)) ui.planDraft.at = t; }

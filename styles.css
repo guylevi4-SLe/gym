@@ -489,3 +489,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 @media (prefers-reduced-motion: reduce) { .brand .mark * { animation: none !important; } }
 .welcome .brand { flex-direction: column; gap: 4px; }
 .welcome .brand-txt { align-items: center; }
+
+/* Hour : minute picker with up/down buttons (logging a past workout) */
+.time-pick { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 8px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+.tp-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tp-col b, .tp-sep { font-size: 40px; line-height: 1; }
