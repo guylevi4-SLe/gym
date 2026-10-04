@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.4';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.5';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -285,12 +285,12 @@ function topbar(title, back) {
     ${avatar(me())}
   </div>${back ? `<h1>${title}</h1>` : ''}`;
 }
-// Hebrew / English switch (labels stay in their own language)
-const langSwitch = () => `<div class="lang-switch"><div class="seg" translate="no">${[['he', 'עברית'], ['en', 'English']].map(([v, l]) =>
-  `<button class="${window.LANG === v ? 'on' : ''}" data-act="lang" data-v="${v}">${ico('globe')} ${l}</button>`).join('')}</div></div>`;
-// Small switch in the top corner of the welcome and sign-in screens: shows the other language
-const langToggle = () => { const en = window.LANG === 'en';
-  return `<div class="lang-top"><button class="chip" translate="no" data-act="lang" data-v="${en ? 'he' : 'en'}">${ico('globe')}<span>${en ? 'עברית' : 'English'}</span></button></div>`; };
+// Hebrew / English switch: a two-position toggle that always sits the same way (EN left, עב right),
+// so it does not jump sides when the page direction flips.
+const langSwitch = () => { const en = window.LANG === 'en';
+  return `<button class="lang-toggle ${en ? 'en' : 'he'}" dir="ltr" translate="no" role="switch" aria-checked="${en}" aria-label="Language" data-act="lang" data-v="${en ? 'he' : 'en'}">
+    <span class="knob"></span><span class="opt">EN</span><span class="opt">עב</span></button>`; };
+const langToggle = () => `<div class="lang-top">${langSwitch()}</div>`;
 const emptyState = (icon, text) => `<div class="empty"><span class="big-ic">${ico(icon)}</span>${text}</div>`;
 
 /* ================= Screens ================= */

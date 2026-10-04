@@ -434,3 +434,13 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .lang-top .chip { font-size: 14px; padding: 7px 12px; }
 .lang-top + .welcome { padding-top: 5vh; }
 .card .lang-switch { margin: 0; }
+/* Language toggle (fixed layout in both directions) */
+.lang-top { direction: ltr; justify-content: flex-start; }
+.lang-toggle {
+  position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; width: 104px; height: 38px; padding: 3px;
+  border-radius: 99px; border: 1px solid var(--border); background: var(--surface-2); flex: none;
+}
+.lang-toggle .opt { position: relative; z-index: 1; display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--muted); transition: color .2s ease; }
+.lang-toggle .knob { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 99px; background: var(--grad); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent); transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.lang-toggle.he .knob { transform: translateX(100%); }
+.lang-toggle.en .opt:nth-of-type(2), .lang-toggle.he .opt:nth-of-type(3) { color: var(--accent-ink); }
