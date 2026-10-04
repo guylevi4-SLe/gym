@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.26';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.27';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -588,7 +588,6 @@ function screenExercise(id) {
   }
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
-    ${photos[ex.id] ? `<button class="photo-view" data-act="photo-open" data-id="${ex.id}"><img src="${photos[ex.id]}" alt=""><span class="tag">${ico('camera')}<span>התמונה שלי</span></span></button>` : ''}
     <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}</div>
     ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
       <div class="chips">${S.gyms.map(g => `<button class="chip ${(ex.gymIds || []).includes(g.id) ? 'on' : ''}" data-act="ex-gym-toggle" data-id="${ex.id}" data-gym="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
@@ -607,6 +606,9 @@ function screenExercise(id) {
     <div class="stats" style="grid-template-columns:repeat(${best ? 2 : 1},1fr);margin-top:6px">
       <div class="stat"><b>${hist.length}</b><span>פעמים</span></div>${best}
     </div>
+    ${photos[ex.id] ? `<div class="card list-item tap" style="margin-top:12px" data-act="photo-open" data-id="${ex.id}">
+      <img class="photo-mini" src="${photos[ex.id]}" alt=""><div class="grow"><b>התמונה שלי</b><div class="muted small">לחץ להגדלה</div></div>${ico('camera', 'muted')}
+    </div>` : ''}
     <h2>היסטוריה</h2>
     ${hist.length ? hist.slice(0, 20).map(h => `<div class="card list-item">${dateTile(h.date)}<div class="grow"><div class="card-title">${fmtDate(h.date)}</div><div class="muted small">${esc(setsSummary(h.sets, kind))}</div></div></div>`).join('')
       : emptyState('history', 'עוד לא עשית את התרגיל הזה')}

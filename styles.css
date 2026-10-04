@@ -499,3 +499,4 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .photo-view { display: block; position: relative; width: 100%; margin-top: 10px; padding: 0; border: 1px solid var(--border); border-radius: 22px; overflow: hidden; background: #000; }
 .photo-view img { display: block; width: 100%; max-height: 360px; object-fit: contain; }
 .photo-view .tag { position: absolute; top: 10px; inset-inline-start: 10px; background: rgba(0,0,0,.6); color: #fff; }
+.photo-mini { width: 64px; height: 64px; flex: none; border-radius: 12px; object-fit: contain; background: #000; }

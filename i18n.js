@@ -23,7 +23,7 @@
     // Ready-made exercise list
     'חימום ואירובי': 'Warm-up & cardio', 'מכשירים': 'Machines',
     'ידיים': 'Arms', 'בטן / ליבה': 'Abs / core', 'משקולות': 'Weights', 'רב־תכליתי': 'Multi-purpose', 'שחרור / מתיחות': 'Release / stretching',
-    'התמונה שלי': 'My photo',
+    'התמונה שלי': 'My photo', 'לחץ להגדלה': 'Tap to enlarge',
     'מחרתיים': 'Day after tomorrow', 'באיזו שעה?': 'What time?', 'הזמן שבחרת כבר עבר': 'That time has already passed',
     'באיזה יום?': 'Which day?', 'תאריך אחר': 'Other date', 'באיזו שעה התחלת?': 'What time did you start?',
     'כמה זמן נמשך? (דקות)': 'How long? (minutes)', 'שלשום': '2 days ago', 'אחר': 'Other',
