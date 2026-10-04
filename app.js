@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.20';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.21';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -87,7 +87,7 @@ const CATALOG = [
   ]],
   ['רגליים', [
     ['לחיצת רגליים', 'machine', 'רגליים'], ['פשיטת ברכיים', 'machine', 'רגליים'], ['כפיפת ברכיים בשכיבה', 'machine', 'רגליים'],
-    ['כפיפת ברכיים בישיבה', 'machine', 'רגליים'], ['מקרב ירכיים', 'machine', 'רגליים'], ['מרחיק ירכיים', 'machine', 'ישבן'], ['בעיטה לאחור במכונה (Glute Kickback)', 'machine', 'ישבן'],
+    ['כפיפת ברכיים בישיבה', 'machine', 'רגליים'], ['מקרב ירכיים', 'machine', 'רגליים'], ['מרחיק ירכיים', 'machine', 'ישבן'], ['פשיטת ירך לאחור במכונה (Glute Kickback)', 'machine', 'ישבן'],
     ['תאומים במכונה', 'machine', 'רגליים'], ['סקוואט משקל גוף', 'bodyweight', 'רגליים'],
   ]],
   ['גב', [
@@ -121,6 +121,7 @@ const CATALOG = [
     ['גליל שחרור (פומרולר)', 'stretch', 'כל הגוף'], ['מתיחת רגליים', 'stretch', 'רגליים'], ['מתיחת גב וכתפיים', 'stretch', 'גב'],
   ]],
 ];
+const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשיטת ירך לאחור במכונה (Glute Kickback)' };
 const CATALOG_TOPIC = Object.fromEntries(CATALOG.flatMap(([t, items]) => items.map(([n]) => [n, t])));
 const MUSCLE_TOPIC = { 'רגליים': 'רגליים', 'ישבן': 'רגליים', 'גב': 'גב', 'חזה': 'חזה', 'כתפיים': 'כתפיים', 'יד קדמית': 'ידיים', 'יד אחורית': 'ידיים', 'בטן': 'בטן / ליבה', 'אירובי': 'אירובי / חימום' };
 function topicOf(ex) {
@@ -892,6 +893,8 @@ function route() {
 
 let lastRoute = '';
 function render() {
+  // Built-in names that were renamed after people already added them
+  for (const e of S.exercises) if (RENAMED[e.name]) { e.name = RENAMED[e.name]; save(); }
   const app = $('#app');
   if (ui.cloudScreen) {
     app.innerHTML = cloudScreen();

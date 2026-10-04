@@ -312,7 +312,7 @@
 
   // First matching keyword wins, so the specific names come before the general ones.
   const RULES = [
-    [/בעיטה לאחור|קיקבק|kickback/i, 'kickback'],
+    [/פשיטת ירך לאחור|בעיטה לאחור|קיקבק|kickback/i, 'kickback'],
     [/פומרולר|גליל|שחרור|foam|roller/i, 'foamroll'], [/מתיח(ת|ות) רגליים|leg stretch|hamstring stretch/i, 'legstretch'], [/מתיח|stretch|yoga|יוגה/i, 'stretch'],
     [/הליכון|ריצה/, 'treadmill'], [/אליפטי/, 'elliptical'], [/מכונת חתירה|חתירה במכונת/, 'rower'],
     [/אופני ידיים/, 'armbike'], [/אופני.*משענת|שכיבה/, 'recumbent'], [/אופני/, 'bike'], [/מדרגות|סטפר/, 'stairs'], [/חבל/, 'rope'],
