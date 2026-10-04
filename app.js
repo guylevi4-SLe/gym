@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.24';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.25';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -778,6 +778,25 @@ function screenUsers() {
 
 /* ================= Modals ================= */
 
+// Day chips + hour:minute arrows, easier on a phone than the native date-time field.
+// kind 'past' (logging a workout already done) offers today/yesterday/2 days ago; 'plan' offers today/tomorrow/day after.
+const whenDraft = k => k === 'past' ? ui.pastDraft : ui.planDraft;
+function whenPicker(kind, t) {
+  const at = new Date(t), past = kind === 'past';
+  const off = Math.round((startOfDay(at) - startOfDay(new Date())) / DAY) * (past ? -1 : 1);
+  const today = toLocalInput(Date.now()).slice(0, 10);
+  return `<div><span class="muted small">באיזה יום?</span><div class="chips" style="margin-top:6px">
+      ${[0, 1, 2].map(n => `<button class="chip ${off === n ? 'on' : ''}" data-act="when-day" data-k="${kind}" data-v="${past ? -n : n}">${(past ? ['היום', 'אתמול', 'שלשום'] : ['היום', 'מחר', 'מחרתיים'])[n]}</button>`).join('')}
+      <label class="chip ${off > 2 || off < 0 ? 'on' : ''}" style="position:relative">${ico('calendar')}<span>${off > 2 || off < 0 ? esc(at.toLocaleDateString(loc(), { weekday: 'short', day: 'numeric', month: 'numeric' })) : 'תאריך אחר'}</span>
+        <input type="date" data-in="when" data-k="${kind}" ${past ? `max="${today}"` : `min="${today}"`} value="${toLocalInput(t).slice(0, 10)}" style="position:absolute;inset:0;opacity:0;width:100%"></label>
+    </div></div>
+    <div><span class="muted small">${past ? 'באיזו שעה התחלת?' : 'באיזו שעה?'}</span>
+      <div class="time-pick" dir="ltr">
+        <div class="tp-col"><button class="btn sm" data-act="when-time" data-k="${kind}" data-v="60" aria-label="+1h">${ico('up')}</button><b class="num">${pad2(at.getHours())}</b><button class="btn sm" data-act="when-time" data-k="${kind}" data-v="-60" aria-label="-1h">${ico('down')}</button></div>
+        <b class="num tp-sep">:</b>
+        <div class="tp-col"><button class="btn sm" data-act="when-time" data-k="${kind}" data-v="5" aria-label="+5m">${ico('up')}</button><b class="num">${pad2(at.getMinutes())}</b><button class="btn sm" data-act="when-time" data-k="${kind}" data-v="-5" aria-label="-5m">${ico('down')}</button></div>
+      </div></div>`;
+}
 function renderModal() {
   const m = ui.modal, el = $('#modal');
   if (!m) { el.innerHTML = ''; return; }
@@ -822,7 +841,7 @@ function renderModal() {
     const d = ui.planDraft, rs = S.routines.filter(r => r.userId === S.settings.currentUserId), saved = S.plans.some(p => p.id === d.id);
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>${saved ? 'אימון מתוכנן' : 'תכנון אימון'}</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      <label class="field" style="margin:0"><span>מתי?</span><input class="input" type="datetime-local" data-in="plan" data-f="at" value="${toLocalInput(d.at)}"></label>
+      ${whenPicker('plan', d.at)}
       ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="plan-set" data-f="gymId" data-v="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div></div>` : ''}
       ${rs.length ? `<div><span class="muted small">איזו תוכנית? (לא חובה)</span><div class="chips" style="margin-top:6px">${rs.map(r => `<button class="chip ${d.routineId === r.id ? 'on' : ''}" data-act="plan-set" data-f="routineId" data-v="${r.id}">${esc(r.name)}</button>`).join('')}</div></div>` : ''}
       <label class="field" style="margin:0"><span>הערות</span><textarea class="input" data-in="plan" data-f="notes" placeholder="למשל: יום רגליים, להביא אוזניות">${esc(d.notes || '')}</textarea></label>
@@ -832,21 +851,10 @@ function renderModal() {
     </div>`;
   } else if (m.type === 'past') {
     const d = ui.pastDraft, rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
-    const at = new Date(d.at), dayN = Math.round((startOfDay(new Date()) - startOfDay(at)) / DAY);
     const how = [['', 'אימון ריק'], ...Object.entries(SPLITS).filter(([k]) => k !== 'core').map(([k, l]) => ['day:' + k, `יום ${l}`]), ['day:full', 'יום Full body'], ...rs.map(r => ['r:' + r.id, r.name])];
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>אימון שכבר עשית</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      <div><span class="muted small">באיזה יום?</span><div class="chips" style="margin-top:6px">
-        ${[0, 1, 2].map(n => `<button class="chip ${dayN === n ? 'on' : ''}" data-act="past-day" data-v="${n}">${['היום', 'אתמול', 'שלשום'][n]}</button>`).join('')}
-        <label class="chip ${dayN > 2 ? 'on' : ''}" style="position:relative">${ico('calendar')}<span>${dayN > 2 ? esc(at.toLocaleDateString(loc(), { day: 'numeric', month: 'numeric' })) : 'תאריך אחר'}</span>
-          <input type="date" data-in="past" data-f="date" max="${toLocalInput(Date.now()).slice(0, 10)}" value="${toLocalInput(d.at).slice(0, 10)}" style="position:absolute;inset:0;opacity:0;width:100%"></label>
-      </div></div>
-      <div><span class="muted small">באיזו שעה התחלת?</span>
-        <div class="time-pick" dir="ltr">
-          <div class="tp-col"><button class="btn sm" data-act="past-time" data-v="60" aria-label="+1h">${ico('up')}</button><b class="num">${pad2(at.getHours())}</b><button class="btn sm" data-act="past-time" data-v="-60" aria-label="-1h">${ico('down')}</button></div>
-          <b class="num tp-sep">:</b>
-          <div class="tp-col"><button class="btn sm" data-act="past-time" data-v="5" aria-label="+5m">${ico('up')}</button><b class="num">${pad2(at.getMinutes())}</b><button class="btn sm" data-act="past-time" data-v="-5" aria-label="-5m">${ico('down')}</button></div>
-        </div></div>
+      ${whenPicker('past', d.at)}
       <div><span class="muted small">כמה זמן נמשך? (דקות)</span><div class="chips" style="margin-top:6px">
         ${[30, 45, 60, 75, 90, 120].map(n => `<button class="chip ${+d.minutes === n ? 'on' : ''}" data-act="past-set" data-f="minutes" data-v="${n}">${n}</button>`).join('')}
         <input class="input" style="width:76px;padding:8px;text-align:center" inputmode="numeric" data-in="past" data-f="minutes" value="${[30, 45, 60, 75, 90, 120].includes(+d.minutes) ? '' : esc(d.minutes)}" placeholder="אחר">
@@ -1157,6 +1165,7 @@ const actions = {
   },
   'plan-save': () => {
     const d = ui.planDraft, i = S.plans.findIndex(p => p.id === d.id);
+    if (d.at < Date.now() - 5 * 60000) { toast('הזמן שבחרת כבר עבר'); return; }
     const p = { id: d.id, userId: S.settings.currentUserId, at: d.at, gymId: d.gymId || null, routineId: d.routineId || null, notes: (d.notes || '').trim(), started: false };
     if (i >= 0) S.plans[i] = p; else S.plans.push(p);
     save(); render();
@@ -1279,12 +1288,12 @@ const actions = {
     p[d.f] = d.v;
     keepSheetScroll(renderModal);
   },
-  'past-day': d => {
-    const p = ui.pastDraft, t = new Date(p.at), n = new Date(); n.setDate(n.getDate() - +d.v);
+  'when-day': d => {
+    const p = whenDraft(d.k), t = new Date(p.at), n = new Date(); n.setDate(n.getDate() + +d.v);
     n.setHours(t.getHours(), t.getMinutes(), 0, 0); p.at = n.getTime(); keepSheetScroll(renderModal);
   },
-  'past-time': d => {
-    const p = ui.pastDraft, t = new Date(p.at), day = t.getDate();
+  'when-time': d => {
+    const p = whenDraft(d.k), t = new Date(p.at), day = t.getDate();
     t.setMinutes(t.getMinutes() + +d.v);
     if (t.getDate() !== day) t.setMinutes(t.getMinutes() - Math.sign(+d.v) * 1440);  // wrap within the same day
     p.at = t.getTime(); keepSheetScroll(renderModal);
@@ -1422,12 +1431,10 @@ const actions = {
 };
 
 const inputs = {
-  past: el => {
-    const p = ui.pastDraft;
-    if (el.dataset.f === 'date') {
-      const [y, m, dd] = el.value.split('-').map(Number); if (!y) return;
-      const t = new Date(p.at); t.setFullYear(y, m - 1, dd); p.at = t.getTime(); keepSheetScroll(renderModal);
-    } else if (el.value) p[el.dataset.f] = el.value;
+  past: el => { if (el.value) ui.pastDraft[el.dataset.f] = el.value; },
+  when: el => {
+    const p = whenDraft(el.dataset.k), [y, m, dd] = el.value.split('-').map(Number); if (!y) return;
+    const t = new Date(p.at); t.setFullYear(y, m - 1, dd); p.at = t.getTime(); keepSheetScroll(renderModal);
   },
   plan: el => {
     if (el.dataset.f === 'at') { const t = new Date(el.value).getTime(); if (!isNaN(t)) ui.planDraft.at = t; }
