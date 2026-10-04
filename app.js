@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.35';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.36';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -435,7 +435,7 @@ function screenHome() {
     </div>
     ${!a && S.exercises.length ? `<div class="section-head"><h2>אימון לפי יום</h2></div>
       <div class="chips day-chips">${[...Object.entries(SPLITS).filter(([k]) => k !== 'core'), ['full', 'Full body']].map(([k, l]) => `<button class="chip" data-act="start-day" data-v="${k}">${ico('play')}<span>${l}</span></button>`).join('')}</div>` : ''}
-    ${!a && routines.length ? `<div class="section-head"><h2>התחל מתוכנית</h2></div>
+    ${!a && routines.length ? `<div class="section-head"><h2>התוכניות שלי</h2></div>
       <div class="rail">${routines.map(r => `<button class="rcard tap" data-act="start-routine" data-id="${r.id}">
         <b>${esc(r.name)}</b><span class="muted">${r.exerciseIds.filter(exById).length} תרגילים</span><span class="go">${ico('play')}</span>
       </button>`).join('')}</div>` : ''}
