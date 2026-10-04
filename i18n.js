@@ -85,7 +85,7 @@
     'מי מתאמן?': "Who's training?", 'פעיל': 'Active', 'שם משתמש חדש': 'New user name', 'הוסף': 'Add', 'חדרי כושר': 'Gyms',
     'שנה שם': 'Rename', 'מחק': 'Delete', 'עוד אין חדרי כושר': 'No gyms yet', 'שם חדר כושר חדש': 'New gym name',
     'זמן מנוחה בין סטים (שניות)': 'Rest between sets (seconds)', 'יעד אימונים בשבוע': 'Weekly workout goal',
-    'שפה': 'Language', 'צבעים': 'Colors', 'כחול': 'Blue', 'ירוק (המקורי)': 'Green (original)', 'גיבוי': 'Backup',
+    'שפה': 'Language', 'צבעים': 'Colors', 'כחול': 'Blue', 'ירוק (המקורי)': 'Green (original)', 'ירוק': 'Green', 'שחור וזהב': 'Black & gold', 'גיבוי': 'Backup',
     'הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.': 'Your data is saved in the cloud. You can also keep a copy as a file.',
     'שמור גיבוי': 'Save backup', 'כרגע הנתונים שמורים רק בטלפון הזה. מומלץ לשמור גיבוי מדי פעם.': 'Right now your data lives only on this phone. Save a backup now and then.',
     'שחזר מגיבוי': 'Restore backup', 'התקנה באייפון': 'Install on iPhone',
