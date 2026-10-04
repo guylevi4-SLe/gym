@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.5';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.6';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -269,7 +269,11 @@ const ICONS = {
   phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
 };
 const ico = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
-const brand = (cls = '') => `<div class="brand ${cls}" dir="ltr"><span class="word">Setou</span><span class="tagline">C'est tout</span></div>`;
+// Logo: an animated dumbbell next to the "Setou" wordmark, "C'est tout" underneath
+const brandMark = `<svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="markGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-2)"/></linearGradient></defs>
+  <g class="lift"><rect x="5" y="14" width="7" height="20" rx="2.5"/><rect x="36" y="14" width="7" height="20" rx="2.5"/><rect x="12.5" y="18" width="4" height="12" rx="1.5"/><rect x="31.5" y="18" width="4" height="12" rx="1.5"/><rect x="16" y="22" width="16" height="4" rx="2"/></g>
+  <ellipse class="shadow" cx="24" cy="44" rx="13" ry="1.8"/></svg>`;
+const brand = (cls = '') => `<div class="brand ${cls}" dir="ltr">${brandMark}<div class="brand-txt"><span class="word">Setou</span><span class="tagline">C'est tout</span></div></div>`;
 
 function thumb(ex, cls = '') {
   if (ex && photos[ex.id]) return `<img class="thumb ${cls}" src="${photos[ex.id]}" alt="">`;
