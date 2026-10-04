@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.34';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.35';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -674,8 +674,7 @@ function screenRoutines() {
     ${rs.map(r => `<div class="card">
       <div class="row between"><span class="card-title" style="font-size:18px">${esc(r.name)}</span><button class="btn sm ghost" data-act="go" data-to="#/routine/${r.id}">${ico('edit')}<span>עריכה</span></button></div>
       <div class="meta" style="margin:2px 0 4px"><span>${ico('list')}${r.exerciseIds.filter(exById).length} תרגילים</span></div>
-      <div class="rlast">${r.exerciseIds.map(exById).filter(Boolean).map(ex => { const last = lastPerformance(ex.id);
-        return `<div class="rlast-row"><span>${esc(trName(ex.name))}</span><span class="muted num">${last ? esc(setsSummary(last.sets, measure(ex))) : '—'}</span></div>`; }).join('') || '<div class="muted small">אין תרגילים</div>'}</div>
+      <div class="muted small" style="margin:0 0 12px">${esc(r.exerciseIds.map(id => exById(id)?.name).filter(Boolean).map(trName).join(' · ')) || 'אין תרגילים'}</div>
       <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
     </div>`).join('') || emptyState('plan', 'עוד אין תוכניות')}
     <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>`;
