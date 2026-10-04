@@ -507,3 +507,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .target-box summary { flex-wrap: wrap; }
 .target-box summary > span { white-space: nowrap; }
 .target-box .tgt-sum { flex-basis: 100%; white-space: normal; font-weight: 500; }
+
+.rlast { margin: 0 0 12px; font-size: 13px; }
+.rlast-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.rlast-row:last-child { border-bottom: 0; }
+.rlast-row > span:last-child { text-align: end; white-space: nowrap; }
