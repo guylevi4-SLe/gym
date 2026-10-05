@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.40';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.41';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -561,7 +561,7 @@ function entryCard(e, i) {
       ${e.sets.map((s, j) => `<tr class="${s.done ? 'done' : ''}">
         <td class="num">${j + 1}</td>
         ${last ? `<td class="prev">${last.sets[j] ? esc(setText(last.sets[j], kind)) : '–'}</td>` : ''}
-        ${fields.map(f => `<td><input inputmode="decimal" data-in="set" data-i="${i}" data-j="${j}" data-f="${f}" value="${fmtNum(s[f])}" placeholder="${f === 'weight' ? 'ק״ג' : '0'}"></td>`).join('')}
+        ${fields.map(f => `<td><input inputmode="decimal" data-in="set" data-i="${i}" data-j="${j}" data-f="${f}" class="${String(fmtNum(s[f])).length > 3 ? 'long' : ''}" value="${fmtNum(s[f])}" placeholder="${f === 'weight' ? 'ק״ג' : '0'}"></td>`).join('')}
         <td style="width:50px"><button class="check" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-label="סיימתי">${ico('check')}</button></td>
         <td style="width:28px"><button class="del-set" data-act="del-set" data-i="${i}" data-j="${j}" aria-label="מחק סט">${ico('x')}</button></td>
       </tr>`).join('')}
@@ -1497,6 +1497,7 @@ const inputs = {
     else ui.planDraft[el.dataset.f] = el.value;
   },
   set: el => {
+    el.classList.toggle('long', el.value.length > 3);
     const s = myActive().entries[+el.dataset.i].sets[+el.dataset.j];
     s[el.dataset.f] = num(el.value);
     save();
