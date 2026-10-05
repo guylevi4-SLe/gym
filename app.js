@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.37';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.38';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -414,7 +414,7 @@ function screenHome() {
   else if (st.count === 0) msg = 'שבוע חדש, הזדמנות חדשה. בוא נפתח אותו!';
   else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
 
-  return `<div class="topbar">${brand()}${avatar(u)}</div>
+  return `<div class="topbar">${brand()}<div class="top-end">${langSwitch()}${avatar(u)}</div></div>
     <h1 class="greet">שלום ${esc(u.name)}</h1>
     ${gymChip()}
     <div class="hero">
