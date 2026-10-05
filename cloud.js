@@ -272,7 +272,7 @@ async function cloudSetup(join, btn) {
       fid = $('#setup-code').value.trim().toUpperCase().replace(/\s/g, '');
       if (!fid) { ui.authError = 'הזן את קוד ההצטרפות'; ui.setupName = name; render(); return; }
       const fam = await FB.getDoc(FB.doc(fs, 'families', fid));
-      if (!fam.exists()) { ui.authError = 'לא מצאתי משפחה עם הקוד הזה. בדוק אותו שוב'; ui.setupName = name; render(); return; }
+      if (!fam.exists()) { ui.authError = 'לא מצאתי קבוצה עם הקוד הזה. בדוק אותו שוב'; ui.setupName = name; render(); return; }
       if (!fam.data().members.includes(uidv)) await FB.updateDoc(FB.doc(fs, 'families', fid), { members: [...fam.data().members, uidv] });
     } else {
       fid = newCode();
@@ -382,14 +382,15 @@ function cloudScreen() {
         <input class="input" id="setup-name" value="${esc(ui.setupName || localState?.users?.[0]?.name || '')}" autocomplete="off"></label>
       ${err}
       <div class="card stack">
-        <b>יש לך קוד הצטרפות ממישהו במשפחה?</b>
+        <b>יש לך קוד הצטרפות מחבר או מבן משפחה?</b>
         <input class="input" id="setup-code" placeholder="למשל: K7QM2XPA" autocomplete="off" dir="ltr" style="text-transform:uppercase;letter-spacing:2px">
-        <button class="btn primary block" data-act="setup-join">הצטרף למשפחה</button>
+        <p class="muted small" style="margin:0">בקבוצה מתאמנים יחד: חדרי הכושר ורשימת המכשירים משותפים, ולא צריך להגדיר אותם מחדש. המשקלים, האימונים, היעדים וההערות שלך נשארים פרטיים.</p>
+        <button class="btn primary block" data-act="setup-join">הצטרף לקבוצה</button>
       </div>
       <div class="card stack">
-        <b>הראשון במשפחה?</b>
-        <p class="muted small" style="margin:0">תיצור משפחה חדשה ותקבל קוד שאפשר לשלוח לשגב, לאחים ולאחיינים.</p>
-        <button class="btn block" data-act="setup-new">צור משפחה חדשה</button>
+        <b>אין לך קוד?</b>
+        <p class="muted small" style="margin:0">תיצור קבוצה חדשה ותקבל קוד שאפשר לשלוח למשפחה ולחברים.</p>
+        <button class="btn block" data-act="setup-new">צור קבוצה חדשה</button>
       </div>
       <button class="link" style="display:block;margin:0 auto;color:var(--muted)" data-act="sign-out-now">התנתק</button>
     </div>`;
@@ -398,19 +399,19 @@ function cloudScreen() {
 
 function cloudSettingsSection() {
   if (!cloudUser) return `<h2>חשבון</h2>
-    <p class="muted small" style="margin-top:0">כרגע הנתונים נשמרים רק בטלפון הזה. עם חשבון הם יישמרו בענן, יופיעו בכל מכשיר, ותוכל לשתף מכשירים עם המשפחה.</p>
+    <p class="muted small" style="margin-top:0">כרגע הנתונים נשמרים רק בטלפון הזה. עם חשבון הם יישמרו בענן, יופיעו בכל מכשיר, ותוכל לשתף מכשירים עם המשפחה והחברים.</p>
     <button class="btn primary block" data-act="cloud-mode">התחבר או הירשם</button>`;
   const fam = S.users;
   const migr = localUsersToMigrate();
   return `<h2>חשבון</h2>
     <div class="card"><div class="muted small">מחובר בתור</div><b style="display:block"><bdi dir="ltr">${esc(cloudUser.email)}</bdi></b></div>
-    <h2>המשפחה</h2>
+    <h2>הקבוצה שלי</h2>
     ${fam.map(u => `<div class="card list-item">
       <span class="avatar">${esc((u.name || '?').trim()[0] || '?')}</span>
       <b class="grow">${esc(u.name)}</b>${u.id === cloudUser.uid ? '<span class="tag">אני</span>' : ''}
     </div>`).join('')}
     <div class="card stack" style="margin-top:10px">
-      <div class="muted small">קוד הצטרפות. מי שנרשם עם הקוד הזה רואה את חדרי הכושר והמכשירים, אבל לא את האימונים שלך.</div>
+      <div class="muted small">קוד הצטרפות לקבוצה. מי שנרשם עם הקוד הזה משתף איתך את חדרי הכושר ורשימת המכשירים. המשקלים, האימונים, היעדים וההערות של כל אחד נשארים פרטיים.</div>
       <div style="font-size:26px;font-weight:800;letter-spacing:4px;text-align:center" dir="ltr">${esc(familyCode())}</div>
       <button class="btn primary block" data-act="share-invite">${ico('share')}<span>שלח הזמנה</span></button>
     </div>
