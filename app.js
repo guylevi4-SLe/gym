@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.39';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.40';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -529,6 +529,12 @@ function screenWorkout() {
     </div>`;
 }
 
+function setMyNote(ex, text) {
+  ex.notes = ex.notes || {};
+  ex.notes[myKey(ex)] = text;
+  save();
+}
+
 function entryCard(e, i) {
   const ex = exById(e.exerciseId);
   if (!ex) return '';
@@ -544,7 +550,8 @@ function entryCard(e, i) {
         <b>${esc(ex.name)}</b>
         <div class="last">${ico('last')}<span>${last ? `בפעם הקודמת (${fmtDate(last.date)}${esc(lastGym(ex, last))}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</span></div>
         ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">${ico('target')}<span>יעד: ${esc(targetText(myTarget(ex), kind))}</span></div>` : ''}
-        ${note ? `<div class="note">${ico('note')}<span>${esc(note)}</span></div>` : ''}
+        ${note ? `<button class="note note-btn" data-act="note-edit" data-id="${ex.id}">${ico('note')}<span>${esc(note)}</span></button>`
+          : `<button class="note-add" data-act="note-edit" data-id="${ex.id}">${ico('edit')}<span>הערה לפעם הבאה</span></button>`}
       </div>
       ${photos[ex.id] ? `<button class="del-set" data-act="photo-open" data-id="${ex.id}" aria-label="תמונה">${ico('camera')}</button>` : ''}
       <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">${ico('more')}</button>
@@ -913,6 +920,17 @@ function renderModal() {
       <button class="btn block ${m.danger ? 'danger' : 'primary'}" data-act="confirm-ok">${esc(m.okLabel)}</button>
       <button class="btn block" data-act="confirm-no">ביטול</button>
     </div>`;
+  } else if (m.type === 'note') {
+    const ex = exById(m.id);
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <h2>הערה לפעם הבאה</h2>
+      <div class="muted small" style="margin-top:-6px">${esc(ex.name)}. ההערה תופיע אוטומטית כשתגיע למכשיר הזה שוב.</div>
+      <textarea class="input" id="note-text" rows="3" placeholder="למשל: היה כבד, להוריד ל־40 ק״ג">${esc(myNote(ex))}</textarea>
+      <button class="btn primary block" data-act="note-save" data-id="${ex.id}">שמור</button>
+      ${myNote(ex) ? `<button class="btn block danger" data-act="note-clear" data-id="${ex.id}">מחק הערה</button>` : ''}
+      <button class="btn block" data-act="close-modal">ביטול</button>
+    </div>`;
+    setTimeout(() => { const t = $('#note-text'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 50);
   } else if (m.type === 'entry') {
     const a = myActive(), n = a.entries.length;
     el.innerHTML = `<div class="sheet stack" data-stop>
@@ -1369,6 +1387,9 @@ const actions = {
     requestAnimationFrame(() => window.scrollTo(0, document.body.scrollHeight));
   },
   'new-ex-from-workout': () => { ui.modal = null; ui.returnToWorkout = true; go('#/exercise-new'); },
+  'note-edit': d => { ui.modal = { type: 'note', id: d.id }; renderModal(); },
+  'note-save': d => { setMyNote(exById(d.id), ($('#note-text')?.value || '').trim()); ui.modal = null; renderModal(); render(); },
+  'note-clear': d => { setMyNote(exById(d.id), ''); ui.modal = null; renderModal(); render(); },
   'entry-menu': d => { ui.modal = { type: 'entry', i: +d.i }; renderModal(); },
   'entry-move': d => {
     const a = myActive(), i = +d.i, j = i + +d.d;
@@ -1494,12 +1515,7 @@ const inputs = {
     const n = document.querySelector('[data-in="pick-filter"]');
     n.focus(); n.setSelectionRange(pos, pos);
   },
-  'ex-note': el => {
-    const ex = exById(el.dataset.id);
-    ex.notes = ex.notes || {};
-    ex.notes[myKey(ex)] = el.value;
-    save();
-  },
+  'ex-note': el => setMyNote(exById(el.dataset.id), el.value),
   draft: el => { ui.draft[el.dataset.f] = el.value; },
   target: el => {
     const ex = exById(el.dataset.id), uidv = S.settings.currentUserId;

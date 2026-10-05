@@ -169,6 +169,7 @@
     'שלח הזמנה': 'Send invite', 'נתונים מהטלפון': 'Data on this phone',
     'יש בטלפון הזה נתונים מלפני שהתחברת. של מי להעביר לחשבון שלך?': 'This phone has data from before you signed in. Whose data should move to your account?',
     'השם שלי': 'My name',
+    'הערה לפעם הבאה': 'Note for next time', 'למשל: היה כבד, להוריד ל־40 ק״ג': 'e.g. too heavy, drop to 40 kg next time', 'מחק הערה': 'Delete note',
   };
 
   // Hebrew words that may appear next to numbers ("3 סטים", "45 דק׳")
@@ -178,6 +179,7 @@
 
   const plural = (n, one, many) => `${n} ${+n === 1 ? one : many}`;
   const PATTERNS = [
+    [/^(.+)\. ההערה תופיע אוטומטית כשתגיע למכשיר הזה שוב.$/, n => `${tr(n)}. This note will show up automatically next time you get to this machine.`],
     [/^שלום (.+?)(!?)$/, (n, x) => `Hi ${n}${x}`],
     [/^עוד (\d+) (אימון|אימונים) ליעד השבועי$/, n => `${plural(n, 'more workout', 'more workouts')} to your weekly goal`],
     [/^בפעם הקודמת \((.+?)\): (.+)$/, (d, s) => `Last time (${tr(d)}): ${tr(s)}`],
