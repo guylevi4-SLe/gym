@@ -184,53 +184,52 @@
     thigh: [[0, 3.9, 3.9], [0.3, 4.1, 3.5], [0.7, 3.3, 2.9], [0.97, 2.5, 2.4]],
     shin: [[0.04, 2.4, 2.4], [0.3, 2, 3.1], [0.6, 1.7, 2.3], [0.98, 1.2, 1.4]],
     torso: [[0.02, 2.4, 2.6], [0.14, 4.4, 3.8], [0.34, 4.8, 3.6], [0.62, 3.5, 3.2], [0.86, 3.6, 3.7], [1, 3.4, 4.2]],
-    shirt: [[0.06, 2.6, 2.8], [0.14, 4.6, 4], [0.34, 5, 3.8], [0.62, 3.7, 3.4], [0.84, 3.8, 3.9]],
-    shorts: [[0.8, 3.8, 3.9], [0.94, 3.9, 4.3], [1, 3.4, 4]],
-    leg: [[-0.05, 4, 4.2], [0.2, 4.2, 3.9], [0.45, 3.9, 3.5]],
     hand: [[0, 1.4, 1.4], [0.5, 1.7, 1.5], [1, 1.1, 1.1]],
-    shoe: [[0, 1.7, 1.4], [0.55, 1.5, 1.4], [1, 1, 1.1]],
+    foot: [[0, 1.5, 1.3], [0.5, 1.2, 1.1], [1, 0.8, 0.8]],
   };
   const HEAD = [[-4.2, 0.5], [-3.6, 3.2], [-1, 4.6], [2, 4.3], [3.9, 2.2], [4.2, 0.4], [5, -0.8], [4.2, -1.5], [4.2, -2.4], [3.5, -3.6], [1.6, -4.1], [-0.6, -3], [-3.3, -1.8]];
-  const HAIR = [[-4.5, 0.6], [-3.9, 3.6], [-1, 5], [2.2, 4.7], [4.2, 2.6], [3.2, 2.3], [0.8, 2.2], [-1.2, 1.2], [-2.2, -0.8], [-3.6, -1.4]];
   const HEAD_F = [[-3.9, 0], [-3.4, 3.4], [0, 4.7], [3.4, 3.4], [3.9, 0], [3.1, -3], [0, -4.5], [-3.1, -3]];
-  const HAIR_F = [[-4.2, 0.6], [-3.7, 3.8], [0, 5.1], [3.7, 3.8], [4.2, 0.6], [3.3, 2.2], [0, 2.9], [-3.3, 2.2]];
+  // Thin muscle-definition line (open path) in the same frame as part(): points [t, offset toward the front]
+  function defLine(a, b, pts, side) {
+    const u = unit(a, b), fr = [side * u[1], -side * u[0]];
+    const ps = pts.map(([t, w]) => add(lerp(a, b, t), fr, w));
+    return `M${pt(ps[0])} Q${pt(ps[1])} ${pt(ps[2])}`;
+  }
   function fullBody(P, side) {
     const { n, p, h } = P, sw = P.sw || 0, hw = P.hw || 0, front = !!sw;
     const back = [], body = [], fore = [];
-    const S = front ? 0 : side; // front views: symmetric (front/back widths are equal anyway when S=0 handled below)
     const pr = (a, b, prof, cap, cap0) => part(a, b, front ? prof.map(([t, x, y]) => [t, (x + y) / 2, (x + y) / 2]) : prof, side, cap, cap0);
     const leg = (to, hip, k, f, far) => {
       const c = far ? ' far' : '', dir = front ? Math.sign(f[0] - p[0]) || 1 : side;
-      to.push(['sk' + c, pr(hip, k, PROF.thigh)], ['sk' + c, pr(k, f, PROF.shin)],
-        ['sh' + c, pr(hip, k, PROF.leg, 0.5, 0.3)],
-        ['shoe' + c, part(add(f, [-dir * 1.4, 0.8]), add(f, [dir * (front ? 2.2 : 4.6), 1.2]), PROF.shoe, dir)]);
+      to.push(['bd' + c, pr(hip, k, PROF.thigh)], ['bd' + c, pr(k, f, PROF.shin)],
+        ['bd' + c, part(add(f, [-dir * 1.2, 0.6]), add(f, [dir * (front ? 1.8 : 4.4), 1.1]), PROF.foot, dir)]);
+      if (!front) to.push(['ln' + c, defLine(hip, k, [[0.25, 2.2], [0.6, 1.2], [0.92, 0.6]], side)]);
     };
     const arm = (to, sh, e, w, far) => {
       const c = far ? ' far' : '';
-      to.push(['sk' + c, pr(sh, e, PROF.uarm)], ['sk' + c, pr(e, w, PROF.farm)],
-        ['sk' + c, pr(w, add(w, unit(e, w), 3.2), PROF.hand)]);
+      to.push(['bd' + c, pr(sh, e, PROF.uarm)], ['bd' + c, pr(e, w, PROF.farm)],
+        ['bd' + c, pr(w, add(w, unit(e, w), 3.2), PROF.hand)]);
     };
     const up = unit(n, h), hc = add(n, up, 5.6), K = 0.82, sc = ps => ps.map(([x, y]) => [x * K, y * K]);
-    const neck = ['sk', pr(add(n, up, -1), add(n, up, 3.4), [[0, 1.7, 1.7], [1, 1.5, 1.5]])];
-    const fw = [-up[1] * side, up[0] * side], at = (x, y) => [f1(hc[0] + fw[0] * x * K + up[0] * y * K), f1(hc[1] + fw[1] * x * K + up[1] * y * K)];
+    const neck = ['bd', pr(add(n, up, -1), add(n, up, 3.6), [[0, 1.9, 1.9], [1, 1.5, 1.5]])];
     if (front) {
-      const tor = (prof, cls) => [cls, local(mid(n, p), unit(p, n), 1, [
-        ...prof.map(([t, w]) => [w, (0.5 - t) * Math.hypot(p[0] - n[0], p[1] - n[1])]),
-        ...prof.slice().reverse().map(([t, w]) => [-w, (0.5 - t) * Math.hypot(p[0] - n[0], p[1] - n[1])])])];
-      const T = [[0, 2], [0.08, sw + 2.3], [0.32, sw + 2.1], [0.62, hw + 1], [0.82, hw + 1.6], [1, hw + 2.6]];
+      const L = Math.hypot(p[0] - n[0], p[1] - n[1]), dn = unit(p, n);
+      const tor = prof => local(mid(n, p), dn, 1, [
+        ...prof.map(([t, w]) => [w, (0.5 - t) * L]), ...prof.slice().reverse().map(([t, w]) => [-w, (0.5 - t) * L])]);
+      const T = [[0, 2], [0.08, sw + 2.6], [0.3, sw + 2.2], [0.62, hw + 0.6], [0.82, hw + 1.3], [1, hw + 2.4]];
       if (P.k1) leg(back, [p[0] - hw * 0.8, p[1]], P.k1, P.f1); if (P.k2) leg(back, [p[0] + hw * 0.8, p[1]], P.k2, P.f2);
-      body.push(neck, tor(T, 'sk'), tor(T.map(([t, w]) => [t * 0.82 + 0.06, w + 0.2]), 'top'),
-        tor([[0.76, hw + 1.2], [0.88, hw + 2.2], [1.04, hw + 2.8]], 'sh'),
-        ['sk', local(hc, up, 1, sc(HEAD_F))], ['hair', local(hc, up, 1, sc(HAIR_F))],
-        ['circle', 'eye', ...at(-1.5, 0.2), 0.45], ['circle', 'eye', ...at(1.5, 0.2), 0.45]);
+      body.push(neck, ['bd', tor(T)],
+        ['ln', `M${pt(add(n, [-sw - 1.4, 3]))} Q${pt(add(n, [-sw * 0.5, 7.4]))} ${pt(add(n, [0, 6.2]))} Q${pt(add(n, [sw * 0.5, 7.4]))} ${pt(add(n, [sw + 1.4, 3]))}`],
+        ['ln', `M${pt(add(n, [0, 8.6]))} Q${pt(add(n, [0, 11]))} ${pt(add(n, [0, 13.4]))}`],
+        ['bd', local(hc, up, 1, sc(HEAD_F))]);
       if (P.e1) arm(fore, [n[0] - sw - 1, n[1] + 2], P.e1, P.w1); if (P.e2) arm(fore, [n[0] + sw + 1, n[1] + 2], P.e2, P.w2);
     } else {
       const o = [-1.2 * side, -0.6], oa = [-1.4 * side, -0.4];
       if (P.k2) leg(back, p, P.k2, P.f2, true); else if (P.k1) leg(back, add(p, o), add(P.k1, o), add(P.f1, o), true);
       if (P.e2) arm(back, add(n, [0, 1.6]), P.e2, P.w2, true); else if (P.e1) arm(back, add(add(n, [0, 1.6]), oa), add(P.e1, oa), add(P.w1, oa), true);
-      body.push(neck, ['sk', pr(n, p, PROF.torso, 0.4)], ['top', pr(n, p, PROF.shirt, 0.4)], ['sh', pr(n, p, PROF.shorts, 0.35, 0.15)],
-        ['sk', local(hc, up, side, sc(HEAD))], ['sk', local(hc, up, side, sc([[-0.6, 1], [0.4, 0.4], [0.2, -1], [-0.8, -0.8]]))],
-        ['hair', local(hc, up, side, sc(HAIR))], ['circle', 'eye', ...at(2.6, 0.9), 0.45]);
+      body.push(neck, ['bd', pr(n, p, PROF.torso, 0.4)],
+        ['ln', defLine(n, p, [[0.4, 4.3], [0.46, 2.4], [0.4, 0.6]], side)],
+        ['bd', local(hc, up, side, sc(HEAD))]);
       if (P.k1) leg(fore, p, P.k1, P.f1);
       if (P.e1) arm(fore, add(n, [0, 1.6]), P.e1, P.w1);
     }
