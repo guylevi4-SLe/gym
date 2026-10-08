@@ -3,12 +3,17 @@
 Frames are aligned on the heel (leftmost point of the feet), the white background connected to the frame edges
 becomes transparent, and the 8 frames are laid out in one row (each FW x FH, 600x960 so phones with sharp screens get full detail).
 Usage: python3 tools/sprite.py sheet.png bwsquat [--rows 2 --cols 4]   |   python3 tools/sprite.py demo.gif pulldown
-Ask the image AI for no floor shadow: a grey shadow touching white sneakers cannot be told apart from them.
+The floor shadow is removed with rembg when it is installed; asking the image AI for no floor shadow still helps.
 A GIF keeps one fixed camera, so its frames share one placement instead of being aligned one by one.
 The frames should make one full repetition (start, end, back to start); the app loops them in order.
 """
 import sys, argparse
 from PIL import Image, ImageDraw, ImageFilter, ImageSequence
+try:  # optional: AI segmentation to remove the soft floor shadow (pip install "rembg[cpu]")
+    from rembg import remove, new_session
+    SEG = new_session('u2net_human_seg')  # the person, incl. sneakers; light machine parts sit above the floor band
+except Exception:
+    SEG = None
 
 FW, FH = 600, 960
 
@@ -53,6 +58,18 @@ def main():
         fr = im.crop((x0, y0, x0 + cw, y0 + ch)).convert('RGB')
         for seed in [(0, 0), (cw - 1, 0), (0, ch - 1), (cw - 1, ch - 1), (cw // 2, 0)]:
             ImageDraw.floodfill(fr, seed, (255, 0, 255), thresh=28)
+        # floor shadow: in the bottom fifth, light colourless pixels (shadow, or white sneakers) are kept only
+        # where the rembg person model sees the person. Dark machine parts are never touched.
+        seg = remove(im.crop((x0, y0, x0 + cw, y0 + ch)).convert('RGB'), session=SEG, only_mask=True).load() if SEG else None
+        if SEG:
+            orig, rp = im.crop((x0, y0, x0 + cw, y0 + ch)).convert('RGB').load(), fr.load()
+            for v in range(int(ch * 0.8), ch):
+                for u in range(cw):
+                    c = orig[u, v]
+                    if min(c) >= 185 and max(c) - min(c) < 16 and seg[u, v] < 128:
+                        rp[u, v] = (255, 0, 255)
+                    elif seg[u, v] >= 200 and rp[u, v] == (255, 0, 255):
+                        rp[u, v] = c  # a white sneaker the edge fill swallowed
         # background pockets enclosed by the body or the machine: large near-white areas
         rp = fr.load(); seen = set()
         for y in range(0, ch, 3):
@@ -65,7 +82,8 @@ def main():
                     for q in ((u + 1, v), (u - 1, v), (u, v + 1), (u, v - 1)):
                         if 0 <= q[0] < cw and 0 <= q[1] < ch and q not in seen and min(rp[q]) >= 240 and rp[q] != (255, 0, 255):
                             seen.add(q); stack.append(q)
-                if len(area) > cw * ch * 0.0008:
+                # never punch holes in white sneakers: with the model, only areas it calls background go
+                if len(area) > cw * ch * 0.0008 and (not seg or sum(seg[q] < 128 for q in area) > len(area) * 0.8):
                     for q in area: rp[q] = (255, 0, 255)
         alpha = Image.new('L', fr.size, 255); ap_ = alpha.load()
         for y in range(ch):
