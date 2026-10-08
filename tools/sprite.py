@@ -36,7 +36,21 @@ def main():
         fr = im.crop((x0, y0, x0 + cw, y0 + ch)).convert('RGB')
         for seed in [(0, 0), (cw - 1, 0), (0, ch - 1), (cw - 1, ch - 1), (cw // 2, 0)]:
             ImageDraw.floodfill(fr, seed, (255, 0, 255), thresh=28)
-        alpha = Image.new('L', fr.size, 255); ap_, rp = alpha.load(), fr.load()
+        # background pockets enclosed by the body or the machine: large near-white areas
+        rp = fr.load(); seen = set()
+        for y in range(0, ch, 3):
+            for x in range(0, cw, 3):
+                if (x, y) in seen or min(rp[x, y]) < 248 or rp[x, y] == (255, 0, 255): continue
+                stack, area = [(x, y)], []
+                seen.add((x, y))
+                while stack:
+                    u, v = stack.pop(); area.append((u, v))
+                    for q in ((u + 1, v), (u - 1, v), (u, v + 1), (u, v - 1)):
+                        if 0 <= q[0] < cw and 0 <= q[1] < ch and q not in seen and min(rp[q]) >= 240 and rp[q] != (255, 0, 255):
+                            seen.add(q); stack.append(q)
+                if len(area) > cw * ch * 0.01:
+                    for q in area: rp[q] = (255, 0, 255)
+        alpha = Image.new('L', fr.size, 255); ap_ = alpha.load()
         for y in range(ch):
             for x in range(cw):
                 if rp[x, y] == (255, 0, 255): ap_[x, y] = 0

@@ -408,6 +408,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .thumb { background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--accent) 22%, var(--surface-2)), var(--surface-2) 70%); }
 .thumb .sprite { height: 90%; aspect-ratio: 300 / 480; max-width: 100%; background: 0 0 / 800% 100% no-repeat; animation: sprite 1.8s steps(7) infinite alternate; }
 @keyframes sprite { to { background-position: 100% 0; } }
+.thumb .sprite.still { background-size: 100% 100%; animation: none; }
 @media (prefers-reduced-motion: reduce) { .thumb .sprite { animation: none; } }
 .thumb .ic { width: 82%; height: 82%; max-width: 150px; max-height: 150px; overflow: visible; }
 .ic { --ic-eq: color-mix(in srgb, var(--text) 50%, transparent); fill: none; stroke-linecap: round; stroke-linejoin: round; }
