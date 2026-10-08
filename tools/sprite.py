@@ -3,6 +3,7 @@
 Frames are aligned on the heel (leftmost point of the feet), the white background connected to the frame edges
 becomes transparent, and the 8 frames are laid out in one row (each FW x FH, 600x960 so phones with sharp screens get full detail).
 Usage: python3 tools/sprite.py sheet.png bwsquat [--rows 2 --cols 4]   |   python3 tools/sprite.py demo.gif pulldown
+Ask the image AI for no floor shadow: a grey shadow touching white sneakers cannot be told apart from them.
 A GIF keeps one fixed camera, so its frames share one placement instead of being aligned one by one.
 The frames should make one full repetition (start, end, back to start); the app loops them in order.
 """
@@ -17,7 +18,8 @@ def frame_bounds(px, x0, y0, cw, ch):
     left = min(x for x, y in pts)
     right = max(x for x, y in pts)
     foot = min(x for x, y in pts if y > yb - 40)
-    return left - x0, right - x0, yb - y0, foot - x0
+    top = min(y for _, y in pts)
+    return left - x0, right - x0, yb - y0, foot - x0, top - y0
 
 def main():
     ap = argparse.ArgumentParser()
@@ -39,13 +41,14 @@ def main():
     n = a.rows * a.cols
     bounds = [frame_bounds(px, (i % a.cols) * cw, (i // a.cols) * ch, cw, ch) for i in range(n)]
     if gif:  # fixed camera: one placement for every frame
-        u = (min(b[0] for b in bounds), max(b[1] for b in bounds), max(b[2] for b in bounds), min(b[3] for b in bounds))
+        u = (min(b[0] for b in bounds), max(b[1] for b in bounds), max(b[2] for b in bounds), min(b[3] for b in bounds), min(b[4] for b in bounds))
         bounds = [u] * n
     # one scale for all frames so the body never changes size; frames are anchored on the heel
-    L = max(f - l for l, r, y, f in bounds); R = max(r - f for l, r, y, f in bounds)
-    s = min((FW * 0.96) / (L + R), FH / ch)
+    L = max(b[3] - b[0] for b in bounds); R = max(b[1] - b[3] for b in bounds)
+    Hc = max(b[2] for b in bounds) - min(b[4] for b in bounds)  # tallest content, so the body fills the frame
+    s = min((FW * 0.96) / (L + R), FH * 0.97 / Hc)
     out = Image.new('RGBA', (FW * n, FH), (0, 0, 0, 0))
-    for i, (l, r, yb, f) in enumerate(bounds):
+    for i, (l, r, yb, f, top) in enumerate(bounds):
         x0, y0 = (i % a.cols) * cw, (i // a.cols) * ch
         fr = im.crop((x0, y0, x0 + cw, y0 + ch)).convert('RGB')
         for seed in [(0, 0), (cw - 1, 0), (0, ch - 1), (cw - 1, ch - 1), (cw // 2, 0)]:
@@ -62,7 +65,7 @@ def main():
                     for q in ((u + 1, v), (u - 1, v), (u, v + 1), (u, v - 1)):
                         if 0 <= q[0] < cw and 0 <= q[1] < ch and q not in seen and min(rp[q]) >= 240 and rp[q] != (255, 0, 255):
                             seen.add(q); stack.append(q)
-                if len(area) > cw * ch * 0.0025:
+                if len(area) > cw * ch * 0.0008:
                     for q in area: rp[q] = (255, 0, 255)
         alpha = Image.new('L', fr.size, 255); ap_ = alpha.load()
         for y in range(ch):

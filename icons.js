@@ -357,7 +357,7 @@
   const sprite = k => {
     const n = SPRITES[k];
     const anim = n > 1 ? `;background-size:${n * 100}% 100%;--end:${(100 * n / (n - 1)).toFixed(3)}%;animation-timing-function:steps(${n})` : ';background-size:100% 100%;animation:none';
-    return `<div class="sprite" role="img" aria-hidden="true" style="background-image:url(sprites/${k}.webp)${anim}"></div>`;
+    return `<div class="sprite" role="img" aria-hidden="true" style="background-image:url(sprites/${k}.webp?v=${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''})${anim}"></div>`;
   };
 
   window.exerciseIcon = ex => {

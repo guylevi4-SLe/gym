@@ -406,7 +406,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 
 /* Animated exercise illustrations (icons.js) */
 .thumb { background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--accent) 22%, var(--surface-2)), var(--surface-2) 70%); }
-.thumb .sprite { height: 90%; aspect-ratio: 600 / 960; max-width: 100%; background-repeat: no-repeat; background-position: 0 0; animation: sprite 2s infinite; }
+.thumb.lg:has(.sprite) { height: min(420px, 62vh); }
+.thumb .sprite { height: 94%; aspect-ratio: 600 / 960; max-width: 100%; background-repeat: no-repeat; background-position: 0 0; animation: sprite 2s infinite; }
 @keyframes sprite { to { background-position: var(--end) 0; } }
 @media (prefers-reduced-motion: reduce) { .thumb .sprite { animation: none; } }
 .thumb .ic { width: 82%; height: 82%; max-width: 150px; max-height: 150px; overflow: visible; }
