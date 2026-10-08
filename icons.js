@@ -351,10 +351,14 @@
   ];
   const BY_TYPE = { stretch: 'stretch', cardio: 'heart', machine: 'stack', free: 'curl', bodyweight: 'pushup' };
 
-  // Realistic images: sprites/<icon>.webp holds its frames in a row (300×480 each), made with tools/sprite.py
-  // from an image-AI picture. 8 frames play as a loop; 1 frame is a still picture until the full set arrives.
-  const SPRITES = { bwsquat: 8, pulldown: 1 };
-  const sprite = k => `<div class="sprite${SPRITES[k] === 1 ? ' still' : ''}" role="img" aria-hidden="true" style="background-image:url(sprites/${k}.webp)"></div>`;
+  // Realistic animations: sprites/<icon>.webp holds one full repetition as frames in a row (300×480 each),
+  // made with tools/sprite.py from an image-AI sprite sheet or GIF. Value = frame count; 1 = a still picture.
+  const SPRITES = { bwsquat: 8, pulldown: 6 };
+  const sprite = k => {
+    const n = SPRITES[k];
+    const anim = n > 1 ? `;background-size:${n * 100}% 100%;--end:${(100 * n / (n - 1)).toFixed(3)}%;animation-timing-function:steps(${n})` : ';background-size:100% 100%;animation:none';
+    return `<div class="sprite" role="img" aria-hidden="true" style="background-image:url(sprites/${k}.webp)${anim}"></div>`;
+  };
 
   window.exerciseIcon = ex => {
     const name = ex?.name || '';
