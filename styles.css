@@ -525,7 +525,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .muscles .m-names b { color: var(--accent); font-size: 16px; }
 .muscles .m-fig { display: block; width: 100%; max-width: 240px; margin: 10px auto 0; }
 .muscles .m-legend { display: flex; justify-content: space-around; max-width: 240px; margin: 2px auto 0; direction: ltr; }
-.m-fig .mb { fill: color-mix(in srgb, var(--text) 10%, var(--surface)); }
-.m-fig .mm { fill: color-mix(in srgb, var(--text) 30%, var(--surface)); stroke: var(--surface); stroke-width: .6; }
+.m-fig .mb { fill: color-mix(in srgb, var(--text) 14%, var(--surface)); }
+.m-fig .mm { fill: color-mix(in srgb, var(--text) 46%, var(--surface)); stroke: color-mix(in srgb, var(--text) 14%, var(--surface)); stroke-width: .7; stroke-linejoin: round; }
 .m-fig .mm.on { fill: var(--accent); }
 .m-fig .mm.on2 { fill: color-mix(in srgb, var(--accent) 45%, var(--surface)); }
