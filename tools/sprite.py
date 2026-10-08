@@ -4,6 +4,8 @@ Frames are aligned on the heel (leftmost point of the feet), the white backgroun
 becomes transparent, and the 8 frames are laid out in one row (each FW x FH, 600x960 so phones with sharp screens get full detail).
 Usage: python3 tools/sprite.py sheet.png bwsquat [--rows 2 --cols 4]   |   python3 tools/sprite.py demo.gif pulldown
 The floor shadow is removed with rembg when it is installed; asking the image AI for no floor shadow still helps.
+A black background (#000000) is the cleanest: nothing is cut out, and the app shows it on a black card
+(list the icon as black in SPRITES in icons.js).
 A GIF keeps one fixed camera, so its frames share one placement instead of being aligned one by one.
 The frames should make one full repetition (start, end, back to start); the app loops them in order.
 """
@@ -17,8 +19,9 @@ except Exception:
 
 FW, FH = 600, 960
 
-def frame_bounds(px, x0, y0, cw, ch):
-    pts = [(x, y) for y in range(y0, y0 + ch, 2) for x in range(x0, x0 + cw, 2) if min(px[x, y][:3]) < 200]
+def frame_bounds(px, x0, y0, cw, ch, black=False):
+    ink = (lambda p: max(p[:3]) > 60) if black else (lambda p: min(p[:3]) < 200)
+    pts = [(x, y) for y in range(y0, y0 + ch, 2) for x in range(x0, x0 + cw, 2) if ink(px[x, y])]
     yb = max(y for _, y in pts)
     left = min(x for x, y in pts)
     right = max(x for x, y in pts)
@@ -44,7 +47,9 @@ def main():
     cw, ch = W // a.cols, H // a.rows
     px = im.load()
     n = a.rows * a.cols
-    bounds = [frame_bounds(px, (i % a.cols) * cw, (i // a.cols) * ch, cw, ch) for i in range(n)]
+    # black background: nothing is cut out; the frames keep their black and the app shows them on a black card
+    black = all(max(px[x, y][:3]) < 20 for x, y in ((1, 1), (W - 2, 1), (1, H - 2), (W - 2, H - 2)))
+    bounds = [frame_bounds(px, (i % a.cols) * cw, (i // a.cols) * ch, cw, ch, black) for i in range(n)]
     if gif:  # fixed camera: one placement for every frame
         u = (min(b[0] for b in bounds), max(b[1] for b in bounds), max(b[2] for b in bounds), min(b[3] for b in bounds), min(b[4] for b in bounds))
         bounds = [u] * n
@@ -52,9 +57,15 @@ def main():
     L = max(b[3] - b[0] for b in bounds); R = max(b[1] - b[3] for b in bounds)
     Hc = max(b[2] for b in bounds) - min(b[4] for b in bounds)  # tallest content, so the body fills the frame
     s = min((FW * 0.96) / (L + R), FH * 0.97 / Hc)
-    out = Image.new('RGBA', (FW * n, FH), (0, 0, 0, 0))
+    out = Image.new('RGBA', (FW * n, FH), (0, 0, 0, 255 if black else 0))
     for i, (l, r, yb, f, top) in enumerate(bounds):
         x0, y0 = (i % a.cols) * cw, (i // a.cols) * ch
+        if black:
+            fr = im.crop((x0, y0, x0 + cw, y0 + ch)).resize((round(cw * s), round(ch * s)), Image.LANCZOS)
+            dx = round(FW * 0.02 + L * s - f * s); dy = FH - round(yb * s) - round(FH * 0.0125)
+            frame = Image.new('RGBA', (FW, FH), (0, 0, 0, 255)); frame.paste(fr, (dx, dy))
+            out.paste(frame, (i * FW, 0))
+            continue
         fr = im.crop((x0, y0, x0 + cw, y0 + ch)).convert('RGB')
         for seed in [(0, 0), (cw - 1, 0), (0, ch - 1), (cw - 1, ch - 1), (cw // 2, 0)]:
             ImageDraw.floodfill(fr, seed, (255, 0, 255), thresh=28)
@@ -95,7 +106,7 @@ def main():
         dx = round(FW * 0.02 + L * s - f * s); dy = FH - round(yb * s) - round(FH * 0.0125)
         out.paste(rgba, (i * FW + dx, dy), rgba)
     out.save(f'sprites/{a.name}.webp', quality=90, method=6)
-    print(f'sprites/{a.name}.webp', out.size, f'{n} frames')
+    print(f'sprites/{a.name}.webp', out.size, f'{n} frames', 'black background' if black else 'cut out')
 
 if __name__ == '__main__':
     main()

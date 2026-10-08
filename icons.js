@@ -352,12 +352,14 @@
   const BY_TYPE = { stretch: 'stretch', cardio: 'heart', machine: 'stack', free: 'curl', bodyweight: 'pushup' };
 
   // Realistic animations: sprites/<icon>.webp holds one full repetition as frames in a row (600×960 each),
-  // made with tools/sprite.py from an image-AI sprite sheet or GIF. Value = frame count; 1 = a still picture.
-  const SPRITES = { bwsquat: 8, pulldown: 6 };
+  // made with tools/sprite.py from an image-AI sprite sheet or GIF. Value = frame count (1 = a still picture);
+  // 'black' = drawn on a solid black background, shown on a black card instead of being cut out.
+  const SPRITES = { bwsquat: [8], pulldown: [6, 'black'] };
   const sprite = k => {
-    const n = SPRITES[k];
+    const [n, bg] = SPRITES[k];
     const anim = n > 1 ? `;background-size:${n * 100}% 100%;--end:${(100 * n / (n - 1)).toFixed(3)}%;animation-timing-function:steps(${n})` : ';background-size:100% 100%;animation:none';
-    return `<div class="sprite" role="img" aria-hidden="true" style="background-image:url(sprites/${k}.webp?v=${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''})${anim}"></div>`;
+    const v = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '';
+    return `<div class="sprite${bg ? ' ' + bg : ''}" role="img" aria-hidden="true" style="background-image:url(sprites/${k}.webp?v=${v})${anim}"></div>`;
   };
 
   window.exerciseIcon = ex => {
