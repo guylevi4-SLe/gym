@@ -351,7 +351,7 @@
   ];
   const BY_TYPE = { stretch: 'stretch', cardio: 'heart', machine: 'stack', free: 'curl', bodyweight: 'pushup' };
 
-  // Realistic animations: sprites/<icon>.webp holds one full repetition as frames in a row (300×480 each),
+  // Realistic animations: sprites/<icon>.webp holds one full repetition as frames in a row (600×960 each),
   // made with tools/sprite.py from an image-AI sprite sheet or GIF. Value = frame count; 1 = a still picture.
   const SPRITES = { bwsquat: 8, pulldown: 6 };
   const sprite = k => {
