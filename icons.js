@@ -150,6 +150,60 @@
     if (P.e2) d += arm(P.e2, P.w2, sw);
     return d;
   }
+  // Fuller figure: shaped torso and tapered limb silhouettes (each limb one closed outline with round ends),
+  // far-side limbs a shade darker. Returns pieces [class, d] or ['circle', class, x, y, r], back to front;
+  // the command structure is identical for both poses so SMIL can morph between them.
+  const f1 = x => Math.round(x * 10) / 10;
+  const add = (a, b, k = 1) => [f1(a[0] + b[0] * k), f1(a[1] + b[1] * k)];
+  const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [dx / L, dy / L]; };
+  function limbD(pts, ws) {
+    const nrm = pts.map((q, i) => {
+      const u1 = unit(pts[Math.max(i - 1, 0)], pts[Math.max(i, 1)]), u2 = unit(pts[Math.min(i, pts.length - 2)], pts[Math.min(i + 1, pts.length - 1)]);
+      let m = [u1[0] + u2[0], u1[1] + u2[1]]; const L = Math.hypot(...m) || 1; m = [m[0] / L, m[1] / L];
+      const c = Math.max(0.55, m[0] * u2[0] + m[1] * u2[1]);
+      return [-m[1] / c, m[0] / c];
+    });
+    const L = pts.map((q, i) => add(q, nrm[i], ws[i] / 2)), R = pts.map((q, i) => add(q, nrm[i], -ws[i] / 2));
+    const last = ws.length - 1, re = f1(ws[last] / 2), rs = f1(ws[0] / 2);
+    return `M${pt(L[0])} ${L.slice(1).map(q => `L${pt(q)}`).join(' ')} A${re} ${re} 0 0 0 ${pt(R[last])} `
+      + `${R.slice(0, last).reverse().map(q => `L${pt(q)}`).join(' ')} A${rs} ${rs} 0 0 0 ${pt(L[0])} Z`;
+  }
+  function torsoD(n, p, sw, hw, front) {
+    const L = Math.hypot(p[0] - n[0], p[1] - n[1]) || 1, u = unit(n, p), v = [-u[1], u[0]];
+    const S = front ? sw + 2.2 : 4.4, W = front ? hw + 1.2 : 3.5, H = front ? hw + 2.4 : 4.3;
+    const top = add(n, u, 0.6), mid = add(n, u, L * 0.6), bot = add(p, u, 1);
+    const P = (c, w) => pt(add(c, v, w));
+    return `M${P(top, S)} Q${P(add(n, u, L * 0.3), S + 0.4)} ${P(mid, W)} Q${P(add(p, u, -L * 0.15), W)} ${P(bot, H)}`
+      + ` Q${pt(add(bot, u, 3))} ${P(bot, -H)} Q${P(add(p, u, -L * 0.15), -W)} ${P(mid, -W)}`
+      + ` Q${P(add(n, u, L * 0.3), -S - 0.4)} ${P(top, -S)} Q${pt(add(top, u, -3))} ${P(top, S)} Z`;
+  }
+  function fullBody(P, side) {
+    const { n, p, h } = P, sw = P.sw || 0, hw = P.hw || 0, front = !!sw;
+    const back = [], mid = [], fore = [];
+    const leg = (to, k, f, t, dx, far) => {
+      const toe = t || (front ? [f[0] + Math.sign(dx) * 3.4, f[1] + 0.6] : [f[0] + side * 4.5, f[1] + 0.3]);
+      to.push([`fl${far ? ' far' : ''}`, limbD([[p[0] + dx, p[1]], k, f], [7.4, 4.8, 3.4])],
+        [`fl${far ? ' far' : ''}`, limbD([f, toe], [3.4, 2.4])]);
+    };
+    const arm = (to, e, w, dx, far) => {
+      to.push([`fl${far ? ' far' : ''}`, limbD([[n[0] + dx, n[1] + 1.4], e, w], [4.8, 3.6, 2.8])],
+        ['circle', `fh${far ? ' far' : ''}`, w[0], w[1], 2.3]);
+    };
+    if (front) {
+      if (P.k1) leg(mid, P.k1, P.f1, P.t1, -hw * 0.8); if (P.k2) leg(mid, P.k2, P.f2, P.t2, hw * 0.8);
+      if (P.e1) arm(fore, P.e1, P.w1, -sw - 0.6); if (P.e2) arm(fore, P.e2, P.w2, sw + 0.6);
+    } else {
+      // side view: the far leg/arm sits a little behind and darker; the near ones in front of the torso
+      const o = [-1.2 * side, -0.6], oa = [-1.4 * side, -0.4];
+      if (P.k2) leg(back, P.k2, P.f2, P.t2, 0, true); else if (P.k1) leg(back, add(P.k1, o), add(P.f1, o), P.t1 && add(P.t1, o), 0, true);
+      if (P.e2) arm(back, P.e2, P.w2, 0, true); else if (P.e1) arm(back, add(P.e1, oa), add(P.w1, oa), 0, true);
+      if (P.k1) leg(fore, P.k1, P.f1, P.t1, 0);
+      if (P.e1) arm(fore, P.e1, P.w1, 0);
+    }
+    const neck = ['fl', limbD([n, add(n, unit(n, h), 3.4)], [3.6, 3.2])];
+    return [...back, ...mid, neck, ['fb', torsoD(n, p, sw, hw, front)], ['circle', 'fh head', h[0], h[1], 4.6], ...fore];
+  }
+
   // Equipment helpers (return [class, path] or ['circle', class, x, y, r])
   const db = (w, vertical) => ['f db', vertical
     ? `M${w[0]} ${w[1] - 5} V${w[1] + 5} M${w[0] - 3} ${w[1] - 5} H${w[0] + 3} M${w[0] - 3} ${w[1] + 5} H${w[0] + 3}`
@@ -173,6 +227,11 @@
     const eqA = def.eq ? def.eq(A) : [], eqB = def.eq ? def.eq(B) : [];
     const back = [], front = [];
     eqA.forEach((x, i) => (/\bover\b/.test(x[0] === 'circle' ? x[1] : x[0]) ? front : back).push(item(x, eqB[i], dur)));
+    if (window.FULL_FIGURE) {
+      const side = def.side || ((A.k1 || A.k || A.n)[0] >= A.p[0] ? 1 : -1);
+      const fa = fullBody(A, side), fb = fullBody(B, side);
+      return svg(name + ' full', `${back.join('')}${fa.map((x, i) => item(x, fb[i], dur)).join('')}${front.join('')}`);
+    }
     return svg(name, `${back.join('')}
       <path class="f" d="${bodyD(A)}">${anim('d', bodyD(A), bodyD(B), dur)}</path>
       <circle class="fh" cx="${A.h[0]}" cy="${A.h[1]}" r="4.5">${anim('cx', A.h[0], B.h[0], dur)}${anim('cy', A.h[1], B.h[1], dur)}</circle>
