@@ -150,58 +150,91 @@
     if (P.e2) d += arm(P.e2, P.w2, sw);
     return d;
   }
-  // Fuller figure: shaped torso and tapered limb silhouettes (each limb one closed outline with round ends),
-  // far-side limbs a shade darker. Returns pieces [class, d] or ['circle', class, x, y, r], back to front;
-  // the command structure is identical for both poses so SMIL can morph between them.
+  // Human figure: each body part is a muscle-shaped outline (width profile along the bone, front/back),
+  // with a face profile, hair, tank top, shorts and shoes. Far-side limbs are a shade darker.
+  // Pieces are [class, d] or ['circle', class, x, y, r], back to front, with identical command structure
+  // in both poses so SMIL can morph between them.
   const f1 = x => Math.round(x * 10) / 10;
   const add = (a, b, k = 1) => [f1(a[0] + b[0] * k), f1(a[1] + b[1] * k)];
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [dx / L, dy / L]; };
-  function limbD(pts, ws) {
-    const nrm = pts.map((q, i) => {
-      const u1 = unit(pts[Math.max(i - 1, 0)], pts[Math.max(i, 1)]), u2 = unit(pts[Math.min(i, pts.length - 2)], pts[Math.min(i + 1, pts.length - 1)]);
-      let m = [u1[0] + u2[0], u1[1] + u2[1]]; const L = Math.hypot(...m) || 1; m = [m[0] / L, m[1] / L];
-      const c = Math.max(0.55, m[0] * u2[0] + m[1] * u2[1]);
-      return [-m[1] / c, m[0] / c];
-    });
-    const L = pts.map((q, i) => add(q, nrm[i], ws[i] / 2)), R = pts.map((q, i) => add(q, nrm[i], -ws[i] / 2));
-    const last = ws.length - 1, re = f1(ws[last] / 2), rs = f1(ws[0] / 2);
-    return `M${pt(L[0])} ${L.slice(1).map(q => `L${pt(q)}`).join(' ')} A${re} ${re} 0 0 0 ${pt(R[last])} `
-      + `${R.slice(0, last).reverse().map(q => `L${pt(q)}`).join(' ')} A${rs} ${rs} 0 0 0 ${pt(L[0])} Z`;
+  const mid = (a, b) => [f1((a[0] + b[0]) / 2), f1((a[1] + b[1]) / 2)];
+  // Smooth closed outline through points (quadratic curves through midpoints)
+  function smooth(ps) {
+    const n = ps.length; let d = `M${pt(mid(ps[n - 1], ps[0]))}`;
+    for (let i = 0; i < n; i++) d += ` Q${pt(ps[i])} ${pt(mid(ps[i], ps[(i + 1) % n]))}`;
+    return d + ' Z';
   }
-  function torsoD(n, p, sw, hw, front) {
-    const L = Math.hypot(p[0] - n[0], p[1] - n[1]) || 1, u = unit(n, p), v = [-u[1], u[0]];
-    const S = front ? sw + 2.2 : 4.4, W = front ? hw + 1.2 : 3.5, H = front ? hw + 2.4 : 4.3;
-    const top = add(n, u, 0.6), mid = add(n, u, L * 0.6), bot = add(p, u, 1);
-    const P = (c, w) => pt(add(c, v, w));
-    return `M${P(top, S)} Q${P(add(n, u, L * 0.3), S + 0.4)} ${P(mid, W)} Q${P(add(p, u, -L * 0.15), W)} ${P(bot, H)}`
-      + ` Q${pt(add(bot, u, 3))} ${P(bot, -H)} Q${P(add(p, u, -L * 0.15), -W)} ${P(mid, -W)}`
-      + ` Q${P(add(n, u, L * 0.3), -S - 0.4)} ${P(top, -S)} Q${pt(add(top, u, -3))} ${P(top, S)} Z`;
+  // Body part from a to b; prof = [[t, front, back], ...]; front side faces the way the figure looks
+  function part(a, b, prof, side, cap = 1, cap0 = cap) {
+    const u = unit(a, b), fr = [side * u[1], -side * u[0]];
+    const F = prof.map(([t, w]) => add(lerp(a, b, t), fr, w)), B = prof.map(([t, , w]) => add(lerp(a, b, t), fr, -w));
+    const t0 = prof[0], t1 = prof[prof.length - 1];
+    const tip = add(lerp(a, b, t1[0]), u, cap * (t1[1] + t1[2]) / 2), heel = add(lerp(a, b, t0[0]), u, -cap0 * (t0[1] + t0[2]) / 2);
+    return smooth([...F, tip, ...B.reverse(), heel]);
   }
+  // Shape in a local frame (x forward, y up) placed at c, with "up" along dir
+  function local(c, up, side, ps) {
+    const fw = [-up[1] * side, up[0] * side]; // perpendicular, pointing the way the figure faces
+    return smooth(ps.map(([x, y]) => [f1(c[0] + fw[0] * x + up[0] * y), f1(c[1] + fw[1] * x + up[1] * y)]));
+  }
+  const PROF = {
+    uarm: [[0, 2.3, 2.3], [0.18, 2.7, 2.5], [0.45, 2, 2.2], [0.65, 2.3, 2], [0.92, 1.6, 1.6]],
+    farm: [[0.05, 1.8, 1.8], [0.3, 2.1, 1.9], [0.7, 1.5, 1.3], [0.98, 1.2, 1.1]],
+    thigh: [[0, 3.9, 3.9], [0.3, 4.1, 3.5], [0.7, 3.3, 2.9], [0.97, 2.5, 2.4]],
+    shin: [[0.04, 2.4, 2.4], [0.3, 2, 3.1], [0.6, 1.7, 2.3], [0.98, 1.2, 1.4]],
+    torso: [[0.02, 2.4, 2.6], [0.14, 4.4, 3.8], [0.34, 4.8, 3.6], [0.62, 3.5, 3.2], [0.86, 3.6, 3.7], [1, 3.4, 4.2]],
+    shirt: [[0.06, 2.6, 2.8], [0.14, 4.6, 4], [0.34, 5, 3.8], [0.62, 3.7, 3.4], [0.84, 3.8, 3.9]],
+    shorts: [[0.8, 3.8, 3.9], [0.94, 3.9, 4.3], [1, 3.4, 4]],
+    leg: [[-0.05, 4, 4.2], [0.2, 4.2, 3.9], [0.45, 3.9, 3.5]],
+    hand: [[0, 1.4, 1.4], [0.5, 1.7, 1.5], [1, 1.1, 1.1]],
+    shoe: [[0, 1.7, 1.4], [0.55, 1.5, 1.4], [1, 1, 1.1]],
+  };
+  const HEAD = [[-4.2, 0.5], [-3.6, 3.2], [-1, 4.6], [2, 4.3], [3.9, 2.2], [4.2, 0.4], [5, -0.8], [4.2, -1.5], [4.2, -2.4], [3.5, -3.6], [1.6, -4.1], [-0.6, -3], [-3.3, -1.8]];
+  const HAIR = [[-4.5, 0.6], [-3.9, 3.6], [-1, 5], [2.2, 4.7], [4.2, 2.6], [3.2, 2.3], [0.8, 2.2], [-1.2, 1.2], [-2.2, -0.8], [-3.6, -1.4]];
+  const HEAD_F = [[-3.9, 0], [-3.4, 3.4], [0, 4.7], [3.4, 3.4], [3.9, 0], [3.1, -3], [0, -4.5], [-3.1, -3]];
+  const HAIR_F = [[-4.2, 0.6], [-3.7, 3.8], [0, 5.1], [3.7, 3.8], [4.2, 0.6], [3.3, 2.2], [0, 2.9], [-3.3, 2.2]];
   function fullBody(P, side) {
     const { n, p, h } = P, sw = P.sw || 0, hw = P.hw || 0, front = !!sw;
-    const back = [], mid = [], fore = [];
-    const leg = (to, k, f, t, dx, far) => {
-      const toe = t || (front ? [f[0] + Math.sign(dx) * 3.4, f[1] + 0.6] : [f[0] + side * 4.5, f[1] + 0.3]);
-      to.push([`fl${far ? ' far' : ''}`, limbD([[p[0] + dx, p[1]], k, f], [7.4, 4.8, 3.4])],
-        [`fl${far ? ' far' : ''}`, limbD([f, toe], [3.4, 2.4])]);
+    const back = [], body = [], fore = [];
+    const S = front ? 0 : side; // front views: symmetric (front/back widths are equal anyway when S=0 handled below)
+    const pr = (a, b, prof, cap, cap0) => part(a, b, front ? prof.map(([t, x, y]) => [t, (x + y) / 2, (x + y) / 2]) : prof, side, cap, cap0);
+    const leg = (to, hip, k, f, far) => {
+      const c = far ? ' far' : '', dir = front ? Math.sign(f[0] - p[0]) || 1 : side;
+      to.push(['sk' + c, pr(hip, k, PROF.thigh)], ['sk' + c, pr(k, f, PROF.shin)],
+        ['sh' + c, pr(hip, k, PROF.leg, 0.5, 0.3)],
+        ['shoe' + c, part(add(f, [-dir * 1.4, 0.8]), add(f, [dir * (front ? 2.2 : 4.6), 1.2]), PROF.shoe, dir)]);
     };
-    const arm = (to, e, w, dx, far) => {
-      to.push([`fl${far ? ' far' : ''}`, limbD([[n[0] + dx, n[1] + 1.4], e, w], [4.8, 3.6, 2.8])],
-        ['circle', `fh${far ? ' far' : ''}`, w[0], w[1], 2.3]);
+    const arm = (to, sh, e, w, far) => {
+      const c = far ? ' far' : '';
+      to.push(['sk' + c, pr(sh, e, PROF.uarm)], ['sk' + c, pr(e, w, PROF.farm)],
+        ['sk' + c, pr(w, add(w, unit(e, w), 3.2), PROF.hand)]);
     };
+    const up = unit(n, h), hc = add(n, up, 5.6), K = 0.82, sc = ps => ps.map(([x, y]) => [x * K, y * K]);
+    const neck = ['sk', pr(add(n, up, -1), add(n, up, 3.4), [[0, 1.7, 1.7], [1, 1.5, 1.5]])];
+    const fw = [-up[1] * side, up[0] * side], at = (x, y) => [f1(hc[0] + fw[0] * x * K + up[0] * y * K), f1(hc[1] + fw[1] * x * K + up[1] * y * K)];
     if (front) {
-      if (P.k1) leg(mid, P.k1, P.f1, P.t1, -hw * 0.8); if (P.k2) leg(mid, P.k2, P.f2, P.t2, hw * 0.8);
-      if (P.e1) arm(fore, P.e1, P.w1, -sw - 0.6); if (P.e2) arm(fore, P.e2, P.w2, sw + 0.6);
+      const tor = (prof, cls) => [cls, local(mid(n, p), unit(p, n), 1, [
+        ...prof.map(([t, w]) => [w, (0.5 - t) * Math.hypot(p[0] - n[0], p[1] - n[1])]),
+        ...prof.slice().reverse().map(([t, w]) => [-w, (0.5 - t) * Math.hypot(p[0] - n[0], p[1] - n[1])])])];
+      const T = [[0, 2], [0.08, sw + 2.3], [0.32, sw + 2.1], [0.62, hw + 1], [0.82, hw + 1.6], [1, hw + 2.6]];
+      if (P.k1) leg(back, [p[0] - hw * 0.8, p[1]], P.k1, P.f1); if (P.k2) leg(back, [p[0] + hw * 0.8, p[1]], P.k2, P.f2);
+      body.push(neck, tor(T, 'sk'), tor(T.map(([t, w]) => [t * 0.82 + 0.06, w + 0.2]), 'top'),
+        tor([[0.76, hw + 1.2], [0.88, hw + 2.2], [1.04, hw + 2.8]], 'sh'),
+        ['sk', local(hc, up, 1, sc(HEAD_F))], ['hair', local(hc, up, 1, sc(HAIR_F))],
+        ['circle', 'eye', ...at(-1.5, 0.2), 0.45], ['circle', 'eye', ...at(1.5, 0.2), 0.45]);
+      if (P.e1) arm(fore, [n[0] - sw - 1, n[1] + 2], P.e1, P.w1); if (P.e2) arm(fore, [n[0] + sw + 1, n[1] + 2], P.e2, P.w2);
     } else {
-      // side view: the far leg/arm sits a little behind and darker; the near ones in front of the torso
       const o = [-1.2 * side, -0.6], oa = [-1.4 * side, -0.4];
-      if (P.k2) leg(back, P.k2, P.f2, P.t2, 0, true); else if (P.k1) leg(back, add(P.k1, o), add(P.f1, o), P.t1 && add(P.t1, o), 0, true);
-      if (P.e2) arm(back, P.e2, P.w2, 0, true); else if (P.e1) arm(back, add(P.e1, oa), add(P.w1, oa), 0, true);
-      if (P.k1) leg(fore, P.k1, P.f1, P.t1, 0);
-      if (P.e1) arm(fore, P.e1, P.w1, 0);
+      if (P.k2) leg(back, p, P.k2, P.f2, true); else if (P.k1) leg(back, add(p, o), add(P.k1, o), add(P.f1, o), true);
+      if (P.e2) arm(back, add(n, [0, 1.6]), P.e2, P.w2, true); else if (P.e1) arm(back, add(add(n, [0, 1.6]), oa), add(P.e1, oa), add(P.w1, oa), true);
+      body.push(neck, ['sk', pr(n, p, PROF.torso, 0.4)], ['top', pr(n, p, PROF.shirt, 0.4)], ['sh', pr(n, p, PROF.shorts, 0.35, 0.15)],
+        ['sk', local(hc, up, side, sc(HEAD))], ['sk', local(hc, up, side, sc([[-0.6, 1], [0.4, 0.4], [0.2, -1], [-0.8, -0.8]]))],
+        ['hair', local(hc, up, side, sc(HAIR))], ['circle', 'eye', ...at(2.6, 0.9), 0.45]);
+      if (P.k1) leg(fore, p, P.k1, P.f1);
+      if (P.e1) arm(fore, add(n, [0, 1.6]), P.e1, P.w1);
     }
-    const neck = ['fl', limbD([n, add(n, unit(n, h), 3.4)], [3.6, 3.2])];
-    return [...back, ...mid, neck, ['fb', torsoD(n, p, sw, hw, front)], ['circle', 'fh head', h[0], h[1], 4.6], ...fore];
+    return [...back, ...body, ...fore];
   }
 
   // Equipment helpers (return [class, path] or ['circle', class, x, y, r])
@@ -416,4 +449,5 @@
     return ICONS[hit ? hit[1] : (BY_TYPE[ex?.type] || 'stack')]();
   };
   window.EXERCISE_ICON_NAMES = Object.keys(ICONS);
+  window.figureSample = (A, B, side, eq) => { window.FULL_FIGURE = true; const r = posed('sample', { A, B, side, eq }); window.FULL_FIGURE = false; return r; };
 })();
