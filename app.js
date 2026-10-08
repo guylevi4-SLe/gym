@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.42';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.43';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -610,6 +610,7 @@ function screenExercise(id) {
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
     <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}</div>
+    ${window.musclesCard ? musclesCard(ex) : ''}
     ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
       <div class="chips">${S.gyms.map(g => `<button class="chip ${(ex.gymIds || []).includes(g.id) ? 'on' : ''}" data-act="ex-gym-toggle" data-id="${ex.id}" data-gym="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
     </div>` : ''}

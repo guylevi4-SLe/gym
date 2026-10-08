@@ -169,6 +169,11 @@
     'שלח הזמנה': 'Send invite', 'נתונים מהטלפון': 'Data on this phone',
     'יש בטלפון הזה נתונים מלפני שהתחברת. של מי להעביר לחשבון שלך?': 'This phone has data from before you signed in. Whose data should move to your account?',
     'השם שלי': 'My name',
+    'שרירים עובדים': 'Muscles worked', 'שרירים שמשתחררים': 'Muscles released', 'גם:': 'Also:', 'מלפנים': 'Front', 'מאחור': 'Back',
+    'כתף קדמית': 'Front delts', 'כתף צדדית': 'Side delts', 'כתף אחורית': 'Rear delts', 'טרפז': 'Traps',
+    'יד קדמית (דו־ראשי)': 'Biceps', 'יד אחורית (תלת־ראשי)': 'Triceps', 'אמות': 'Forearms', 'בטן אלכסונית': 'Obliques',
+    'גב רחב': 'Lats', 'גב עליון': 'Upper back', 'גב תחתון': 'Lower back', 'ישבן צדדי (מרחיקים)': 'Hip abductors',
+    'ארבע־ראשי': 'Quads', 'המסטרינג': 'Hamstrings', 'מקרבים': 'Adductors', 'תאומים': 'Calves',
     'הערה לפעם הבאה': 'Note for next time', 'למשל: היה כבד, להוריד ל־40 ק״ג': 'e.g. too heavy, drop to 40 kg next time', 'מחק הערה': 'Delete note',
   };
 
