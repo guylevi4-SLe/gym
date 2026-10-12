@@ -150,6 +150,30 @@
     if (P.e2) d += arm(P.e2, P.w2, sw);
     return d;
   }
+  // Refined figure (pictogram style): tapered limbs, a solid torso wider at the shoulders, a slim neck and a
+  // head set slightly apart. Pieces [class, d] or ['circle', class, x, y, r] with the same structure in both poses.
+  const r1 = x => Math.round(x * 10) / 10;
+  const dir = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [dx / L, dy / L, L]; };
+  const off = (p, v, k) => [r1(p[0] + v[0] * k), r1(p[1] + v[1] * k)];
+  function figPieces(P) {
+    const { n, p, h } = P, sw = P.sw || 0, hw = P.hw || 0, front = !!sw;
+    const seg = (a, b, w) => [`fl w${w}`, `M${pt(a)} L${pt(b)}`];
+    const legs = [], arms = [];
+    const leg = (k, f, t, dx) => { const hip = [p[0] + dx, p[1]]; legs.push(seg(hip, k, 52), seg(k, f, 42)); if (t) legs.push(seg(f, t, 34)); };
+    if (P.k1) leg(P.k1, P.f1, P.t1, -hw * 0.9);
+    if (P.k2) leg(P.k2, P.f2, P.t2, hw * 0.9);
+    const arm = (e, w, dx) => { const sh = [n[0] + dx, n[1] + 1.2]; arms.push(['fo', `M${pt(sh)} L${pt(e)} L${pt(w)}`], seg(sh, e, 40), seg(e, w, 34)); };
+    if (P.e1) arm(P.e1, P.w1, front ? -sw - 0.4 : 0);
+    if (P.e2) arm(P.e2, P.w2, front ? sw + 0.4 : 0);
+    const [ux, uy, L] = dir(n, p), v = [-uy, ux];
+    const S = front ? sw + 1.6 : 3.2, H = front ? hw + 1.2 : 2.6;
+    const top = off(n, [ux, uy], 0.4), bot = off(p, [ux, uy], -0.6);
+    const torso = ['ft', `M${pt(off(top, v, S))} L${pt(off(bot, v, H))} L${pt(off(bot, v, -H))} L${pt(off(top, v, -S))} Z`];
+    const [hx, hy, hd] = dir(n, h), hc = off(n, [hx, hy], Math.max(hd, 6.4));
+    const neck = seg(n, off(n, [hx, hy], 2.2), 28);
+    return [...legs, torso, neck, ...arms, ['circle', 'fh', hc[0], hc[1], 4.1]];
+  }
+
   // Equipment helpers (return [class, path] or ['circle', class, x, y, r])
   const db = (w, vertical) => ['f db', vertical
     ? `M${w[0]} ${w[1] - 5} V${w[1] + 5} M${w[0] - 3} ${w[1] - 5} H${w[0] + 3} M${w[0] - 3} ${w[1] + 5} H${w[0] + 3}`
@@ -173,6 +197,10 @@
     const eqA = def.eq ? def.eq(A) : [], eqB = def.eq ? def.eq(B) : [];
     const back = [], front = [];
     eqA.forEach((x, i) => (/\bover\b/.test(x[0] === 'circle' ? x[1] : x[0]) ? front : back).push(item(x, eqB[i], dur)));
+    if (window.FIG2) {
+      const fa = figPieces(A), fb = figPieces(B);
+      return svg(name + ' fig2', `${back.join('')}${fa.map((x, i) => item(x, fb[i], dur)).join('')}${front.join('')}`);
+    }
     return svg(name, `${back.join('')}
       <path class="f" d="${bodyD(A)}">${anim('d', bodyD(A), bodyD(B), dur)}</path>
       <circle class="fh" cx="${A.h[0]}" cy="${A.h[1]}" r="4.5">${anim('cx', A.h[0], B.h[0], dur)}${anim('cy', A.h[1], B.h[1], dur)}</circle>
