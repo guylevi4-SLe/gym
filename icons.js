@@ -137,19 +137,7 @@
   // sw/hw = half width of shoulders/hips for front views. A single arm or leg may be given as e/w or k/f.
   const pt = a => `${a[0]} ${a[1]}`;
   const norm = P => ({ ...P, e1: P.e1 || P.e, w1: P.w1 || P.w, k1: P.k1 || P.k, f1: P.f1 || P.f });
-  function bodyD(P) {
-    const { n, p } = P, sw = P.sw || 0, hw = P.hw || 0;
-    let d = `M${pt(n)} L${pt(p)}`;
-    if (sw) d += ` M${n[0] - sw} ${n[1] + 1} H${n[0] + sw}`;
-    if (hw) d += ` M${p[0] - hw} ${p[1]} H${p[0] + hw}`;
-    const leg = (k, f, t, dx) => ` M${p[0] + dx} ${p[1]} L${pt(k)} L${pt(f)}${t ? ` L${pt(t)}` : ''}`;
-    if (P.k1) d += leg(P.k1, P.f1, P.t1, -hw);
-    if (P.k2) d += leg(P.k2, P.f2, P.t2, hw);
-    const arm = (e, w, dx) => ` M${n[0] + dx} ${n[1] + (dx ? 1 : 0)} L${pt(e)} L${pt(w)}`;
-    if (P.e1) d += arm(P.e1, P.w1, -sw);
-    if (P.e2) d += arm(P.e2, P.w2, sw);
-    return d;
-  }
+
   // Refined figure (pictogram style): tapered limbs, a solid torso wider at the shoulders, a slim neck and a
   // head set slightly apart. Pieces [class, d] or ['circle', class, x, y, r] with the same structure in both poses.
   const r1 = x => Math.round(x * 10) / 10;
@@ -197,14 +185,8 @@
     const eqA = def.eq ? def.eq(A) : [], eqB = def.eq ? def.eq(B) : [];
     const back = [], front = [];
     eqA.forEach((x, i) => (/\bover\b/.test(x[0] === 'circle' ? x[1] : x[0]) ? front : back).push(item(x, eqB[i], dur)));
-    if (window.FIG2) {
-      const fa = figPieces(A), fb = figPieces(B);
-      return svg(name + ' fig2', `${back.join('')}${fa.map((x, i) => item(x, fb[i], dur)).join('')}${front.join('')}`);
-    }
-    return svg(name, `${back.join('')}
-      <path class="f" d="${bodyD(A)}">${anim('d', bodyD(A), bodyD(B), dur)}</path>
-      <circle class="fh" cx="${A.h[0]}" cy="${A.h[1]}" r="4.5">${anim('cx', A.h[0], B.h[0], dur)}${anim('cy', A.h[1], B.h[1], dur)}</circle>
-      ${front.join('')}`);
+    const fa = figPieces(A), fb = figPieces(B);
+    return svg(name + ' fig2', `${back.join('')}${fa.map((x, i) => item(x, fb[i], dur)).join('')}${front.join('')}`);
   }
 
   // Shared base poses
@@ -382,7 +364,7 @@
   // Realistic animations: sprites/<icon>.webp holds one full repetition as frames in a row (600×960 each),
   // made with tools/sprite.py from an image-AI sprite sheet or GIF. Value = frame count (1 = a still picture);
   // 'black' = drawn on a solid black background, shown on a black card instead of being cut out.
-  const SPRITES = { bwsquat: [8] };
+  const SPRITES = {};
   const sprite = k => {
     const [n, bg] = SPRITES[k];
     const anim = n > 1 ? `;background-size:${n * 100}% 100%;--end:${(100 * n / (n - 1)).toFixed(3)}%;animation-timing-function:steps(${n})` : ';background-size:100% 100%;animation:none';

@@ -420,7 +420,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .ic.fig2 .w52 { stroke-width: 5.2; } .ic.fig2 .w42 { stroke-width: 4.2; } .ic.fig2 .w40 { stroke-width: 4; }
 .ic.fig2 .w34 { stroke-width: 3.4; } .ic.fig2 .w28 { stroke-width: 2.8; }
 .ic.fig2 .ft { fill: var(--accent); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
-.ic.fig2 .fo { stroke: var(--surface-2); stroke-width: 5.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ic.fig2 .fo { stroke: var(--surface-2); stroke-width: 5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .ic.fig2 .e { stroke-width: 2.6; }
 .ic .e { stroke: var(--ic-eq); stroke-width: 3; fill: none; }
 .ic .ef { fill: var(--ic-eq); stroke: none; }
