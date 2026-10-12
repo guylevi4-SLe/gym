@@ -354,7 +354,7 @@
   // Realistic animations: sprites/<icon>.webp holds one full repetition as frames in a row (600×960 each),
   // made with tools/sprite.py from an image-AI sprite sheet or GIF. Value = frame count (1 = a still picture);
   // 'black' = drawn on a solid black background, shown on a black card instead of being cut out.
-  const SPRITES = { bwsquat: [8], pulldown: [6, 'black'] };
+  const SPRITES = { bwsquat: [8] };
   const sprite = k => {
     const [n, bg] = SPRITES[k];
     const anim = n > 1 ? `;background-size:${n * 100}% 100%;--end:${(100 * n / (n - 1)).toFixed(3)}%;animation-timing-function:steps(${n})` : ';background-size:100% 100%;animation:none';
