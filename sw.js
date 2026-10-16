@@ -1,8 +1,8 @@
 // Offline support: try the network first (so updates arrive), fall back to the cached copy
 // when there is no reception or the network is slow.
-const CACHE = 'setou-v20.54';
-const SHELL = ['./', 'index.html', 'styles.css', 'i18n.js', 'app.js', 'icons.js', 'body.js', 'muscles.js', 'cloud.js', 'config.js', 'vendor/firebase.js', 'manifest.webmanifest',
-  'icons/setou-gold-180.png', 'icons/setou-gold-192.png', 'icons/setou-gold-512.png',
+const CACHE = 'setou-v20.55';
+const SHELL = ['./', 'index.html', 'styles.css', 'i18n.js', 'app.js', 'icons.js', 'body.js', 'muscles.js', 'cloud.js', 'config.js', 'vendor/firebase.js',
+  'icons/setou-v2055-180.png', 'icons/setou-v2055-192.png', 'icons/setou-v2055-512.png', 'icons/setou-v2055.ico',
   'fonts/heebo-hebrew.woff2', 'fonts/heebo-latin.woff2', 'fonts/barlow-condensed-800i.woff2'];
 
 self.addEventListener('install', e => {
@@ -18,6 +18,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // The browser must always see the live manifest, so installed apps pick up icon changes
+  if (url.pathname.endsWith('.webmanifest')) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const cached = await cache.match(e.request, { ignoreSearch: true });
     // no-cache: always ask the server (cheap ETag check) instead of trusting the browser's 10-minute HTTP cache
