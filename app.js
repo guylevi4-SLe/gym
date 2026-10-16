@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.55';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.56';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -786,7 +786,7 @@ function screenUsers() {
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
     <h2>צבעים</h2>
-    <div class="chips">${[['gold', 'שחור וזהב'], ['goldlight', 'לבן וזהב'], ['blue', 'כחול'], ['green', 'ירוק']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'gold') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${{ blue: '#3b82f6', gold: '#f5c518', goldlight: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', green: '#34d399' }[v]}"></span><span>${l}</span></button>`).join('')}</div>
+    <div class="chips">${[['gold', 'שחור וזהב'], ['goldlight', 'לבן וזהב'], ['blue', 'כחול'], ['green', 'ירוק']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'goldlight') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${{ blue: '#3b82f6', gold: '#f5c518', goldlight: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', green: '#34d399' }[v]}"></span><span>${l}</span></button>`).join('')}</div>
     <h2>גיבוי</h2>
     ${cloud ? `<p class="muted small" style="margin-top:0">הנתונים שלך נשמרים בענן. אפשר גם לשמור עותק כקובץ.</p>
     <div class="btns"><button class="btn" data-act="export">${ico('download')}<span>שמור גיבוי</span></button></div>`
@@ -1173,6 +1173,7 @@ const actions = {
   lang: d => { window.setLang?.(d.v); render(); },
   palette: d => {
     document.documentElement.dataset.palette = d.v;
+    document.querySelector('meta[name=theme-color]').content = d.v === 'goldlight' ? '#f5f3ee' : '#090909';
     try { localStorage.setItem('gym-palette', d.v); } catch (e) {}
     render();
   },

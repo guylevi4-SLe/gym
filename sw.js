@@ -1,8 +1,8 @@
 // Offline support: try the network first (so updates arrive), fall back to the cached copy
 // when there is no reception or the network is slow.
-const CACHE = 'setou-v20.55';
+const CACHE = 'setou-v20.56';
 const SHELL = ['./', 'index.html', 'styles.css', 'i18n.js', 'app.js', 'icons.js', 'body.js', 'muscles.js', 'cloud.js', 'config.js', 'vendor/firebase.js',
-  'icons/setou-v2055-180.png', 'icons/setou-v2055-192.png', 'icons/setou-v2055-512.png', 'icons/setou-v2055.ico',
+  'icons/setou-v2056-180.png', 'icons/setou-v2056-192.png', 'icons/setou-v2056-512.png', 'icons/setou-v2056.ico',
   'fonts/heebo-hebrew.woff2', 'fonts/heebo-latin.woff2', 'fonts/barlow-condensed-800i.woff2'];
 
 self.addEventListener('install', e => {
