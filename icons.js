@@ -225,8 +225,11 @@
       eq: P => [floor, db(P.w1), db(P.w2)].map((x, i) => i ? [x[0] + ' over', x[1]] : x) },
     lateral: { A: V(FRONT, { e1: [25, 27], w1: [24, 35], e2: [39, 27], w2: [40, 35] }), B: V(FRONT, { e1: [19, 19], w1: [10, 19], e2: [45, 19], w2: [54, 19] }),
       eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
-    lateralmachine: { A: V(FRONT_SEAT, { e1: [25, 29], w1: [25, 37], e2: [39, 29], w2: [39, 37] }), B: V(FRONT_SEAT, { e1: [19, 21], w1: [11, 21], e2: [45, 21], w2: [53, 21] }),
-      eq: P => [frontSeat, pad(P.e1), pad(P.e2)] },
+    lateralmachine: { A: V(FRONT_SEAT, { e1: [25, 31], w1: [28, 35], e2: [39, 31], w2: [36, 35] }), B: V(FRONT_SEAT, { e1: [17, 21], w1: [18, 26], e2: [47, 21], w2: [46, 26] }),
+      // Pads press on the outside of the upper arm near the elbow; the levers swing from shoulder-height pivots.
+      eq: P => [frontSeat, ['e soft', 'M10 58 V14 M54 58 V14 M10 14 H22 M42 14 H54'],
+        ...[[P.e1, -1], [P.e2, 1]].map(([e, s]) => { const sx = 32 + s * 6, dx = e[0] - sx, dy = e[1] - 20, L = Math.hypot(dx, dy) || 1, ox = s * Math.abs(dy) / L * 3, oy = -Math.abs(dx) / L * 3;
+          return ['e over thick', `M${(sx + dx * .45 + ox).toFixed(1)} ${(20 + dy * .45 + oy).toFixed(1)} L${(e[0] + ox).toFixed(1)} ${(e[1] + oy).toFixed(1)}`]; })] },
     preacher: { A: V(SEAT, { n: [22, 30], h: [25, 23], e: [34, 39], w: [42, 47] }), B: V(SEAT, { n: [22, 30], h: [25, 23], e: [34, 39], w: [37, 29] }),
       eq: P => [seat, ['e thick', 'M24 37 L38 44'], ['e over', `M${P.w[0] - 4} ${P.w[1]} H${P.w[0] + 4}`]] },
     curl: { A: V(FRONT, { e1: [21, 28], w1: [18, 37], e2: [43, 28], w2: [46, 37] }), B: V(FRONT, { e1: [21, 28], w1: [18, 19], e2: [43, 28], w2: [46, 19] }),
