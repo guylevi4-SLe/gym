@@ -270,7 +270,7 @@ h2.topic { font-size: 16px; color: var(--accent); margin: 22px 0 10px; }
 .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 .tile .thumb { width: 100%; height: 118px; border-radius: 0; }
 .tile .body { padding: 10px 12px 12px; }
-.tile .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; }
+.tile .name { font-weight: 700; line-height: 1.25; margin-bottom: 6px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
 
 /* ================= Forms ================= */
 label.field, .field { display: block; margin-bottom: 16px; }
