@@ -603,6 +603,5 @@ body.dragging { overscroll-behavior: none; }
 .ex-bar { margin-bottom: 12px; gap: 8px; flex-wrap: nowrap; }
 .ex-bar .btn { flex: none; }
 .ex-filters { margin-bottom: 4px; }
-.chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 10px; padding-bottom: 2px; }
-.chips.scroll::-webkit-scrollbar { display: none; }
-.chips.scroll .chip { flex: none; }
+.ex-filters .chips { gap: 6px; margin-bottom: 10px !important; }
+.ex-filters .chip { padding: 7px 12px; font-size: 14px; min-height: 0; }

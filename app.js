@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.89';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.90';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -687,11 +687,11 @@ function screenExercises() {
       <button class="btn primary" data-act="ex-add">${ico('plus')}<span>הוסף</span></button>
     </div>
     ${showFilters ? `<div class="ex-filters">
-      ${S.gyms.length ? `<div class="chips scroll">
+      ${S.gyms.length ? `<div class="chips">
         <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">כל המקומות</button>
         ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
       </div>` : ''}
-      ${splitChips('ex-split', ui.exSplit).replace('class="chips"', 'class="chips scroll"')}
+      ${splitChips('ex-split', ui.exSplit)}
     </div>` : ''}
     ${list.length ? byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid">${l.map(ex => `
       <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
