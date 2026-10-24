@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.83';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.84';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -777,20 +777,33 @@ function screenExerciseEdit(id) {
     </div>`;
 }
 
+// The exercise that best represents a routine on its tile: the first real strength step, not the warm-up.
+const routineKeyEx = r => { const all = r.exerciseIds.map(exById).filter(Boolean); return all.find(ex => !['cardio', 'stretch'].includes(ex.type)) || all[0]; };
+
 function screenRoutines() {
   const rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
   return `${topbar('תוכניות האימון שלי')}
-    <p class="muted" style="margin-top:0">תוכנית היא רשימה קבועה של תרגילים, למשל "אימון א" ו"אימון ב". מתחילים אותה בלחיצה אחת.</p>
-    ${rs.map(r => `<div class="card">
-      <div class="row between"><span class="card-title" style="font-size:18px">${esc(r.name)}</span><button class="btn sm ghost" data-act="go" data-to="#/routine/${r.id}">${ico('edit')}<span>עריכה</span></button></div>
-      <div class="meta" style="margin:2px 0 4px"><span>${ico('list')}${r.exerciseIds.filter(exById).length} תרגילים</span></div>
-      ${routineSlots(r).map((sl, i) => `<div class="r-step"><b class="num muted">${i + 1}</b><div class="r-opts">${sl.map(ex => `<div class="r-opt">${thumb(ex)}<span>${esc(ex.name)}</span></div>`).join('<span class="slot-or">או</span>')}</div></div>`).join('') || '<p class="muted small">אין תרגילים</p>'}
-      <div style="height:12px"></div>
-      <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
-    </div>`).join('') || emptyState('plan', 'עוד אין תוכניות')}
+    <p class="muted" style="margin-top:0">לחץ על תוכנית כדי לראות אותה ולהתחיל. ${rs.length > 1 ? 'לחיצה ארוכה וגרירה משנה את הסדר.' : ''}</p>
+    ${rs.length ? `<div class="grid r-grid">${rs.map(r => { const k = routineKeyEx(r), n = r.exerciseIds.filter(exById).length; return `
+      <div class="tile tap r-tile" data-rid="${r.id}" data-act="go" data-to="#/routine-view/${r.id}">
+        ${k ? thumb(k) : `<div class="thumb">${ico('plan')}</div>`}
+        <div class="body"><div class="name">${esc(r.name)}</div>${k ? `<span class="muted small r-key">${esc(k.name)}</span>` : ''}<span class="muted small">${n} תרגילים</span></div>
+      </div>`; }).join('')}</div>` : emptyState('plan', 'עוד אין תוכניות')}
     <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>
     <div class="section-head"><h2>אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">${ico('plus')}<span>תכנן אימון</span></button></div>
     ${upcomingPlans().map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}`;
+}
+
+function screenRoutineView(id) {
+  const r = S.routines.find(r => r.id === id);
+  if (!r) { go('#/routines'); return ''; }
+  return `${topbar(esc(r.name), true)}
+    <div class="card">
+      <div class="row between"><span class="meta"><span>${ico('list')}${r.exerciseIds.filter(exById).length} תרגילים</span></span><button class="btn sm ghost" data-act="go" data-to="#/routine/${r.id}">${ico('edit')}<span>עריכה</span></button></div>
+      ${routineSlots(r).map((sl, i) => `<div class="r-step"><b class="num muted">${i + 1}</b><div class="r-opts">${sl.map(ex => `<div class="r-opt">${thumb(ex)}<span>${esc(ex.name)}</span></div>`).join('<span class="slot-or">או</span>')}</div></div>`).join('') || '<p class="muted small">אין תרגילים</p>'}
+      <div style="height:12px"></div>
+      <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
+    </div>`;
 }
 
 function screenRoutineEdit(id) {
@@ -1156,12 +1169,12 @@ function render() {
     home: screenHome, start: () => screenStart(r.id), workout: () => r.id ? screenWorkoutView(r.id) : screenWorkout(),
     exercises: screenExercises, exercise: () => screenExercise(r.id),
     'exercise-new': () => screenExerciseEdit(null), 'exercise-edit': () => screenExerciseEdit(r.id),
-    routines: screenRoutines, routine: () => screenRoutineEdit(r.id),
+    routines: screenRoutines, routine: () => screenRoutineEdit(r.id), 'routine-view': () => screenRoutineView(r.id),
     history: screenHistory, users: screenUsers,
   };
   app.innerHTML = (screens[r.name] || screenHome)();
 
-  const tab = { home: 'home', start: 'home', workout: r.id ? 'history' : 'home', exercises: 'exercises', exercise: 'exercises', 'exercise-new': 'exercises', 'exercise-edit': 'exercises', routines: 'routines', routine: 'routines', history: 'history' }[r.name];
+  const tab = { home: 'home', start: 'home', workout: r.id ? 'history' : 'home', exercises: 'exercises', exercise: 'exercises', 'exercise-new': 'exercises', 'exercise-edit': 'exercises', routines: 'routines', routine: 'routines', 'routine-view': 'routines', history: 'history' }[r.name];
   const tabs = [['home', 'home', 'בית'], ['exercises', 'dumbbell', 'מכשירים'], ['routines', 'plan', 'תוכניות'], ['history', 'history', 'היסטוריה']];
   $('#nav').innerHTML = tabs.map(([k, ic, l]) => `<a href="#/${k}" class="${tab === k ? 'on' : ''}"><span class="pill">${ico(ic)}</span><span>${l}</span></a>`).join('');
   $('#banner').innerHTML = myActive() && !(r.name === 'workout' && !r.id) ? `<div data-act="go-workout">${ico('dumbbell')}<span>אימון פעיל</span> · <span data-elapsed></span> · <span>לחץ לחזרה</span></div>` : '';
@@ -1722,6 +1735,53 @@ document.addEventListener('click', e => {
   const fn = actions[el.dataset.act] || window.cloudActions?.[el.dataset.act];
   if (fn) { e.preventDefault(); fn(el.dataset, el); }
 });
+// Long-press a routine tile, then drag it to a new place; the new order is saved when the finger lifts.
+const rDrag = { timer: 0, el: null, on: false, x: 0, y: 0, moved: false };
+function rDragEnd() {
+  clearTimeout(rDrag.timer);
+  const el = rDrag.el; rDrag.el = null;
+  if (!rDrag.on || !el) return;
+  rDrag.on = false;
+  el.classList.remove('lift'); el.style.transform = '';
+  document.body.classList.remove('dragging');
+  const order = [...document.querySelectorAll('.r-tile')].map(t => t.dataset.rid);
+  const mine = S.routines.filter(r => r.userId === S.settings.currentUserId);
+  const sorted = order.map(id => mine.find(r => r.id === id)).filter(Boolean);
+  let k = 0;
+  S.routines = S.routines.map(r => r.userId === S.settings.currentUserId ? sorted[k++] || r : r);
+  save();
+  // Swallow the click that follows the drop so it does not open the routine.
+  const stop = e => { e.stopPropagation(); e.preventDefault(); };
+  document.addEventListener('click', stop, { capture: true, once: true });
+  setTimeout(() => document.removeEventListener('click', stop, { capture: true }), 400);
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.r-tile');
+  if (!el) return;
+  rDrag.el = el; rDrag.x = e.clientX; rDrag.y = e.clientY; rDrag.on = false;
+  rDrag.timer = setTimeout(() => {
+    rDrag.on = true; el.classList.add('lift'); document.body.classList.add('dragging');
+    navigator.vibrate?.(15);
+  }, 450);
+});
+document.addEventListener('pointermove', e => {
+  if (!rDrag.el) return;
+  if (!rDrag.on) { if (Math.hypot(e.clientX - rDrag.x, e.clientY - rDrag.y) > 8) { clearTimeout(rDrag.timer); rDrag.el = null; } return; }
+  const el = rDrag.el;
+  el.style.transform = '';
+  const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.r-tile');
+  if (under && under !== el) {
+    const tiles = [...el.parentNode.children];
+    el.parentNode.insertBefore(el, tiles.indexOf(under) > tiles.indexOf(el) ? under.nextSibling : under);
+  }
+  const b = el.getBoundingClientRect();
+  el.style.transform = `translate(${e.clientX - (b.left + b.width / 2)}px, ${e.clientY - (b.top + b.height / 2)}px) scale(1.05)`;
+});
+document.addEventListener('pointerup', rDragEnd);
+document.addEventListener('pointercancel', rDragEnd);
+// While a tile is lifted the finger drags it, not the page.
+document.addEventListener('touchmove', e => { if (rDrag.on) e.preventDefault(); }, { passive: false });
+document.addEventListener('contextmenu', e => { if (e.target.closest('.r-tile')) e.preventDefault(); });
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-in]');
   if (el && inputs[el.dataset.in]) inputs[el.dataset.in](el);
