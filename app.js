@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.70';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.71';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -108,7 +108,7 @@ const CATALOG = [
     ['כפיפות בטן במכונה', 'machine', 'בטן'], ['כפיפות בטן', 'bodyweight', 'בטן'], ['הרמות רגליים בתלייה', 'bodyweight', 'בטן'],
   ]],
   ['משקולות', [
-    ['לחיצת חזה במוט', 'free', 'חזה'], ['לחיצת חזה במשקולות', 'free', 'חזה'], ['סקוואט במוט', 'free', 'רגליים'],
+    ['לחיצת חזה במוט', 'free', 'חזה'], ['לחיצת חזה במשקולות', 'free', 'חזה'], ['סקוואט במוט', 'free', 'רגליים'], ['סקוואט גביע עם משקולת', 'free', 'רגליים'],
     ['דדליפט', 'free', 'גב'], ['חתירה במוט', 'free', 'גב'], ['חתירה במשקולת יד', 'free', 'גב'],
     ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקה לצדדים', 'free', 'כתפיים'],
     ['כפיפת מרפקים במשקולות', 'free', 'יד קדמית'], ['פטישים', 'free', 'יד קדמית'], ['פשיטת מרפקים מעל הראש', 'free', 'יד אחורית'],
