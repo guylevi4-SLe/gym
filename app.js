@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.65';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.66';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -610,7 +610,8 @@ function stopMachine(e) {
   delete e.on;
   // warm-up and other timed exercises: the minutes come from the clock if they weren't typed
   const ex = exById(e.exerciseId), s = e.sets[0];
-  if (ex && timed(measure(ex)) && s && !s.done) { if (!s.typed) s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
+  // (also after a resume: the clock's total wins; an emptied field counts as not typed)
+  if (ex && timed(measure(ex)) && s) { if (!s.typed || s.minutes == null) s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
 }
 
 function entryCard(e, i) {
