@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.77';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.78';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -110,7 +110,7 @@ const CATALOG = [
   ['משקולות', [
     ['לחיצת חזה במוט', 'free', 'חזה'], ['לחיצת חזה במשקולות', 'free', 'חזה'], ['לחיצת חזה בשיפוע במשקולות', 'free', 'חזה'], ['סקוואט במוט', 'free', 'רגליים'], ['סקוואט גביע עם משקולת', 'free', 'רגליים'],
     ['דדליפט', 'free', 'גב'], ['חתירה במוט', 'free', 'גב'], ['חתירה במשקולת יד', 'free', 'גב'],
-    ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקה לצדדים', 'free', 'כתפיים'],
+    ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקת ידיים לצדדים עם משקולות', 'free', 'כתפיים'],
     ['כפיפת מרפקים במשקולות', 'free', 'יד קדמית'], ['פטישים', 'free', 'יד קדמית'], ['פשיטת מרפקים מעל הראש', 'free', 'יד אחורית'],
     ['מכרעים (לאנג׳ים)', 'free', 'רגליים'], ['גשר ישבן (היפ תראסט)', 'free', 'ישבן'],
   ]],
@@ -121,7 +121,7 @@ const CATALOG = [
     ['גליל שחרור (פומרולר)', 'stretch', 'כל הגוף'], ['מתיחת רגליים', 'stretch', 'רגליים'], ['מתיחת גב וכתפיים', 'stretch', 'גב'],
   ]],
 ];
-const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשיטת ירך לאחור במכונה (Glute Kickback)' };
+const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשיטת ירך לאחור במכונה (Glute Kickback)', 'הרחקה לצדדים': 'הרחקת ידיים לצדדים עם משקולות' };
 const CATALOG_TOPIC = Object.fromEntries(CATALOG.flatMap(([t, items]) => items.map(([n]) => [n, t])));
 const MUSCLE_TOPIC = { 'רגליים': 'רגליים', 'ישבן': 'רגליים', 'גב': 'גב', 'חזה': 'חזה', 'כתפיים': 'כתפיים', 'יד קדמית': 'ידיים', 'יד אחורית': 'ידיים', 'בטן': 'בטן / ליבה', 'אירובי': 'אירובי / חימום' };
 function topicOf(ex) {

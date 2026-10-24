@@ -55,7 +55,7 @@
     'חתירה במוט': T('lats midback', 'biceps rdelt lowerback'),
     'חתירה במשקולת יד': T('lats midback', 'biceps rdelt'),
     'לחיצת כתפיים במשקולות': T('fdelt sdelt', 'triceps traps'),
-    'הרחקה לצדדים': T('sdelt', 'traps'),
+    'הרחקת ידיים לצדדים עם משקולות': T('sdelt', 'traps'),
     'כפיפת מרפקים במשקולות': T('biceps', 'forearms'),
     'פטישים': T('biceps forearms'),
     'פשיטת מרפקים מעל הראש': T('triceps'),
@@ -76,7 +76,7 @@
     'יד קדמית': T('biceps', 'forearms'), 'יד אחורית': T('triceps'), 'רגליים': T('quads glutes hams', 'calves adductors'),
     'ישבן': T('glutes', 'hams abductors'), 'בטן': T('abs', 'obliques'), 'אירובי': T('quads hams glutes calves'),
   };
-  const targetsOf = ex => BUILTIN[ex.name] || BY_MUSCLE[ex.muscle] || null;
+  const targetsOf = ex => BUILTIN[ex.baseName] || BUILTIN[ex.name] || BY_MUSCLE[ex.muscle] || null;
 
   // Where each muscle id sits on the body map (body.js): [view, slug, path indexes (all when omitted)]
   const WHERE = {
