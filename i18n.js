@@ -38,6 +38,7 @@
     'איזה אימון היום?': 'Which workout today?', 'בחר את המכשיר הראשון. האימון והשעון מתחילים כשתבחר.': 'Pick your first machine. The workout and the clock start when you do.',
     'התחל בחימום, או ישר במכשיר הראשון. האימון והשעון מתחילים כשתבחר.': 'Start with a warm-up, or go straight to your first machine. The workout and the clock start when you pick.', 'חימום': 'Warm-up',
     'סיים מכשיר': 'Done with machine', 'התחל מכשיר': 'Start machine', 'על המכשיר · המשך': 'on this machine · resume',
+    'לפי השעון': 'from the clock',
     'המכשיר הבא': 'Next machine', 'הוסף תרגיל אחר': 'Add another exercise', 'מתוכנן להיום': 'Planned for today',
     'אין כאן מכשירים בחדר הכושר הזה': 'No machines for this at this gym', 'כל המכשירים שלי': 'All my machines',
     'חזה · כתפיים · יד אחורית': 'Chest · shoulders · triceps', 'גב · יד קדמית': 'Back · biceps', 'רגליים · ישבן': 'Legs · glutes',

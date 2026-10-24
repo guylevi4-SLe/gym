@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.63';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.64';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -597,7 +597,9 @@ function machineClock(e, i) {
 // Starting a machine stops whichever one was running
 function startMachine(a, i) {
   a.entries.forEach((e, j) => { if (j !== i) stopMachine(e); });
-  a.entries[i].on = Date.now();
+  const e = a.entries[i], s = e.sets[0], ex = exById(e.exerciseId);
+  if (ex && timed(measure(ex)) && s && !s.done && !s.typed) s.minutes = null;  // the clock fills it, not last time's number
+  e.on = Date.now();
 }
 function stopMachine(e) {
   if (!e.on) return;
@@ -605,7 +607,7 @@ function stopMachine(e) {
   delete e.on;
   // warm-up and other timed exercises: the minutes come from the clock if they weren't typed
   const ex = exById(e.exerciseId), s = e.sets[0];
-  if (ex && timed(measure(ex)) && s && !s.done) { s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
+  if (ex && timed(measure(ex)) && s && !s.done) { if (!s.typed) s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
 }
 
 function entryCard(e, i) {
@@ -630,7 +632,7 @@ function entryCard(e, i) {
       <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">${ico('more')}</button>
     </div>
     ${machineClock(e, i)}
-    <table class="sets">
+    ${timed(kind) ? timedFields(e, i, fields, cols) : `<table class="sets">
       <tr><th>סט</th>${last ? '<th>קודם</th>' : ''}${cols.map(c => `<th>${c}</th>`).join('')}<th></th><th></th></tr>
       ${e.sets.map((s, j) => `<tr class="${s.done ? 'done' : ''}">
         <td class="num">${j + 1}</td>
@@ -640,8 +642,14 @@ function entryCard(e, i) {
         <td style="width:28px"><button class="del-set" data-act="del-set" data-i="${i}" data-j="${j}" aria-label="מחק סט">${ico('x')}</button></td>
       </tr>`).join('')}
     </table>
-    <button class="btn sm block" data-act="add-set" data-i="${i}" style="margin-top:4px">${ico('plus')}<span>סט</span></button>
+    <button class="btn sm block" data-act="add-set" data-i="${i}" style="margin-top:4px">${ico('plus')}<span>סט</span></button>`}
   </div>`;
+}
+// Treadmill, bike, stretching: no sets, just minutes (filled from the machine's clock) and distance
+function timedFields(e, i, fields, cols) {
+  const s = e.sets[0] || {};
+  return `<div class="row timed-fields">${fields.map((f, k) => `<label class="grow"><span class="muted small">${cols[k]}</span>
+    <input class="input" inputmode="decimal" data-in="set" data-i="${i}" data-j="0" data-f="${f}" value="${fmtNum(s[f])}" placeholder="${f === 'minutes' ? 'לפי השעון' : '0'}"></label>`).join('')}</div>`;
 }
 
 function screenExercises() {
@@ -1221,7 +1229,8 @@ function beginWorkout(f, exId) {
     id: uid(), userId: uidv, start: Date.now(), focus: f,
     routineId: r?.id || null, routineName: focusName(f) || null, gymId: curGymId(), entries: [],
   };
-  S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId), on: Date.now() }];
+  S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId) }];
+  startMachine(S.active[uidv], 0);
   save();
   go('#/workout');
 }
@@ -1229,9 +1238,10 @@ async function finishWorkout() {
   const a = myActive();
   a.entries.forEach(stopMachine);
   // in a workout logged afterwards, any set with numbers counts, no need to tick each one
-  const filled = s => s.done || (a.past && Object.entries(s).some(([k, v]) => k !== 'done' && v != null));
+  // timed exercises have no ✓, so their minutes / distance count as done too
+  const filled = (s, t) => s.done || ((a.past || t) && Object.entries(s).some(([k, v]) => k !== 'done' && k !== 'typed' && v != null));
   const entries = a.entries
-    .map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(filled).map(({ done, ...s }) => s), ...(e.ms ? { ms: e.ms } : {}) }))
+    .map(e => { const t = timed(measure(exById(e.exerciseId))); return { exerciseId: e.exerciseId, sets: e.sets.filter(s => filled(s, t)).map(({ done, typed, ...s }) => s), ...(e.ms ? { ms: e.ms } : {}) }; })
     .filter(e => e.sets.length);
   if (!entries.length) {
     if (!await ask(a.past ? 'לא רשמת אף סט. לצאת בלי לשמור?' : 'לא סימנת אף סט כמבוצע (✓). לסיים בלי לשמור?')) return;
@@ -1605,6 +1615,7 @@ const inputs = {
     el.classList.toggle('long', el.value.length > 3);
     const s = myActive().entries[+el.dataset.i].sets[+el.dataset.j];
     s[el.dataset.f] = num(el.value);
+    if (el.dataset.f === 'minutes') s.typed = true;  // typed minutes win over the machine's clock
     save();
   },
   'ex-filter': el => {
