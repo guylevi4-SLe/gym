@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.68';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.69';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -651,11 +651,15 @@ function entryCard(e, i) {
   </div>`;
 }
 // Treadmill, bike, stretching: no sets, just minutes (filled from the machine's clock) and distance
+// The minutes follow the machine's clock live; they can be corrected only once the machine is done
 function timedFields(e, i, fields, cols) {
-  const s = e.sets[0] || {};
-  return `<div class="row timed-fields">${fields.map((f, k) => `<label class="grow"><span class="muted small">${cols[k]}</span>
-    <input class="input" inputmode="decimal" data-in="set" data-i="${i}" data-j="0" data-f="${f}" value="${fmtNum(s[f])}" placeholder="${f === 'minutes' ? 'לפי השעון' : '0'}"></label>`).join('')}</div>`;
+  const s = e.sets[0] || {}, live = !myActive()?.past && (e.on || !e.ms);
+  return `<div class="row timed-fields">${fields.map((f, k) => {
+    const clockMin = f === 'minutes' && live;
+    return `<label class="grow"><span class="muted small">${cols[k]}</span>
+    <input class="input ${clockMin ? 'by-clock' : ''}" inputmode="decimal" data-in="set" data-i="${i}" data-j="0" data-f="${f}" ${clockMin ? `readonly data-mmin="${i}" value="${liveMin(e)}"` : `value="${fmtNum(s[f])}"`} placeholder="0"></label>`; }).join('')}</div>`;
 }
+const liveMin = e => Math.round(machineMs(e) / 60000);
 
 function screenExercises() {
   const f = ui.exFilter.trim();
@@ -1150,6 +1154,7 @@ function tick() {
   const a = myActive();
   document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = !a ? '' : a.past ? fmtDate(a.start) : a.waiting ? clock(0) : clock(Date.now() - a.start); });
   document.querySelectorAll('[data-mclock]').forEach(el => { const e = a?.entries[+el.dataset.mclock]; if (e) el.textContent = clock(machineMs(e)); });
+  document.querySelectorAll('[data-mmin]').forEach(el => { const e = a?.entries[+el.dataset.mmin]; if (e) el.value = liveMin(e); });
   renderRest();
 }
 setInterval(tick, 1000);
@@ -1619,9 +1624,9 @@ const inputs = {
     el.classList.toggle('long', el.value.length > 3);
     const s = myActive().entries[+el.dataset.i].sets[+el.dataset.j];
     s[el.dataset.f] = num(el.value);
-    // one time per machine: typed minutes become the machine's clock (it keeps running from there if it was on)
+    // correcting the minutes of a finished machine also corrects its time
     const a = myActive(), e = a.entries[+el.dataset.i];
-    if (el.dataset.f === 'minutes' && !a.past && s.minutes != null) { e.ms = s.minutes * 60000; if (e.on) e.on = Date.now(); tick(); }
+    if (el.dataset.f === 'minutes' && !a.past && !e.on && s.minutes != null) e.ms = s.minutes * 60000;
     save();
   },
   'ex-filter': el => {

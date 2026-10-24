@@ -576,3 +576,4 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .wk-head .btn, .m-clock span { white-space: nowrap; }
 .wk-head .btn { flex: none; }
 .m-clock { gap: 10px; padding: 0 14px; }
+.timed-fields .input.by-clock { background: var(--surface-2); color: var(--accent); pointer-events: none; }
