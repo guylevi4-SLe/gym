@@ -77,7 +77,7 @@
     'עמדת ביעד השבועי! כל אימון נוסף הוא בונוס 🔥': 'Weekly goal reached! Every extra workout is a bonus 🔥',
     'שבוע חדש, הזדמנות חדשה. בוא נפתח אותו!': "New week, new chance. Let's kick it off!",
     'השבוע': 'This week', 'אימונים': 'workouts', 'דקות': 'minutes', 'שבועות ברצף': 'week streak',
-    'המשך אימון': 'Resume workout', 'התחל אימון': 'Start workout', 'התחל מתוכנית': 'Start a routine', 'התוכניות שלי': 'My routines', 'בחירה ידנית מהמכשירים שלי': 'Pick machines myself',
+    'המשך אימון': 'Resume workout', 'התחל אימון': 'Start workout', 'התחל מתוכנית': 'Start a routine', 'התוכניות שלי': 'My routines', 'בחירה ידנית מהמכשירים שלי': 'Pick machines myself', 'בחירה ידנית': 'Pick machines', 'אימון חופשי': 'Free workout',
     'אימונים מתוכננים': 'Planned workouts', 'תכנן אימון': 'Plan', 'אימונים אחרונים': 'Recent workouts', 'הכל': 'All',
     'עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.': 'Nothing planned yet. Tap "Plan" to pick a day and time.',
     'עוד אין אימונים. האימון הראשון מחכה לך!': 'No workouts yet. Your first one is waiting!',
