@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.84';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.85';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -350,6 +350,7 @@ async function removeExercise(id) {
 
 // Line icons (24×24, stroke = currentColor). Class "flip" mirrors direction-dependent ones in English.
 const ICONS = {
+  star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>',
   home: '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v10.5a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9"/>',
   dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2 10v4M22 10v4M8 12h8"/>',
   plan: '<rect x="4.5" y="4" width="15" height="17" rx="2.5"/><path d="M9 4V2.8h6V4"/><path d="m8.5 10.5 1.5 1.5 2.5-2.5M14.5 11h1.5M8.5 16h7"/>',
@@ -778,7 +779,7 @@ function screenExerciseEdit(id) {
 }
 
 // The exercise that best represents a routine on its tile: the first real strength step, not the warm-up.
-const routineKeyEx = r => { const all = r.exerciseIds.map(exById).filter(Boolean); return all.find(ex => !['cardio', 'stretch'].includes(ex.type)) || all[0]; };
+const routineKeyEx = r => { const all = r.exerciseIds.map(exById).filter(Boolean); return all.find(ex => ex.id === r.coverId) || all.find(ex => !['cardio', 'stretch'].includes(ex.type)) || all[0]; };
 
 function screenRoutines() {
   const rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
@@ -809,19 +810,22 @@ function screenRoutineView(id) {
 function screenRoutineEdit(id) {
   const r = id === 'new' ? null : S.routines.find(r => r.id === id);
   if (id !== 'new' && !r) { go('#/routines'); return ''; }
-  const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds], alts: JSON.parse(JSON.stringify(r.alts || {})) } : { name: '', exerciseIds: [], alts: {} });
+  const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds], alts: JSON.parse(JSON.stringify(r.alts || {})), coverId: r.coverId } : { name: '', exerciseIds: [], alts: {} });
   draft.alts = draft.alts || {};
   const used = new Set([...draft.exerciseIds, ...Object.values(draft.alts).flat()]);
   const altFor = ui.rAltFor != null ? exById(draft.exerciseIds[ui.rAltFor]) : null;
   const sorted = [...S.exercises].sort(byName);
+  const cover = routineKeyEx(draft);
   return `${topbar(r ? 'עריכת תוכנית' : 'תוכנית חדשה', true)}
     <label class="field"><span>שם התוכנית</span>
       <input class="input" data-in="draft" data-f="name" value="${esc(draft.name)}" placeholder="למשל: אימון א - פלג גוף עליון" autocomplete="off">
     </label>
     <h2>תרגילים בתוכנית (${draft.exerciseIds.length})</h2>
+    ${draft.exerciseIds.length ? `<p class="muted small" style="margin-top:-6px">${ico('star')} מסמן את התרגיל שמופיע בריבוע של התוכנית.</p>` : ''}
     ${draft.exerciseIds.map((xid, i) => { const ex = exById(xid); return ex ? `<div class="card stack">
       <div class="list-item">
         <b class="num muted" style="font-size:20px">${i + 1}</b><div class="grow card-title">${esc(ex.name)}</div>
+        <button class="btn sm ${xid === cover?.id ? 'primary' : ''}" data-act="r-cover" data-id="${xid}" aria-label="התמונה של התוכנית">${ico('star')}</button>
         <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">${ico('up')}</button>
         <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''} aria-label="למטה">${ico('down')}</button>
         <button class="btn sm danger" data-act="r-remove" data-i="${i}" aria-label="הסר">${ico('x')}</button>
@@ -1615,6 +1619,7 @@ const actions = {
     if (base) { (dr.alts[base] = dr.alts[base] || []).push(d.id); ui.rAltFor = null; } else dr.exerciseIds.push(d.id);
     render();
   },
+  'r-cover': d => { ui.draft.coverId = d.id; render(); },
   'r-remove': d => { const id = ui.draft.exerciseIds.splice(+d.i, 1)[0]; delete ui.draft.alts?.[id]; ui.rAltFor = null; render(); },
   'r-alt-pick': d => {
     ui.rAltFor = ui.rAltFor === +d.i ? null : +d.i; render();
@@ -1633,6 +1638,7 @@ const actions = {
     if (!r) { r = { id: uid(), userId: S.settings.currentUserId }; S.routines.push(r); }
     r.name = dr.name.trim(); r.exerciseIds = [...dr.exerciseIds];
     r.alts = Object.fromEntries(Object.entries(dr.alts || {}).filter(([k, v]) => dr.exerciseIds.includes(k) && v.length));
+    if (dr.exerciseIds.includes(dr.coverId)) r.coverId = dr.coverId; else delete r.coverId;
     ui.draft = null; save(); go('#/routines'); toast('התוכנית נשמרה ✓');
   },
   'delete-routine': async d => {
