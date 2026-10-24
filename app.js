@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.62';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.63';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -1511,7 +1511,9 @@ const actions = {
   'toggle-set': d => {
     unlockAudio();
     const e = myActive().entries[+d.i], s = e.sets[+d.j];
-    s.done = !s.done;
+    // ✓ on a running treadmill / warm-up: the minutes are the real time on the clock, and the clock stops
+    if (!s.done && e.on && timed(measure(exById(e.exerciseId)))) { stopMachine(e); s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
+    else s.done = !s.done;
     save(); render();
     if (s.done && !myActive().past && !timed(measure(exById(e.exerciseId)))) startRest();
   },
