@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.92';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.93';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -459,7 +459,25 @@ function screenHome() {
     </div>
     ${a ? `<button class="btn primary huge cta" data-act="go-workout">${ico('play')}<span>המשך אימון</span><small data-elapsed></small></button>`
         : `<button class="btn primary huge cta" data-act="go" data-to="#/start">${ico('play')}<span>התחל אימון</span></button>`}
+    ${weekStrip()}
     ${!a && today.length ? `<div class="section-head"><h2>מתוכנן להיום</h2></div>${today.map(planRow).join('')}` : ''}`;
+}
+
+// This week, Sunday to Saturday: ✓ on days trained, the planned routine on days ahead. An empty day opens a new plan for it
+function weekStrip() {
+  const next = !!ui.nextWeek, now = startOfDay(new Date()), uidNow = S.settings.currentUserId;
+  const w0 = new Date(startOfWeek()); if (next) w0.setDate(w0.getDate() + 7); const from = w0.getTime();
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return startOfDay(d); });
+  const cells = days.map(t => {
+    const end = t + DAY, done = myWorkouts().some(w => w.start >= t && w.start < end);
+    const plans = S.plans.filter(p => p.userId === uidNow && !p.started && p.at >= t && p.at < end && p.at > Date.now() - 3 * 36e5).sort((a, b) => a.at - b.at);
+    const r = plans[0] && S.routines.find(r => r.id === plans[0].routineId);
+    const label = done ? ico('check') : plans.length ? `<small>${esc(r ? r.name : 'אימון')}</small>` : t >= now ? `<i>+</i>` : '';
+    const act = plans.length ? `data-act="plan-edit" data-id="${plans[0].id}"` : done ? `data-act="go" data-to="#/history"` : t >= now ? `data-act="plan-new" data-day="${t}"` : '';
+    return `<button class="wday ${t === now ? 'today' : ''} ${done ? 'done' : ''} ${plans.length ? 'planned' : ''}" ${act}>
+      <span>${new Date(t).toLocaleDateString(loc(), { weekday: 'narrow' })}</span><b class="num">${new Date(t).getDate()}</b>${label}</button>`;
+  }).join('');
+  return `<div class="section-head"><h2>${next ? 'השבוע הבא' : 'השבוע שלי'}</h2><button class="btn sm" data-act="week-flip">${next ? 'השבוע הזה' : 'השבוע הבא'}</button></div><div class="week-strip">${cells}</div>`;
 }
 
 /* ---- Starting a workout: pick what it's about, then the first machine (the clock starts there) ---- */
@@ -1369,8 +1387,11 @@ const actions = {
   },
 
   'pick-gym': () => { ui.modal = { type: 'gym' }; renderModal(); },
-  'plan-new': () => {
-    const t = new Date(); t.setDate(t.getDate() + 1); t.setHours(18, 0, 0, 0);
+  'week-flip': () => { ui.nextWeek = !ui.nextWeek; render(); },
+  'plan-new': d => {
+    // from the week strip: that day at 18:00, or the next round hour if today is already past it
+    const t = d.day ? new Date(+d.day) : new Date(); if (!d.day) t.setDate(t.getDate() + 1); t.setHours(18, 0, 0, 0);
+    if (t < Date.now()) { t.setTime(Date.now()); t.setHours(t.getHours() + 1, 0, 0, 0); }
     ui.planDraft = { id: uid(), at: t.getTime(), gymId: curGymId(), routineId: null, notes: '' };
     ui.modal = { type: 'plan' }; renderModal();
   },
