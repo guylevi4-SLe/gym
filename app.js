@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.71';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.72';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -125,7 +125,7 @@ const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשי
 const CATALOG_TOPIC = Object.fromEntries(CATALOG.flatMap(([t, items]) => items.map(([n]) => [n, t])));
 const MUSCLE_TOPIC = { 'רגליים': 'רגליים', 'ישבן': 'רגליים', 'גב': 'גב', 'חזה': 'חזה', 'כתפיים': 'כתפיים', 'יד קדמית': 'ידיים', 'יד אחורית': 'ידיים', 'בטן': 'בטן / ליבה', 'אירובי': 'אירובי / חימום' };
 function topicOf(ex) {
-  if (CATALOG_TOPIC[ex.name]) return CATALOG_TOPIC[ex.name];
+  if (CATALOG_TOPIC[ex.baseName || ex.name]) return CATALOG_TOPIC[ex.baseName || ex.name];
   if (ex.type === 'cardio') return 'אירובי / חימום';
   if (ex.type === 'stretch') return 'שחרור / מתיחות';
   if (ex.type === 'free') return 'משקולות';
@@ -134,7 +134,7 @@ function topicOf(ex) {
 // Workout-day tags (Push / Pull / Legs / Core). Set automatically from the muscle; ex.split overrides ('none' = no tag).
 const SPLITS = { push: 'Push', pull: 'Pull', legs: 'Legs', core: 'Core' };
 const MUSCLE_SPLIT = { 'חזה': 'push', 'כתפיים': 'push', 'יד אחורית': 'push', 'גב': 'pull', 'יד קדמית': 'pull', 'רגליים': 'legs', 'ישבן': 'legs', 'בטן': 'core' };
-const autoSplit = ex => ex.type === 'cardio' || ex.type === 'stretch' ? null : /פרפר הפוך|reverse fly|rear delt/i.test(ex.name) ? 'pull' : MUSCLE_SPLIT[ex.muscle] || null;
+const autoSplit = ex => ex.type === 'cardio' || ex.type === 'stretch' ? null : /פרפר הפוך|reverse fly|rear delt/i.test(ex.baseName || ex.name) ? 'pull' : MUSCLE_SPLIT[ex.muscle] || null;
 const splitOf = ex => ex.split ? (ex.split === 'none' ? null : ex.split) : autoSplit(ex);
 const splitChips = (act, cur, extra = '') => `<div class="chips" style="margin-bottom:12px">
   <button class="chip ${!cur ? 'on' : ''}" data-act="${act}" data-v="" ${extra}>כל הימים</button>
@@ -244,7 +244,7 @@ function clock(ms) {
 }
 const timed = kind => kind === 'cardio' || kind === 'time';
 // The treadmill logs time, speed and incline instead of distance
-const isTreadmill = ex => ex?.type === 'cardio' && /הליכון|treadmill/i.test(ex.name);
+const isTreadmill = ex => ex?.type === 'cardio' && /הליכון|treadmill/i.test(ex.baseName || ex.name);
 function setText(set, kind) {
   if (timed(kind)) return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`,
     set.speed != null && `${fmtNum(set.speed)} קמ״ש`, set.incline != null && `שיפוע ${fmtNum(set.incline)}%`].filter(Boolean).join(' · ');
@@ -973,7 +973,7 @@ function renderModal() {
       ${splitChips('catalog-split', m.split)}
       ${CATALOG.map(([title, all]) => [title, all.filter(([name, type, muscle]) => !m.split || autoSplit({ name, type, muscle }) === m.split)]).filter(([, items]) => items.length).map(([title, items]) => `<h2 class="topic">${title}</h2>
         <div class="chips">${items.map(([name, type]) => {
-          const ex = S.exercises.find(e => e.name === name);
+          const ex = S.exercises.find(e => e.name === name || e.baseName === name);
           if (ex && !(catalogGyms(m, name, type).some(id => !(ex.gymIds || []).includes(id)) && (ex.gymIds || []).length))
             return `<button class="chip" style="opacity:.55" data-act="catalog-remove" data-id="${ex.id}">${ico('check')}<span>${esc(name)}</span>${ico('x')}</button>`;
           return `<button class="chip ${m.picked.includes(name) ? 'on' : ''}" data-act="catalog-toggle" data-v="${esc(name)}">${esc(name)}</button>`;
@@ -1444,7 +1444,7 @@ const actions = {
     for (const name of m.picked) {
       const [, type, muscle] = all.find(x => x[0] === name);
       const gymIds = catalogGyms(m, name, type);
-      const old = S.exercises.find(e => e.name === name);
+      const old = S.exercises.find(e => e.name === name || e.baseName === name);
       // already in the list at another gym: just mark it at the chosen gyms too
       if (old) { old.gymIds = [...new Set([...(old.gymIds || []), ...gymIds])]; added.push(old); continue; }
       const ex = { id: uid(), name, type, muscle, gymIds, notes: {}, created: Date.now() };
@@ -1567,6 +1567,8 @@ const actions = {
     if (!dr.name.trim()) { toast('צריך לתת שם'); return; }
     let ex = d.id ? exById(d.id) : null;
     if (!ex) { ex = { id: uid(), notes: {}, created: Date.now() }; S.exercises.push(ex); }
+    // a renamed ready-made exercise keeps its drawing, topic and place in the ready-made list
+    if (ex.name && ex.name !== dr.name.trim() && !ex.baseName && CATALOG_TOPIC[ex.name]) ex.baseName = ex.name;
     Object.assign(ex, { name: dr.name.trim(), type: dr.type, muscle: dr.muscle, gymIds: [...(dr.gymIds || [])] });
     if (dr.photo) { photos[ex.id] = dr.photo; await photoSet(ex.id, dr.photo); }
     else if (photos[ex.id]) { delete photos[ex.id]; await photoDel(ex.id); }
