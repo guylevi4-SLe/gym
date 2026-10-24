@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.90';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.91';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -466,17 +466,15 @@ function screenHome() {
 function screenStart(f) {
   if (myActive()) { go('#/workout'); return ''; }
   if (f) return screenStartList(f);
-  const gym = curGymId();
   const routines = S.routines.filter(r => r.userId === S.settings.currentUserId && r.exerciseIds.some(exById));
-  const card = (k, label, sub, n) => `<button class="focus tap" data-act="go" data-to="#/start/${k}"><b>${esc(label)}</b>${sub ? `<span>${sub}</span>` : ''}<small class="num">${n}</small></button>`;
-  const groups = [['push', 'pull', 'legs'], ['core', 'cardio', 'all']];  // back / chest / … are already inside Push and Pull
+  // No routines yet: the manual pick is the only way in
+  if (!routines.length && S.exercises.length) { location.replace('#/start/all'); return ''; }
   return `${topbar('איזה אימון היום?', true)}
     ${gymChip()}
-    ${!S.exercises.length ? emptyState('dumbbell', 'עוד אין מכשירים. הוסף אותם בלשונית "מכשירים".') : ''}
-    ${groups.map(ks => { const cards = ks.map(k => [k, focusList(k, gym).length]).filter(([, n]) => n);
-      return cards.length ? `<div class="focus-grid">${cards.map(([k, n]) => card(k, FOCUSES[k].label, FOCUSES[k].sub, n)).join('')}</div>` : ''; }).join('')}
-    ${routines.length ? `<div class="section-head"><h2>התוכניות שלי</h2></div>
-      <div class="focus-grid">${routines.map(r => card('r-' + r.id, r.name, '', r.exerciseIds.filter(exById).length)).join('')}</div>` : ''}`;
+    ${!S.exercises.length ? emptyState('dumbbell', 'עוד אין מכשירים. הוסף אותם בלשונית "מכשירים".') : `
+    <div class="section-head"><h2>התוכניות שלי</h2></div>
+    <div class="grid r-grid">${routines.map(r => routineTile(r, '#/start/r-' + r.id, 'r-pick')).join('')}</div>
+    <button class="btn big block" style="margin-top:18px" data-act="go" data-to="#/start/all">${ico('dumbbell')}<span>בחירה ידנית מהמכשירים שלי</span></button>`}`;
 }
 function screenStartList(f) {
   const list = focusList(f);
@@ -786,15 +784,19 @@ function screenExerciseEdit(id) {
 // The exercise that best represents a routine on its tile: the first real strength step, not the warm-up.
 const routineKeyEx = r => { const all = r.exerciseIds.map(exById).filter(Boolean); return all.find(ex => ex.id === r.coverId) || all.find(ex => !['cardio', 'stretch'].includes(ex.type)) || all[0]; };
 
+// A routine as a tile: its name and its main exercise. 'r-tile' tiles can be dragged to reorder
+function routineTile(r, to, cls) {
+  const k = routineKeyEx(r), n = r.exerciseIds.filter(exById).length;
+  return `<div class="tile tap ${cls}" data-rid="${r.id}" data-act="go" data-to="${to}">
+    ${k ? thumb(k) : `<div class="thumb">${ico('plan')}</div>`}
+    <div class="body"><div class="name">${esc(r.name)}</div>${k ? `<span class="muted small r-key">${esc(k.name)}</span>` : ''}<span class="muted small">${n} תרגילים</span></div>
+  </div>`;
+}
 function screenRoutines() {
   const rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
   return `${topbar('תוכניות האימון שלי')}
     <p class="muted" style="margin-top:0">לחץ על תוכנית כדי לראות אותה ולהתחיל. ${rs.length > 1 ? 'לחיצה ארוכה וגרירה משנה את הסדר.' : ''}</p>
-    ${rs.length ? `<div class="grid r-grid">${rs.map(r => { const k = routineKeyEx(r), n = r.exerciseIds.filter(exById).length; return `
-      <div class="tile tap r-tile" data-rid="${r.id}" data-act="go" data-to="#/routine-view/${r.id}">
-        ${k ? thumb(k) : `<div class="thumb">${ico('plan')}</div>`}
-        <div class="body"><div class="name">${esc(r.name)}</div>${k ? `<span class="muted small r-key">${esc(k.name)}</span>` : ''}<span class="muted small">${n} תרגילים</span></div>
-      </div>`; }).join('')}</div>` : emptyState('plan', 'עוד אין תוכניות')}
+    ${rs.length ? `<div class="grid r-grid">${rs.map(r => routineTile(r, '#/routine-view/' + r.id, 'r-tile')).join('')}</div>` : emptyState('plan', 'עוד אין תוכניות')}
     <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>
     <div class="section-head"><h2>אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">${ico('plus')}<span>תכנן אימון</span></button></div>
     ${upcomingPlans().map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}`;
