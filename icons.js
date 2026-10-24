@@ -377,7 +377,7 @@
   };
 
   window.exerciseIcon = ex => {
-    const name = ex?.name || '';
+    const name = ex?.baseName || ex?.name || '';  // a renamed ready-made exercise keeps its drawing
     const hit = RULES.find(([re]) => re.test(name));
     const k = hit ? hit[1] : (BY_TYPE[ex?.type] || 'stack');
     return SPRITES[k] ? sprite(k) : ICONS[k]();
