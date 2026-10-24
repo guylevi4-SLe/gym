@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.66';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.67';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -481,7 +481,7 @@ function screenStartList(f) {
   const warm = list.some(e => e.type === 'cardio') ? [] : S.exercises.filter(e => e.type === 'cardio' && atGym(e, curGymId()))
     .sort((a, b) => (lastPerformance(b.id)?.date || 0) - (lastPerformance(a.id)?.date || 0) || byName(a, b));
   return `${topbar(focusName(f), true)}
-    <p class="lead">${warm.length ? 'התחל בחימום, או ישר במכשיר הראשון. האימון והשעון מתחילים כשתבחר.' : 'בחר את המכשיר הראשון. האימון והשעון מתחילים כשתבחר.'}</p>
+    <p class="lead">${warm.length ? 'התחל בחימום, או ישר במכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".' : 'בחר את המכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".'}</p>
     ${warm.length && list.length ? `<h2 class="topic">חימום</h2><div class="warm-grid">${warm.map(ex => `<button class="warm tap" data-act="begin" data-f="${f}" data-id="${ex.id}">${thumb(ex)}<b>${esc(ex.name)}</b></button>`).join('')}</div>${focusRoutine(f) ? `<h2 class="topic" style="margin-top:28px">${esc(focusName(f))}</h2>` : ''}` : ''}
     ${list.length ? (focusRoutine(f) ? rows(list) : byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${rows(l)}`).join(''))
       : emptyState('dumbbell', 'אין כאן מכשירים בחדר הכושר הזה')}`;
@@ -603,6 +603,7 @@ function startMachine(a, i) {
   const e = a.entries[i], s = e.sets[0], ex = exById(e.exerciseId);
   if (ex && timed(measure(ex)) && s && !s.done && !s.typed) s.minutes = null;  // the clock fills it, not last time's number
   e.on = Date.now();
+  if (a.waiting) { a.start = e.on; delete a.waiting; }  // the workout's own clock starts with the first machine
 }
 function stopMachine(e) {
   if (!e.on) return;
@@ -1148,7 +1149,7 @@ function render() {
 
 function tick() {
   const a = myActive();
-  document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = !a ? '' : a.past ? fmtDate(a.start) : clock(Date.now() - a.start); });
+  document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = !a ? '' : a.past ? fmtDate(a.start) : a.waiting ? clock(0) : clock(Date.now() - a.start); });
   document.querySelectorAll('[data-mclock]').forEach(el => { const e = a?.entries[+el.dataset.mclock]; if (e) el.textContent = clock(machineMs(e)); });
   renderRest();
 }
@@ -1227,7 +1228,7 @@ function startWorkout(routine, day, past) {
   if (!ids.length) { ui.modal = { type: 'pick', split: day && day !== 'full' ? day : '' }; renderModal(); }
   else if (day) toast(`הוכנו ${ids.length} תרגילים. אפשר להסיר או להוסיף.`);
 }
-// Starts the workout on its first machine (the clock starts now); the rest of the focus waits under "המכשיר הבא"
+// Opens the workout on its first machine; the clocks start when "התחל מכשיר" is tapped. The rest waits under "המכשיר הבא"
 function beginWorkout(f, exId) {
   const uidv = S.settings.currentUserId, r = focusRoutine(f);
   S.active[uidv] = {
@@ -1235,7 +1236,7 @@ function beginWorkout(f, exId) {
     routineId: r?.id || null, routineName: focusName(f) || null, gymId: curGymId(), entries: [],
   };
   S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId) }];
-  startMachine(S.active[uidv], 0);
+  S.active[uidv].waiting = true;
   save();
   go('#/workout');
 }
@@ -1497,7 +1498,6 @@ const actions = {
   'add-entry': d => {
     const a = myActive();
     a.entries.push({ exerciseId: d.id, sets: newSetsFor(d.id) });
-    if (!a.past) startMachine(a, a.entries.length - 1);
     ui.modal = null; save(); render();
     const el = $(`#entry-${a.entries.length - 1}`);
     requestAnimationFrame(() => el?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
