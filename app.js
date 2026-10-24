@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.59';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.60';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -155,6 +155,31 @@ function dayExercises(day, gym = curGymId()) {
   return at.filter(e => splitOf(e) === day)
     .sort((a, b) => (!lastDone(a.id) - !lastDone(b.id)) || order(a) - order(b))
     .slice(0, 6).sort((a, b) => order(a) - order(b));
+}
+
+// What a workout is built around, picked on the "which workout?" screen: a day, an area, a routine (r-<id>) or everything
+const FOCUSES = {
+  push: { label: 'Push', sub: 'חזה · כתפיים · יד אחורית', has: e => splitOf(e) === 'push' },
+  pull: { label: 'Pull', sub: 'גב · יד קדמית', has: e => splitOf(e) === 'pull' },
+  legs: { label: 'Legs', sub: 'רגליים · ישבן', has: e => splitOf(e) === 'legs' },
+  back: { label: 'גב', has: e => topicOf(e) === 'גב' || MUSCLE_TOPIC[e.muscle] === 'גב' },
+  chest: { label: 'חזה', has: e => topicOf(e) === 'חזה' || MUSCLE_TOPIC[e.muscle] === 'חזה' },
+  shoulders: { label: 'כתפיים', has: e => topicOf(e) === 'כתפיים' || MUSCLE_TOPIC[e.muscle] === 'כתפיים' },
+  arms: { label: 'ידיים', has: e => topicOf(e) === 'ידיים' || MUSCLE_TOPIC[e.muscle] === 'ידיים' },
+  core: { label: 'בטן / ליבה', has: e => topicOf(e) === 'בטן / ליבה' || e.muscle === 'בטן' },
+  cardio: { label: 'אירובי', has: e => e.type === 'cardio' },
+  all: { label: 'כל הגוף', sub: 'כל המכשירים שלי', has: () => true },
+};
+const focusRoutine = f => /^r-/.test(f || '') ? S.routines.find(r => r.id === f.slice(2)) : null;
+const focusName = f => focusRoutine(f)?.name || FOCUSES[f]?.label || '';
+// The machines of a focus at a gym: a routine keeps its order, the rest go by topic and name
+function focusList(f, gym = curGymId()) {
+  const r = focusRoutine(f);
+  if (r) return r.exerciseIds.map(exById).filter(Boolean);
+  const has = FOCUSES[f]?.has;
+  if (!has) return [];
+  const order = e => TOPICS.indexOf(topicOf(e));
+  return S.exercises.filter(e => atGym(e, gym) && has(e)).sort((a, b) => order(a) - order(b) || byName(a, b));
 }
 
 // Exercises split into topic sections, in TOPICS order: [[topic, exercises], …]
@@ -406,43 +431,53 @@ function ring(done, goal) {
 function screenHome() {
   const u = me(), a = myActive(), st = weekStats(), goal = S.settings.weeklyGoal;
   const streak = streakWeeks();
-  const recent = myWorkouts().slice(0, 3);
-  const routines = S.routines.filter(r => r.userId === u.id);
-  const plans = upcomingPlans();
+  const today = upcomingPlans().filter(p => startOfDay(new Date(p.at)) === startOfDay(new Date()));
   let msg;
   if (st.count >= goal) msg = 'עמדת ביעד השבועי! כל אימון נוסף הוא בונוס 🔥';
   else if (st.count === 0) msg = 'שבוע חדש, הזדמנות חדשה. בוא נפתח אותו!';
   else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
 
+  // Kept short on purpose: the week at a glance and one big button. Plans live in "תוכניות", past workouts in "היסטוריה".
   return `<div class="topbar">${brand()}<div class="top-end">${langSwitch()}${avatar(u)}</div></div>
     <h1 class="greet">שלום ${esc(u.name)}</h1>
-    ${gymChip()}
-    <div class="hero">
+    <div class="hero hero-sm">
       <div class="hero-top">
         ${ring(st.count, goal)}
-        <div class="grow"><div class="hero-label">השבוע</div><div class="hero-msg">${msg}</div></div>
-      </div>
-      <div class="kpis">
-        <div class="kpi"><span class="k-ic">${ico('bolt')}</span><b class="num">${st.count}</b><span>אימונים</span></div>
-        <div class="kpi"><span class="k-ic">${ico('clock')}</span><b class="num">${st.minutes}</b><span>דקות</span></div>
-        <div class="kpi"><span class="k-ic">${ico('flame')}</span><b class="num">${streak}</b><span>שבועות ברצף</span></div>
+        <div class="grow"><div class="hero-label">השבוע</div><div class="hero-msg">${msg}</div>
+          ${streak ? `<div class="muted small" style="margin-top:6px">${ico('flame')} <span class="num">${streak}</span> <span>שבועות ברצף</span></div>` : ''}</div>
       </div>
     </div>
-    <div style="margin-top:16px">
-      ${a ? `<button class="btn primary big cta" data-act="go-workout">${ico('play')}<span>המשך אימון</span> · <span data-elapsed></span></button>`
-          : `<button class="btn primary big cta" data-act="start-empty">${ico('play')}<span>התחל אימון</span></button>
-             <button class="link block" style="margin:6px auto 0" data-act="past-new">${ico('history')}<span> הוסף אימון שכבר עשיתי</span></button>`}
-    </div>
-    ${!a && S.exercises.length ? `<div class="section-head"><h2>אימון לפי יום</h2></div>
-      <div class="chips day-chips">${[...Object.entries(SPLITS).filter(([k]) => k !== 'core'), ['full', 'Full body']].map(([k, l]) => `<button class="chip" data-act="start-day" data-v="${k}">${ico('play')}<span>${l}</span></button>`).join('')}</div>` : ''}
-    ${!a && routines.length ? `<div class="section-head"><h2>התוכניות שלי</h2></div>
-      <div class="rail">${routines.map(r => `<button class="rcard tap" data-act="start-routine" data-id="${r.id}">
-        <b>${esc(r.name)}</b><span class="muted">${r.exerciseIds.filter(exById).length} תרגילים</span><span class="go">${ico('play')}</span>
-      </button>`).join('')}</div>` : ''}
-    <div class="section-head"><h2>אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">${ico('plus')}<span>תכנן אימון</span></button></div>
-    ${plans.map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}
-    <div class="section-head"><h2>אימונים אחרונים</h2>${recent.length ? `<button class="link" data-act="go" data-to="#/history">הכל</button>` : ''}</div>
-    ${recent.length ? recent.map(workoutRow).join('') : emptyState('history', 'עוד אין אימונים. האימון הראשון מחכה לך!')}`;
+    ${a ? `<button class="btn primary huge cta" data-act="go-workout">${ico('play')}<span>המשך אימון</span><small data-elapsed></small></button>`
+        : `<button class="btn primary huge cta" data-act="go" data-to="#/start">${ico('play')}<span>התחל אימון</span></button>`}
+    ${!a && today.length ? `<div class="section-head"><h2>מתוכנן להיום</h2></div>${today.map(planRow).join('')}` : ''}`;
+}
+
+/* ---- Starting a workout: pick what it's about, then the first machine (the clock starts there) ---- */
+function screenStart(f) {
+  if (myActive()) { go('#/workout'); return ''; }
+  if (f) return screenStartList(f);
+  const gym = curGymId();
+  const routines = S.routines.filter(r => r.userId === S.settings.currentUserId && r.exerciseIds.some(exById));
+  const card = (k, label, sub, n) => `<button class="focus tap" data-act="go" data-to="#/start/${k}"><b>${esc(label)}</b>${sub ? `<span>${sub}</span>` : ''}<small class="num">${n}</small></button>`;
+  const groups = [['push', 'pull', 'legs'], ['back', 'chest', 'shoulders', 'arms', 'core', 'cardio'], ['all']];
+  return `${topbar('איזה אימון היום?', true)}
+    ${gymChip()}
+    ${!S.exercises.length ? emptyState('dumbbell', 'עוד אין מכשירים. הוסף אותם בלשונית "מכשירים".') : ''}
+    ${groups.map(ks => { const cards = ks.map(k => [k, focusList(k, gym).length]).filter(([, n]) => n);
+      return cards.length ? `<div class="focus-grid">${cards.map(([k, n]) => card(k, FOCUSES[k].label, FOCUSES[k].sub, n)).join('')}</div>` : ''; }).join('')}
+    ${routines.length ? `<div class="section-head"><h2>התוכניות שלי</h2></div>
+      <div class="focus-grid">${routines.map(r => card('r-' + r.id, r.name, '', r.exerciseIds.filter(exById).length)).join('')}</div>` : ''}`;
+}
+function screenStartList(f) {
+  const list = focusList(f);
+  if (!focusName(f)) { go('#/start'); return ''; }
+  const rows = l => l.map(ex => `<div class="card list-item tap pick-row" data-act="begin" data-f="${f}" data-id="${ex.id}">
+      ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(lastLine(ex))}</div></div>${ico('play', 'go-ic')}
+    </div>`).join('');
+  return `${topbar(focusName(f), true)}
+    <p class="lead">בחר את המכשיר הראשון. האימון והשעון מתחילים כשתבחר.</p>
+    ${list.length ? (focusRoutine(f) ? rows(list) : byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${rows(l)}`).join(''))
+      : emptyState('dumbbell', 'אין כאן מכשירים בחדר הכושר הזה')}`;
 }
 
 /* ---- Planned workouts ---- */
@@ -523,10 +558,22 @@ function screenWorkout() {
       <button class="btn primary" data-act="finish-workout">${ico('check')}<span>${a.past ? 'שמור אימון' : 'סיים אימון'}</span></button>
     </div>
     ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : emptyState('dumbbell', 'הוסף את התרגיל או המכשיר הראשון')}
+    ${nextMachines(a)}
     <div class="stack" style="margin-top:14px">
-      <button class="btn big" data-act="pick-exercise">${ico('plus')}<span>הוסף תרגיל</span></button>
+      <button class="btn big" data-act="pick-exercise">${ico('plus')}<span>${a.focus && !a.past ? 'הוסף תרגיל אחר' : 'הוסף תרגיל'}</span></button>
       <button class="btn block danger" data-act="cancel-workout">בטל אימון</button>
     </div>`;
+}
+
+// The machines of the workout's focus that aren't in it yet, one tap adds the next one
+function nextMachines(a) {
+  if (!a.focus || a.past) return '';
+  const inWorkout = new Set(a.entries.map(e => e.exerciseId));
+  const left = focusList(a.focus, a.gymId).filter(e => !inWorkout.has(e.id));
+  return left.length ? `<div class="section-head"><h2>המכשיר הבא</h2></div>
+    ${left.map(ex => `<div class="card list-item tap pick-row" data-act="add-entry" data-id="${ex.id}">
+      ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(lastLine(ex))}</div></div>${ico('plus', 'go-ic')}
+    </div>`).join('')}` : '';
 }
 
 function setMyNote(ex, text) {
@@ -543,7 +590,7 @@ function entryCard(e, i) {
   const note = myNote(ex);
   const cols = kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'time' ? ['דקות'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
   const fields = kind === 'cardio' ? ['minutes', 'km'] : kind === 'time' ? ['minutes'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
-  return `<div class="card ex-card">
+  return `<div class="card ex-card" id="entry-${i}">
     <div class="ex-head">
       ${thumb(ex)}
       <div class="grow">
@@ -685,7 +732,9 @@ function screenRoutines() {
       <div class="muted small" style="margin:0 0 12px">${esc(r.exerciseIds.map(id => exById(id)?.name).filter(Boolean).map(trName).join(' · ')) || 'אין תרגילים'}</div>
       <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
     </div>`).join('') || emptyState('plan', 'עוד אין תוכניות')}
-    <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>`;
+    <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>
+    <div class="section-head"><h2>אימונים מתוכננים</h2><button class="btn sm" data-act="plan-new">${ico('plus')}<span>תכנן אימון</span></button></div>
+    ${upcomingPlans().map(planRow).join('') || '<p class="muted small" style="margin:0">עוד לא תכננת. לחץ על "תכנן אימון" כדי לקבוע יום ושעה.</p>'}`;
 }
 
 function screenRoutineEdit(id) {
@@ -1039,7 +1088,7 @@ function render() {
     window.scrollTo(0, 0);
   }
   const screens = {
-    home: screenHome, workout: () => r.id ? screenWorkoutView(r.id) : screenWorkout(),
+    home: screenHome, start: () => screenStart(r.id), workout: () => r.id ? screenWorkoutView(r.id) : screenWorkout(),
     exercises: screenExercises, exercise: () => screenExercise(r.id),
     'exercise-new': () => screenExerciseEdit(null), 'exercise-edit': () => screenExerciseEdit(r.id),
     routines: screenRoutines, routine: () => screenRoutineEdit(r.id),
@@ -1047,7 +1096,7 @@ function render() {
   };
   app.innerHTML = (screens[r.name] || screenHome)();
 
-  const tab = { home: 'home', workout: r.id ? 'history' : 'home', exercises: 'exercises', exercise: 'exercises', 'exercise-new': 'exercises', 'exercise-edit': 'exercises', routines: 'routines', routine: 'routines', history: 'history' }[r.name];
+  const tab = { home: 'home', start: 'home', workout: r.id ? 'history' : 'home', exercises: 'exercises', exercise: 'exercises', 'exercise-new': 'exercises', 'exercise-edit': 'exercises', routines: 'routines', routine: 'routines', history: 'history' }[r.name];
   const tabs = [['home', 'home', 'בית'], ['exercises', 'dumbbell', 'מכשירים'], ['routines', 'plan', 'תוכניות'], ['history', 'history', 'היסטוריה']];
   $('#nav').innerHTML = tabs.map(([k, ic, l]) => `<a href="#/${k}" class="${tab === k ? 'on' : ''}"><span class="pill">${ico(ic)}</span><span>${l}</span></a>`).join('');
   $('#banner').innerHTML = myActive() && !(r.name === 'workout' && !r.id) ? `<div data-act="go-workout">${ico('dumbbell')}<span>אימון פעיל</span> · <span data-elapsed></span> · <span>לחץ לחזרה</span></div>` : '';
@@ -1127,6 +1176,7 @@ function startWorkout(routine, day, past) {
     id: uid(), userId: uidv, start: past ? past.at : Date.now(),
     routineId: routine?.id || null, routineName: routine?.name || (day ? `יום ${day === 'full' ? 'Full body' : SPLITS[day]}` : null), gymId: past ? past.gymId : curGymId(),
     entries: [],
+    ...(routine ? { focus: 'r-' + routine.id } : {}),
     ...(past ? { past: past.minutes } : {}),
   };
   S.active[uidv].entries = ids.map(id => ({ exerciseId: id, sets: newSetsFor(id) }));  // after the line above, so prefill uses this workout's gym
@@ -1134,6 +1184,17 @@ function startWorkout(routine, day, past) {
   go('#/workout');
   if (!ids.length) { ui.modal = { type: 'pick', split: day && day !== 'full' ? day : '' }; renderModal(); }
   else if (day) toast(`הוכנו ${ids.length} תרגילים. אפשר להסיר או להוסיף.`);
+}
+// Starts the workout on its first machine (the clock starts now); the rest of the focus waits under "המכשיר הבא"
+function beginWorkout(f, exId) {
+  const uidv = S.settings.currentUserId, r = focusRoutine(f);
+  S.active[uidv] = {
+    id: uid(), userId: uidv, start: Date.now(), focus: f,
+    routineId: r?.id || null, routineName: focusName(f) || null, gymId: curGymId(), entries: [],
+  };
+  S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId) }];
+  save();
+  go('#/workout');
 }
 async function finishWorkout() {
   const a = myActive();
@@ -1236,7 +1297,9 @@ const actions = {
     if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
     p.started = true;
     if (p.gymId && gymById(p.gymId)) me().gymId = p.gymId;
-    startWorkout(S.routines.find(r => r.id === p.routineId));
+    save();
+    const r = S.routines.find(r => r.id === p.routineId);
+    go(r ? '#/start/r-' + r.id : '#/start');
   },
   'plan-ics': () => {
     const p = S.plans.find(p => p.id === ui.planDraft.id); if (!p) return;
@@ -1330,8 +1393,10 @@ const actions = {
     if (i >= 0) ids.splice(i, 1); else ids.push(d.id);
     render();
   },
-  'start-empty': () => startWorkout(null),
-  'start-day': d => startWorkout(null, d.v),
+  begin: d => {
+    if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
+    unlockAudio(); beginWorkout(d.f, d.id);
+  },
   'past-new': () => {
     if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
     const t = new Date(Date.now() - 90 * 60000); t.setMinutes(Math.floor(t.getMinutes() / 15) * 15, 0, 0);
@@ -1373,7 +1438,7 @@ const actions = {
   },
   'start-routine': d => {
     if (myActive()) { toast('יש כבר אימון פעיל'); return go('#/workout'); }
-    startWorkout(S.routines.find(r => r.id === d.id));
+    go('#/start/r-' + d.id);
   },
   'finish-workout': finishWorkout,
   'cancel-workout': async () => {
@@ -1381,14 +1446,15 @@ const actions = {
     delete S.active[S.settings.currentUserId]; rest.endsAt = 0; save(); go('#/home');
   },
   'pick-exercise': () => {
-    const a = myActive(), day = Object.keys(SPLITS).find(k => a?.routineName === `יום ${SPLITS[k]}`);
+    const a = myActive(), day = SPLITS[a?.focus] ? a.focus : Object.keys(SPLITS).find(k => a?.routineName === `יום ${SPLITS[k]}`);
     ui.modal = { type: 'pick', split: day || '' }; renderModal();
   },
   'add-entry': d => {
     const a = myActive();
     a.entries.push({ exerciseId: d.id, sets: newSetsFor(d.id) });
     ui.modal = null; save(); render();
-    requestAnimationFrame(() => window.scrollTo(0, document.body.scrollHeight));
+    const el = $(`#entry-${a.entries.length - 1}`);
+    requestAnimationFrame(() => el?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   },
   'new-ex-from-workout': () => { ui.modal = null; ui.returnToWorkout = true; go('#/exercise-new'); },
   'note-edit': d => { ui.modal = { type: 'note', id: d.id }; renderModal(); },
