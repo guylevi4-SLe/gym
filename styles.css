@@ -566,3 +566,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .warm { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 6px 10px 6px 6px; text-align: start; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
 .warm .thumb { width: 46px; height: 46px; border-radius: 12px; font-size: 20px; }
 .warm b { font-size: 15px; line-height: 1.2; }
+.m-clock { margin: 12px 0 6px; min-height: 56px; font-size: 17px; }
+.m-clock b { font-size: 22px; }
+.m-clock.on b { margin-inline-start: auto; font-size: 26px; }
+.m-clock.on { justify-content: flex-start; }
