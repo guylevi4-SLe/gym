@@ -44,6 +44,7 @@
     'פרפר הפוך': T('rdelt', 'midback traps'),
     'כפיפת מרפקים במכונה': T('biceps', 'forearms'),
     'פשיטת מרפקים בכבל': T('triceps'),
+    'פשיטת מרפקים מעל הראש בכבל': T('triceps'),
     'מקבילים': T('triceps chest', 'fdelt'),
     'כפיפות בטן במכונה': T('abs', 'obliques'),
     'כפיפות בטן': T('abs', 'obliques'),
