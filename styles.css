@@ -577,3 +577,16 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .wk-head .btn { flex: none; }
 .m-clock { gap: 10px; padding: 0 14px; }
 .timed-fields .input.by-clock { background: var(--surface-2); color: var(--accent); pointer-events: none; }
+/* Routine steps with options */
+.slot { border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: calc(var(--radius) + 6px); padding: 10px; margin-top: 10px; }
+.slot .card + .card, .slot .card { margin-top: 0; }
+.slot-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--accent); margin: 0 4px 8px; }
+.slot-or { display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--muted); margin: 6px 0; }
+.r-step { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+.r-step > b { width: 18px; font-size: 16px; }
+.r-opt { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.r-opt .thumb { width: 52px; height: 52px; }
+.r-opt span { font-weight: 600; font-size: 15px; }
+.r-step .slot-or { margin: 0; flex: none; }
+.alt-row .thumb { width: 44px; height: 44px; }
+.alt-row .slot-or { margin: 0; }
