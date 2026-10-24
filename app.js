@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.60';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.61';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -474,8 +474,12 @@ function screenStartList(f) {
   const rows = l => l.map(ex => `<div class="card list-item tap pick-row" data-act="begin" data-f="${f}" data-id="${ex.id}">
       ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(lastLine(ex))}</div></div>${ico('play', 'go-ic')}
     </div>`).join('');
+  // Every workout opens with a warm-up, so the cardio machines come first unless the focus already has them
+  const warm = list.some(e => e.type === 'cardio') ? [] : S.exercises.filter(e => e.type === 'cardio' && atGym(e, curGymId()))
+    .sort((a, b) => (lastPerformance(b.id)?.date || 0) - (lastPerformance(a.id)?.date || 0) || byName(a, b));
   return `${topbar(focusName(f), true)}
-    <p class="lead">בחר את המכשיר הראשון. האימון והשעון מתחילים כשתבחר.</p>
+    <p class="lead">${warm.length ? 'התחל בחימום, או ישר במכשיר הראשון. האימון והשעון מתחילים כשתבחר.' : 'בחר את המכשיר הראשון. האימון והשעון מתחילים כשתבחר.'}</p>
+    ${warm.length && list.length ? `<h2 class="topic">חימום</h2><div class="warm-grid">${warm.map(ex => `<button class="warm tap" data-act="begin" data-f="${f}" data-id="${ex.id}">${thumb(ex)}<b>${esc(ex.name)}</b></button>`).join('')}</div>${focusRoutine(f) ? `<h2 class="topic" style="margin-top:28px">${esc(focusName(f))}</h2>` : ''}` : ''}
     ${list.length ? (focusRoutine(f) ? rows(list) : byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${rows(l)}`).join(''))
       : emptyState('dumbbell', 'אין כאן מכשירים בחדר הכושר הזה')}`;
 }
