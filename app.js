@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.91';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.92';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -485,7 +485,7 @@ function screenStartList(f) {
   // Every workout opens with a warm-up, so the cardio machines come first unless the focus already has them
   const warm = list.some(e => e.type === 'cardio') ? [] : S.exercises.filter(e => e.type === 'cardio' && atGym(e, curGymId()))
     .sort((a, b) => (lastPerformance(b.id)?.date || 0) - (lastPerformance(a.id)?.date || 0) || byName(a, b));
-  return `${topbar(focusName(f), true)}
+  return `${topbar(f === 'all' ? 'בחירה ידנית' : focusName(f), true)}
     <p class="lead">${warm.length ? 'התחל בחימום, או ישר במכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".' : 'בחר את המכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".'}</p>
     ${warm.length && list.length ? `<h2 class="topic">חימום</h2><div class="warm-grid">${warm.map(ex => `<button class="warm tap" data-act="begin" data-f="${f}" data-id="${ex.id}">${thumb(ex)}<b>${esc(ex.name)}</b></button>`).join('')}</div>${focusRoutine(f) ? `<h2 class="topic" style="margin-top:28px">${esc(focusName(f))}</h2>` : ''}` : ''}
     ${list.length ? (focusRoutine(f) ? slotRows(routineSlots(focusRoutine(f)), rows) : byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${rows(l)}`).join(''))
@@ -1289,7 +1289,7 @@ function beginWorkout(f, exId) {
   const uidv = S.settings.currentUserId, r = focusRoutine(f);
   S.active[uidv] = {
     id: uid(), userId: uidv, start: Date.now(), focus: f,
-    routineId: r?.id || null, routineName: focusName(f) || null, gymId: curGymId(), entries: [],
+    routineId: r?.id || null, routineName: (f === 'all' ? 'אימון חופשי' : focusName(f)) || null, gymId: curGymId(), entries: [],
   };
   S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId) }];
   S.active[uidv].waiting = true;
