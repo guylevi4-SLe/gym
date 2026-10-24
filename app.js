@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.88';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.89';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -350,6 +350,7 @@ async function removeExercise(id) {
 
 // Line icons (24×24, stroke = currentColor). Class "flip" mirrors direction-dependent ones in English.
 const ICONS = {
+  filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
   star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>',
   home: '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v10.5a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9"/>',
   dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2 10v4M22 10v4M8 12h8"/>',
@@ -677,17 +678,21 @@ function screenExercises() {
   const f = ui.exFilter.trim();
   const gym = ui.exGym;
   const list = S.exercises.filter(e => (!f || nameHas(e, f) || e.muscle === f) && atGym(e, gym) && (!ui.exSplit || splitOf(e) === ui.exSplit)).sort(byName);
-  return `${topbar('המכשירים והתרגילים שלי')}
-    <div class="row" style="margin-bottom:12px">
+  const nFilters = (gym ? 1 : 0) + (ui.exSplit ? 1 : 0);
+  const showFilters = ui.exFiltersOpen || nFilters;
+  return `${topbar('המכשירים שלי')}
+    <div class="row ex-bar">
       <label class="search grow">${ico('search')}<input class="input" data-in="ex-filter" placeholder="חיפוש" value="${esc(ui.exFilter)}"></label>
-      <button class="btn primary" data-act="go" data-to="#/exercise-new">${ico('plus')}<span>חדש</span></button>
+      <button class="btn ${nFilters ? 'primary' : ''}" data-act="ex-filters" aria-label="סינון">${ico('filter')}${nFilters ? `<span>${nFilters}</span>` : ''}</button>
+      <button class="btn primary" data-act="ex-add">${ico('plus')}<span>הוסף</span></button>
     </div>
-    <button class="btn block" style="margin-bottom:12px" data-act="open-catalog">${ico('list')}<span>הוסף מהרשימה המוכנה</span></button>
-    ${S.gyms.length ? `<div class="chips" style="margin-bottom:12px">
-      <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">הכל</button>
-      ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
+    ${showFilters ? `<div class="ex-filters">
+      ${S.gyms.length ? `<div class="chips scroll">
+        <button class="chip ${!gym ? 'on' : ''}" data-act="ex-gym" data-id="">כל המקומות</button>
+        ${S.gyms.map(g => `<button class="chip ${gym === g.id ? 'on' : ''}" data-act="ex-gym" data-id="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}
+      </div>` : ''}
+      ${splitChips('ex-split', ui.exSplit).replace('class="chips"', 'class="chips scroll"')}
     </div>` : ''}
-    ${splitChips('ex-split', ui.exSplit)}
     ${list.length ? byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid">${l.map(ex => `
       <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
         ${thumb(ex)}
@@ -1032,6 +1037,12 @@ function renderModal() {
       ${S.gyms.length ? `<div><span class="muted small">איפה?</span><div class="chips" style="margin-top:6px">${S.gyms.map(g => `<button class="chip ${d.gymId === g.id ? 'on' : ''}" data-act="past-set" data-f="gymId" data-v="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div></div>` : ''}
       <div><span class="muted small">מה עשית?</span><div class="chips" style="margin-top:6px">${how.map(([k, l]) => `<button class="chip ${d.how === k ? 'on' : ''}" data-act="past-set" data-f="how" data-v="${k}">${esc(l)}</button>`).join('')}</div></div>
       <button class="btn primary block" data-act="past-start">${ico('edit')}<span>המשך לרישום התרגילים</span></button>
+    </div>`;
+  } else if (m.type === 'ex-add') {
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <div class="row between"><h2>הוספת מכשיר</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <button class="btn block big primary" data-act="open-catalog">${ico('list')}<span>מהרשימה המוכנה</span></button>
+      <button class="btn block big" data-act="ex-add-new">${ico('camera')}<span>מכשיר משלי (שם ותמונה)</span></button>
     </div>`;
   } else if (m.type === 'gym') {
     const cur = curGymId();
@@ -1431,6 +1442,9 @@ const actions = {
     S.users.forEach(u => { if (u.gymId === g.id) u.gymId = null; });
     save(); render();
   },
+  'ex-filters': () => { if (ui.exGym || ui.exSplit) { ui.exGym = null; ui.exSplit = ''; ui.exFiltersOpen = false; } else ui.exFiltersOpen = !ui.exFiltersOpen; render(); },
+  'ex-add': () => { ui.modal = { type: 'ex-add' }; renderModal(); },
+  'ex-add-new': () => { ui.modal = null; renderModal(); go('#/exercise-new'); },
   'ex-gym': d => { ui.exGym = d.id || null; render(); },
   'open-catalog': () => {
     const gym = curGymId();

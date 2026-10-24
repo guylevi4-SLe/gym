@@ -600,3 +600,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 body.dragging { overscroll-behavior: none; }
 .r-tools { display: flex; gap: 8px; }
 .r-tools .btn { flex: 1; }
+.ex-bar { margin-bottom: 12px; gap: 8px; flex-wrap: nowrap; }
+.ex-bar .btn { flex: none; }
+.ex-filters { margin-bottom: 4px; }
+.chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 10px; padding-bottom: 2px; }
+.chips.scroll::-webkit-scrollbar { display: none; }
+.chips.scroll .chip { flex: none; }
