@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.58';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.59';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -857,7 +857,8 @@ function renderModal() {
         <div class="muted small" style="margin-top:6px">משקולות חופשיות ותרגילים בלי ציוד זמינים בכל מקום.</div>
       </div>` : ''}
       <p class="muted small" style="margin-top:0">בחר מה להוסיף. מה שכבר ברשימה שלך מסומן ב־✓, ולחיצה עליו מסירה אותו.</p>
-      ${CATALOG.map(([title, items]) => `<h2 class="topic">${title}</h2>
+      ${splitChips('catalog-split', m.split)}
+      ${CATALOG.map(([title, all]) => [title, all.filter(([name, type, muscle]) => !m.split || autoSplit({ name, type, muscle }) === m.split)]).filter(([, items]) => items.length).map(([title, items]) => `<h2 class="topic">${title}</h2>
         <div class="chips">${items.map(([name, type]) => {
           const ex = S.exercises.find(e => e.name === name);
           if (ex && !(catalogGyms(m, name, type).some(id => !(ex.gymIds || []).includes(id)) && (ex.gymIds || []).length))
@@ -1364,6 +1365,7 @@ const actions = {
   'ex-split': d => { ui.exSplit = d.v; render(); },
   'r-split': d => { ui.rSplit = d.v; render(); },
   'pick-split': d => { ui.modal.split = d.v; keepSheetScroll(renderModal); },
+  'catalog-split': d => { ui.modal.split = d.v; keepSheetScroll(renderModal); },
   'ex-split-set': d => {
     const ex = exById(d.id);
     if (!d.v || d.v === (autoSplit(ex) || 'none')) delete ex.split; else ex.split = d.v;
