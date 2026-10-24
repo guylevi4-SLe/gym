@@ -40,7 +40,8 @@
     'סיים מכשיר': 'Done with machine', 'התחל מכשיר': 'Start machine', 'על המכשיר · המשך': 'on this machine · resume',
     'התחל בחימום, או ישר במכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".': 'Start with a warm-up, or go straight to your first machine. The clock starts when you tap "Start machine".',
     'בחר את המכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".': 'Pick your first machine. The clock starts when you tap "Start machine".',
-    'לפי השעון': 'from the clock', 'קמ״ש': 'km/h', 'שיפוע %': 'Incline %',
+    'לפי השעון': 'from the clock', 'בחר אחד': 'Pick one', 'או': 'or', 'אפשרות נוספת לתרגיל הזה': 'Another option for this exercise',
+    'באימון תבחר אחד מהם.': "In the workout you'll pick one of them.", 'קמ״ש': 'km/h', 'שיפוע %': 'Incline %',
     'המכשיר הבא': 'Next machine', 'הוסף תרגיל אחר': 'Add another exercise', 'מתוכנן להיום': 'Planned for today',
     'אין כאן מכשירים בחדר הכושר הזה': 'No machines for this at this gym', 'כל המכשירים שלי': 'All my machines',
     'חזה · כתפיים · יד אחורית': 'Chest · shoulders · triceps', 'גב · יד קדמית': 'Back · biceps', 'רגליים · ישבן': 'Legs · glutes',
@@ -194,6 +195,7 @@
 
   const plural = (n, one, many) => `${n} ${+n === 1 ? one : many}`;
   const PATTERNS = [
+    [/^אפשרות נוספת ל(.+)$/, n => `Another option for ${tr(n)}`],
     [/^(.+)\. ההערה תופיע אוטומטית כשתגיע למכשיר הזה שוב.$/, n => `${tr(n)}. This note will show up automatically next time you get to this machine.`],
     [/^שלום (.+?)(!?)$/, (n, x) => `Hi ${n}${x}`],
     [/^עוד (\d+) (אימון|אימונים) ליעד השבועי$/, n => `${plural(n, 'more workout', 'more workouts')} to your weekly goal`],

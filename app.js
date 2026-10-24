@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.69';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.70';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -170,6 +170,8 @@ const FOCUSES = {
   cardio: { label: 'אירובי', has: e => e.type === 'cardio' },
   all: { label: 'כל הגוף', sub: 'כל המכשירים שלי', has: () => true },
 };
+// A routine step can have other options (the same exercise on a machine or with dumbbells): r.alts = { stepId: [otherIds] }
+const routineSlots = r => r.exerciseIds.filter(exById).map(id => [id, ...(r.alts?.[id] || [])].map(exById).filter(Boolean));
 const focusRoutine = f => /^r-/.test(f || '') ? S.routines.find(r => r.id === f.slice(2)) : null;
 const focusName = f => focusRoutine(f)?.name || FOCUSES[f]?.label || '';
 // The machines of a focus at a gym: a routine keeps its order, the rest go by topic and name
@@ -338,7 +340,10 @@ function catalogGyms(m, name, type) {
 }
 async function removeExercise(id) {
   S.exercises = S.exercises.filter(e => e.id !== id);
-  S.routines.forEach(r => { r.exerciseIds = r.exerciseIds.filter(x => x !== id); });
+  S.routines.forEach(r => {
+    r.exerciseIds = r.exerciseIds.filter(x => x !== id);
+    if (r.alts) { delete r.alts[id]; for (const k in r.alts) r.alts[k] = r.alts[k].filter(x => x !== id); }
+  });
   Object.values(S.active).forEach(a => { a.entries = a.entries.filter(e => e.exerciseId !== id); });
   delete photos[id]; await photoDel(id);
 }
@@ -483,9 +488,14 @@ function screenStartList(f) {
   return `${topbar(focusName(f), true)}
     <p class="lead">${warm.length ? 'התחל בחימום, או ישר במכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".' : 'בחר את המכשיר הראשון. השעון מתחיל כשתלחץ "התחל מכשיר".'}</p>
     ${warm.length && list.length ? `<h2 class="topic">חימום</h2><div class="warm-grid">${warm.map(ex => `<button class="warm tap" data-act="begin" data-f="${f}" data-id="${ex.id}">${thumb(ex)}<b>${esc(ex.name)}</b></button>`).join('')}</div>${focusRoutine(f) ? `<h2 class="topic" style="margin-top:28px">${esc(focusName(f))}</h2>` : ''}` : ''}
-    ${list.length ? (focusRoutine(f) ? rows(list) : byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${rows(l)}`).join(''))
+    ${list.length ? (focusRoutine(f) ? slotRows(routineSlots(focusRoutine(f)), rows) : byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2>${rows(l)}`).join(''))
       : emptyState('dumbbell', 'אין כאן מכשירים בחדר הכושר הזה')}`;
 }
+
+// A routine's steps; a step with options shows them together under "בחר אחד"
+const slotRows = (slots, rows) => slots.map(sl => sl.length > 1
+  ? `<div class="slot"><div class="slot-label">${ico('list')}<span>בחר אחד</span></div>${sl.map(ex => rows([ex])).join('<div class="slot-or">או</div>')}</div>`
+  : rows(sl)).join('');
 
 /* ---- Planned workouts ---- */
 const upcomingPlans = () => S.plans
@@ -575,12 +585,13 @@ function screenWorkout() {
 // The machines of the workout's focus that aren't in it yet, one tap adds the next one
 function nextMachines(a) {
   if (!a.focus || a.past) return '';
-  const inWorkout = new Set(a.entries.map(e => e.exerciseId));
-  const left = focusList(a.focus, a.gymId).filter(e => !inWorkout.has(e.id));
-  return left.length ? `<div class="section-head"><h2>המכשיר הבא</h2></div>
-    ${left.map(ex => `<div class="card list-item tap pick-row" data-act="add-entry" data-id="${ex.id}">
+  const inWorkout = new Set(a.entries.map(e => e.exerciseId)), r = focusRoutine(a.focus);
+  const rows = l => l.map(ex => `<div class="card list-item tap pick-row" data-act="add-entry" data-id="${ex.id}">
       ${thumb(ex)}<div class="grow"><b>${esc(ex.name)}</b><div class="muted small">${esc(lastLine(ex))}</div></div>${ico('plus', 'go-ic')}
-    </div>`).join('')}` : '';
+    </div>`).join('');
+  // a step is done once any of its options is in the workout
+  const slots = (r ? routineSlots(r) : focusList(a.focus, a.gymId).map(e => [e])).filter(sl => !sl.some(e => inWorkout.has(e.id)));
+  return slots.length ? `<div class="section-head"><h2>המכשיר הבא</h2></div>${slotRows(slots, rows)}` : '';
 }
 
 function setMyNote(ex, text) {
@@ -773,7 +784,8 @@ function screenRoutines() {
     ${rs.map(r => `<div class="card">
       <div class="row between"><span class="card-title" style="font-size:18px">${esc(r.name)}</span><button class="btn sm ghost" data-act="go" data-to="#/routine/${r.id}">${ico('edit')}<span>עריכה</span></button></div>
       <div class="meta" style="margin:2px 0 4px"><span>${ico('list')}${r.exerciseIds.filter(exById).length} תרגילים</span></div>
-      <div class="muted small" style="margin:0 0 12px">${esc(r.exerciseIds.map(id => exById(id)?.name).filter(Boolean).map(trName).join(' · ')) || 'אין תרגילים'}</div>
+      ${routineSlots(r).map((sl, i) => `<div class="r-step"><b class="num muted">${i + 1}</b>${sl.map(ex => `<div class="r-opt">${thumb(ex)}<span>${esc(ex.name)}</span></div>`).join('<span class="slot-or">או</span>')}</div>`).join('') || '<p class="muted small">אין תרגילים</p>'}
+      <div style="height:12px"></div>
       <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
     </div>`).join('') || emptyState('plan', 'עוד אין תוכניות')}
     <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>
@@ -784,7 +796,10 @@ function screenRoutines() {
 function screenRoutineEdit(id) {
   const r = id === 'new' ? null : S.routines.find(r => r.id === id);
   if (id !== 'new' && !r) { go('#/routines'); return ''; }
-  const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds] } : { name: '', exerciseIds: [] });
+  const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds], alts: JSON.parse(JSON.stringify(r.alts || {})) } : { name: '', exerciseIds: [], alts: {} });
+  draft.alts = draft.alts || {};
+  const used = new Set([...draft.exerciseIds, ...Object.values(draft.alts).flat()]);
+  const altFor = ui.rAltFor != null ? exById(draft.exerciseIds[ui.rAltFor]) : null;
   const sorted = [...S.exercises].sort(byName);
   return `${topbar(r ? 'עריכת תוכנית' : 'תוכנית חדשה', true)}
     <label class="field"><span>שם התוכנית</span>
@@ -800,10 +815,14 @@ function screenRoutineEdit(id) {
       </div>
       ${targetFields(ex, true)}
       <div class="muted small">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
+      ${(draft.alts[xid] || []).filter(exById).map(aid => `<div class="list-item alt-row"><span class="slot-or">או</span>${thumb(exById(aid))}<div class="grow">${esc(exById(aid).name)}</div>
+        <button class="btn sm danger" data-act="r-alt-remove" data-i="${i}" data-id="${aid}" aria-label="הסר">${ico('x')}</button></div>`).join('')}
+      <button class="btn sm ${ui.rAltFor === i ? 'primary' : ''}" data-act="r-alt-pick" data-i="${i}">${ico('plus')}<span>אפשרות נוספת לתרגיל הזה</span></button>
     </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
-    <h2>הוסף תרגיל</h2>
+    <h2 id="r-add-head">${altFor ? `אפשרות נוספת ל${esc(altFor.name)}` : 'הוסף תרגיל'}</h2>
+    ${altFor ? `<p class="muted small" style="margin-top:-6px">באימון תבחר אחד מהם. <button class="link" data-act="r-alt-pick" data-i="${ui.rAltFor}">ביטול</button></p>` : ''}
     ${sorted.length ? splitChips('r-split', ui.rSplit) : ''}
-    ${sorted.length ? `<div class="chips">${sorted.filter(e => !draft.exerciseIds.includes(e.id) && (!ui.rSplit || splitOf(e) === ui.rSplit)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">${ico('plus')}<span>${esc(e.name)}</span></button>`).join('')}</div>`
+    ${sorted.length ? `<div class="chips">${sorted.filter(e => !used.has(e.id) && (!ui.rSplit || splitOf(e) === ui.rSplit)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">${ico('plus')}<span>${esc(e.name)}</span></button>`).join('')}</div>`
       : `<p class="muted">קודם צריך להוסיף מכשירים בלשונית "מכשירים".</p>`}
     <div class="stack" style="margin-top:22px">
       <button class="btn primary big" data-act="save-routine" data-id="${r ? r.id : ''}">שמור</button>
@@ -1127,6 +1146,7 @@ function render() {
   const key = r.name + '/' + (r.id || '');
   if (key !== lastRoute) {
     if (!['exercise-new', 'exercise-edit', 'routine'].includes(r.name)) ui.draft = null;
+    ui.rAltFor = null;
     // Machines screen opens on "all gyms · all days"; coming back from a machine page keeps the filter
     if (r.name === 'exercises' && !/^exercise/.test(lastRoute)) { ui.exGym = null; ui.exSplit = ''; }
     lastRoute = key;
@@ -1575,9 +1595,19 @@ const actions = {
     save(); render();
   },
 
-  'r-add': d => { ui.draft.exerciseIds.push(d.id); render(); },
-  'r-remove': d => { ui.draft.exerciseIds.splice(+d.i, 1); render(); },
+  'r-add': d => {
+    const dr = ui.draft, base = ui.rAltFor != null ? dr.exerciseIds[ui.rAltFor] : null;
+    if (base) { (dr.alts[base] = dr.alts[base] || []).push(d.id); ui.rAltFor = null; } else dr.exerciseIds.push(d.id);
+    render();
+  },
+  'r-remove': d => { const id = ui.draft.exerciseIds.splice(+d.i, 1)[0]; delete ui.draft.alts?.[id]; ui.rAltFor = null; render(); },
+  'r-alt-pick': d => {
+    ui.rAltFor = ui.rAltFor === +d.i ? null : +d.i; render();
+    if (ui.rAltFor != null) requestAnimationFrame(() => $('#r-add-head')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  },
+  'r-alt-remove': d => { const base = ui.draft.exerciseIds[+d.i]; ui.draft.alts[base] = ui.draft.alts[base].filter(x => x !== d.id); render(); },
   'r-move': d => {
+    ui.rAltFor = null;
     const ids = ui.draft.exerciseIds, i = +d.i, j = i + +d.d;
     [ids[i], ids[j]] = [ids[j], ids[i]]; render();
   },
@@ -1587,6 +1617,7 @@ const actions = {
     let r = d.id ? S.routines.find(r => r.id === d.id) : null;
     if (!r) { r = { id: uid(), userId: S.settings.currentUserId }; S.routines.push(r); }
     r.name = dr.name.trim(); r.exerciseIds = [...dr.exerciseIds];
+    r.alts = Object.fromEntries(Object.entries(dr.alts || {}).filter(([k, v]) => dr.exerciseIds.includes(k) && v.length));
     ui.draft = null; save(); go('#/routines'); toast('התוכנית נשמרה ✓');
   },
   'delete-routine': async d => {
