@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.94';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.95';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -812,7 +812,7 @@ function routineTile(r, to, cls) {
 }
 function screenRoutines() {
   const rs = S.routines.filter(r => r.userId === S.settings.currentUserId);
-  return `${topbar('תוכניות האימון שלי')}
+  return `${topbar('התוכניות שלי')}
     <p class="muted" style="margin-top:0">לחץ על תוכנית כדי לראות אותה ולהתחיל. ${rs.length > 1 ? 'לחיצה ארוכה וגרירה משנה את הסדר.' : ''}</p>
     ${rs.length ? `<div class="grid r-grid">${rs.map(r => routineTile(r, '#/routine-view/' + r.id, 'r-tile')).join('')}</div>` : emptyState('plan', 'עוד אין תוכניות')}
     <button class="btn big" style="margin-top:14px" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>
