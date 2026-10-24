@@ -101,7 +101,7 @@
     'שמור': 'Save', 'מחק תרגיל': 'Delete exercise',
     // Routines
     'תוכנית היא רשימה קבועה של תרגילים, למשל "אימון א" ו"אימון ב". מתחילים אותה בלחיצה אחת.': 'A routine is a fixed list of exercises, like "Workout A" and "Workout B". Start it with one tap.',
-    'אין תרגילים': 'No exercises', 'לחץ על תוכנית כדי לראות אותה ולהתחיל. לחיצה ארוכה וגרירה משנה את הסדר.': 'Tap a routine to see it and start. Press and hold, then drag, to change the order.', 'לחץ על תוכנית כדי לראות אותה ולהתחיל. ': 'Tap a routine to see it and start.', 'עוד אין תוכניות': 'No routines yet', 'תוכנית חדשה': 'New routine', 'עריכת תוכנית': 'Edit routine',
+    'אין תרגילים': 'No exercises', 'מסמן את התרגיל שמופיע בריבוע של התוכנית.': 'marks the exercise shown on the routine tile.', 'התמונה של התוכנית': 'Routine picture', 'לחץ על תוכנית כדי לראות אותה ולהתחיל. לחיצה ארוכה וגרירה משנה את הסדר.': 'Tap a routine to see it and start. Press and hold, then drag, to change the order.', 'לחץ על תוכנית כדי לראות אותה ולהתחיל. ': 'Tap a routine to see it and start.', 'עוד אין תוכניות': 'No routines yet', 'תוכנית חדשה': 'New routine', 'עריכת תוכנית': 'Edit routine',
     'שם התוכנית': 'Routine name', 'למשל: אימון א - פלג גוף עליון': 'e.g. Workout A - upper body', 'למעלה': 'Up', 'למטה': 'Down',
     'בחר תרגילים מהרשימה למטה': 'Pick exercises from the list below', 'קודם צריך להוסיף מכשירים בלשונית "מכשירים".': 'First add machines in the "Machines" tab.',
     'מחק תוכנית': 'Delete routine',
