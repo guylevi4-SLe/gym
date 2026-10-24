@@ -586,7 +586,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .r-step > b { width: 18px; font-size: 16px; }
 .r-opt { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .r-opt .thumb { width: 52px; height: 52px; }
-.r-opt span { font-weight: 600; font-size: 15px; }
-.r-step .slot-or { margin: 0; flex: none; }
+.r-opt span { font-weight: 600; font-size: 15px; min-width: 0; overflow-wrap: anywhere; }
+.r-opts { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.r-step .slot-or { margin: 0 0 0 auto; align-self: flex-start; padding-inline-start: 62px; text-align: start; }
 .alt-row .thumb { width: 44px; height: 44px; }
 .alt-row .slot-or { margin: 0; }

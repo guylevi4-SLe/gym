@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.73';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.74';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -784,7 +784,7 @@ function screenRoutines() {
     ${rs.map(r => `<div class="card">
       <div class="row between"><span class="card-title" style="font-size:18px">${esc(r.name)}</span><button class="btn sm ghost" data-act="go" data-to="#/routine/${r.id}">${ico('edit')}<span>עריכה</span></button></div>
       <div class="meta" style="margin:2px 0 4px"><span>${ico('list')}${r.exerciseIds.filter(exById).length} תרגילים</span></div>
-      ${routineSlots(r).map((sl, i) => `<div class="r-step"><b class="num muted">${i + 1}</b>${sl.map(ex => `<div class="r-opt">${thumb(ex)}<span>${esc(ex.name)}</span></div>`).join('<span class="slot-or">או</span>')}</div>`).join('') || '<p class="muted small">אין תרגילים</p>'}
+      ${routineSlots(r).map((sl, i) => `<div class="r-step"><b class="num muted">${i + 1}</b><div class="r-opts">${sl.map(ex => `<div class="r-opt">${thumb(ex)}<span>${esc(ex.name)}</span></div>`).join('<span class="slot-or">או</span>')}</div></div>`).join('') || '<p class="muted small">אין תרגילים</p>'}
       <div style="height:12px"></div>
       <button class="btn primary block" data-act="start-routine" data-id="${r.id}">${ico('play')}<span>התחל</span></button>
     </div>`).join('') || emptyState('plan', 'עוד אין תוכניות')}
