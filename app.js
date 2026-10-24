@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.61';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.62';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -459,7 +459,7 @@ function screenStart(f) {
   const gym = curGymId();
   const routines = S.routines.filter(r => r.userId === S.settings.currentUserId && r.exerciseIds.some(exById));
   const card = (k, label, sub, n) => `<button class="focus tap" data-act="go" data-to="#/start/${k}"><b>${esc(label)}</b>${sub ? `<span>${sub}</span>` : ''}<small class="num">${n}</small></button>`;
-  const groups = [['push', 'pull', 'legs'], ['back', 'chest', 'shoulders', 'arms', 'core', 'cardio'], ['all']];
+  const groups = [['push', 'pull', 'legs'], ['core', 'cardio', 'all']];  // back / chest / … are already inside Push and Pull
   return `${topbar('איזה אימון היום?', true)}
     ${gymChip()}
     ${!S.exercises.length ? emptyState('dumbbell', 'עוד אין מכשירים. הוסף אותם בלשונית "מכשירים".') : ''}
@@ -586,6 +586,28 @@ function setMyNote(ex, text) {
   save();
 }
 
+// Time on each machine: e.ms is the time already done, e.on is when its clock started (while it runs)
+const machineMs = e => (e.ms || 0) + (e.on ? Date.now() - e.on : 0);
+function machineClock(e, i) {
+  if (myActive()?.past) return '';
+  if (e.on) return `<button class="btn primary block m-clock on" data-act="m-stop" data-i="${i}">${ico('check')}<span>סיים מכשיר</span><b class="num" dir="ltr" data-mclock="${i}">${clock(machineMs(e))}</b></button>`;
+  if (e.ms) return `<button class="btn block m-clock" data-act="m-start" data-i="${i}">${ico('clock')}<b class="num" dir="ltr">${clock(e.ms)}</b><span>על המכשיר · המשך</span></button>`;
+  return `<button class="btn block m-clock" data-act="m-start" data-i="${i}">${ico('play')}<span>התחל מכשיר</span></button>`;
+}
+// Starting a machine stops whichever one was running
+function startMachine(a, i) {
+  a.entries.forEach((e, j) => { if (j !== i) stopMachine(e); });
+  a.entries[i].on = Date.now();
+}
+function stopMachine(e) {
+  if (!e.on) return;
+  e.ms = (e.ms || 0) + Date.now() - e.on;
+  delete e.on;
+  // warm-up and other timed exercises: the minutes come from the clock if they weren't typed
+  const ex = exById(e.exerciseId), s = e.sets[0];
+  if (ex && timed(measure(ex)) && s && !s.done) { s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
+}
+
 function entryCard(e, i) {
   const ex = exById(e.exerciseId);
   if (!ex) return '';
@@ -607,6 +629,7 @@ function entryCard(e, i) {
       ${photos[ex.id] ? `<button class="del-set" data-act="photo-open" data-id="${ex.id}" aria-label="תמונה">${ico('camera')}</button>` : ''}
       <button class="del-set" data-act="entry-menu" data-i="${i}" aria-label="אפשרויות">${ico('more')}</button>
     </div>
+    ${machineClock(e, i)}
     <table class="sets">
       <tr><th>סט</th>${last ? '<th>קודם</th>' : ''}${cols.map(c => `<th>${c}</th>`).join('')}<th></th><th></th></tr>
       ${e.sets.map((s, j) => `<tr class="${s.done ? 'done' : ''}">
@@ -801,6 +824,7 @@ function screenWorkoutView(id) {
     ${wName(w) || gymById(w.gymId) ? `<div class="meta" style="margin:-4px 0 12px">${wName(w) ? `<span>${ico('plan')}${esc(wName(w))}</span>` : ''}${gymById(w.gymId) ? `<span>${ico('pin')}${esc(gymById(w.gymId).name)}</span>` : ''}</div>` : ''}
     ${w.entries.map(e => { const ex = exById(e.exerciseId); return `<div class="card list-item">
       ${thumb(ex)}<div class="grow"><b>${esc(ex?.name || 'תרגיל שנמחק')}</b><div class="muted small">${esc(setsSummary(e.sets, measure(ex)))}</div></div>
+      ${e.ms ? `<span class="tag" dir="ltr">${ico('clock')}${clock(e.ms)}</span>` : ''}
     </div>`; }).join('')}
     <hr>
     <button class="btn block danger" data-act="delete-workout" data-id="${w.id}">${ico('trash')}<span>מחק אימון</span></button>`;
@@ -1112,6 +1136,7 @@ function render() {
 function tick() {
   const a = myActive();
   document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = !a ? '' : a.past ? fmtDate(a.start) : clock(Date.now() - a.start); });
+  document.querySelectorAll('[data-mclock]').forEach(el => { const e = a?.entries[+el.dataset.mclock]; if (e) el.textContent = clock(machineMs(e)); });
   renderRest();
 }
 setInterval(tick, 1000);
@@ -1196,16 +1221,17 @@ function beginWorkout(f, exId) {
     id: uid(), userId: uidv, start: Date.now(), focus: f,
     routineId: r?.id || null, routineName: focusName(f) || null, gymId: curGymId(), entries: [],
   };
-  S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId) }];
+  S.active[uidv].entries = [{ exerciseId: exId, sets: newSetsFor(exId), on: Date.now() }];
   save();
   go('#/workout');
 }
 async function finishWorkout() {
   const a = myActive();
+  a.entries.forEach(stopMachine);
   // in a workout logged afterwards, any set with numbers counts, no need to tick each one
   const filled = s => s.done || (a.past && Object.entries(s).some(([k, v]) => k !== 'done' && v != null));
   const entries = a.entries
-    .map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(filled).map(({ done, ...s }) => s) }))
+    .map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(filled).map(({ done, ...s }) => s), ...(e.ms ? { ms: e.ms } : {}) }))
     .filter(e => e.sets.length);
   if (!entries.length) {
     if (!await ask(a.past ? 'לא רשמת אף סט. לצאת בלי לשמור?' : 'לא סימנת אף סט כמבוצע (✓). לסיים בלי לשמור?')) return;
@@ -1456,6 +1482,7 @@ const actions = {
   'add-entry': d => {
     const a = myActive();
     a.entries.push({ exerciseId: d.id, sets: newSetsFor(d.id) });
+    if (!a.past) startMachine(a, a.entries.length - 1);
     ui.modal = null; save(); render();
     const el = $(`#entry-${a.entries.length - 1}`);
     requestAnimationFrame(() => el?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
@@ -1478,6 +1505,8 @@ const actions = {
     e.sets.push(prev ? { ...prev, done: false } : (timed(kind) ? { minutes: null, km: null, done: false } : kind === 'reps' ? { reps: null, done: false } : { weight: null, reps: null, done: false }));
     save(); render();
   },
+  'm-start': d => { unlockAudio(); startMachine(myActive(), +d.i); save(); render(); },
+  'm-stop': d => { stopMachine(myActive().entries[+d.i]); save(); render(); },
   'del-set': d => { myActive().entries[+d.i].sets.splice(+d.j, 1); save(); render(); },
   'toggle-set': d => {
     unlockAudio();
