@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.93';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.94';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -448,7 +448,7 @@ function screenHome() {
   else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
 
   // Kept short on purpose: the week at a glance and one big button. Plans live in "תוכניות", past workouts in "היסטוריה".
-  return `<div class="topbar">${brand()}<div class="top-end">${langSwitch()}${avatar(u)}</div></div>
+  return `<div class="topbar">${brand()}<div class="top-end">${avatar(u)}</div></div>
     <h1 class="greet">שלום ${esc(u.name)}</h1>
     <div class="hero hero-sm">
       <div class="hero-top">
