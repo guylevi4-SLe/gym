@@ -208,8 +208,8 @@
       eq: P => [frontSeat, ['e', 'M8 6 H56'], line([P.w1[0], P.w1[1] - 2], [P.e1[0], P.e1[1] + 2], 'e over thick'), line([P.w2[0], P.w2[1] - 2], [P.e2[0], P.e2[1] + 2], 'e over thick')] },
     reversefly: { A: V(FRONT_SEAT, { e1: [27, 25], w1: [30, 24], e2: [37, 25], w2: [34, 24] }), B: V(FRONT_SEAT, { e1: [19, 21], w1: [10, 21], e2: [45, 21], w2: [54, 21] }),
       eq: P => [frontSeat, ['e', 'M8 6 H56'], pad(P.w1), pad(P.w2)] },
-    // Side view: seated facing the machine, the cable comes down from the pulley above and in front.
-    pulldown: { A: V(SEAT, { n: [17, 30], h: [19, 23], e: [22, 15], w: [27, 6] }), B: V(SEAT, { n: [15, 30], h: [16, 23], e: [11, 37], w: [21, 30] }),
+    // Side view: seated facing the machine, leaning back a little; the cable comes down from the pulley above and in front.
+    pulldown: { A: V(SEAT, { n: [12, 31], h: [12, 24], e: [18, 16], w: [25, 6] }), B: V(SEAT, { n: [11, 31], h: [11, 24], e: [5, 38], w: [16, 30] }),
       eq: P => [seat, ['e', 'M54 58 V3 M54 3 H30'], ['circle', 'ef', 30, 2.5, 2.5], pad([30, 43]), line([30, 3], P.w), ['e over', `M${P.w[0] - 4} ${P.w[1]} H${P.w[0] + 4}`]] },
     cablerow: { A: { p: [18, 50], n: [25, 34], h: [28, 28], k: [32, 43], f: [44, 52], e: [33, 39], w: [41, 42] },
       B: { p: [18, 50], n: [19, 33], h: [20, 26], k: [32, 43], f: [44, 52], e: [13, 41], w: [24, 43] },
