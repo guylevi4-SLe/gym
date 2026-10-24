@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.78';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.79';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -102,7 +102,7 @@ const CATALOG = [
     ['לחיצת כתפיים במכונה', 'machine', 'כתפיים'], ['הרחקת כתפיים במכונה', 'machine', 'כתפיים'], ['פרפר הפוך', 'machine', 'כתפיים'],
   ]],
   ['ידיים', [
-    ['כפיפת מרפקים במכונה', 'machine', 'יד קדמית'], ['פשיטת מרפקים בכבל', 'machine', 'יד אחורית'], ['מקבילים', 'bodyweight', 'יד אחורית'],
+    ['כפיפת מרפקים במכונה', 'machine', 'יד קדמית'], ['פשיטת מרפקים בכבל', 'machine', 'יד אחורית'], ['פשיטת מרפקים מעל הראש בכבל', 'machine', 'יד אחורית'], ['מקבילים', 'bodyweight', 'יד אחורית'],
   ]],
   ['בטן / ליבה', [
     ['כפיפות בטן במכונה', 'machine', 'בטן'], ['כפיפות בטן', 'bodyweight', 'בטן'], ['הרמות רגליים בתלייה', 'bodyweight', 'בטן'],

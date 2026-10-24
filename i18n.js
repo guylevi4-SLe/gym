@@ -54,7 +54,7 @@
     'לחיצת חזה במכונה': 'Chest press machine', 'פרפר (Pec Deck)': 'Pec deck', 'לחיצת חזה בשיפוע במכונה': 'Incline chest press machine',
     'פולי עליון': 'Lat pulldown', 'חתירה בכבל בישיבה': 'Seated cable row', 'חתירה במכונה': 'Machine row', 'פשיטת גב': 'Back extension',
     'לחיצת כתפיים במכונה': 'Shoulder press machine', 'הרחקת כתפיים במכונה': 'Lateral raise machine', 'פרפר הפוך': 'Reverse fly',
-    'כפיפת מרפקים במכונה': 'Biceps curl machine', 'פשיטת מרפקים בכבל': 'Triceps pushdown', 'מקבילים עם סיוע': 'Assisted dips',
+    'כפיפת מרפקים במכונה': 'Biceps curl machine', 'פשיטת מרפקים בכבל': 'Triceps pushdown', 'פשיטת מרפקים מעל הראש בכבל': 'Cable overhead triceps extension', 'מקבילים עם סיוע': 'Assisted dips',
     'לחיצת רגליים': 'Leg press', 'פשיטת ברכיים': 'Leg extension', 'כפיפת ברכיים בשכיבה': 'Lying leg curl',
     'כפיפת ברכיים בישיבה': 'Seated leg curl', 'מקרב ירכיים': 'Hip adduction', 'מרחיק ירכיים': 'Hip abduction',
     'תאומים במכונה': 'Calf raise machine', 'סמית׳ סקוואט': 'Smith machine squat', 'מתח עם סיוע': 'Assisted pull-up',
