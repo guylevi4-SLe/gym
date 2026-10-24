@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.64';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.65';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -241,8 +241,11 @@ function clock(ms) {
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
 }
 const timed = kind => kind === 'cardio' || kind === 'time';
+// The treadmill logs time, speed and incline instead of distance
+const isTreadmill = ex => ex?.type === 'cardio' && /הליכון|treadmill/i.test(ex.name);
 function setText(set, kind) {
-  if (timed(kind)) return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`].filter(Boolean).join(' · ');
+  if (timed(kind)) return [set.minutes != null && `${fmtNum(set.minutes)} דק׳`, set.km != null && `${fmtNum(set.km)} ק״מ`,
+    set.speed != null && `${fmtNum(set.speed)} קמ״ש`, set.incline != null && `שיפוע ${fmtNum(set.incline)}%`].filter(Boolean).join(' · ');
   if (kind === 'reps') return `${set.reps ?? '?'} חזרות`;
   return `\u2066${fmtNum(set.weight) || 0}×${set.reps ?? '?'}\u2069`;  // isolate so RTL keeps weight×reps order
 }
@@ -616,8 +619,9 @@ function entryCard(e, i) {
   const kind = measure(ex);
   const last = lastPerformance(ex.id);
   const note = myNote(ex);
-  const cols = kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'time' ? ['דקות'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
-  const fields = kind === 'cardio' ? ['minutes', 'km'] : kind === 'time' ? ['minutes'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
+  const tread = isTreadmill(ex);
+  const cols = tread ? ['דקות', 'קמ״ש', 'שיפוע %'] : kind === 'cardio' ? ['דקות', 'ק״מ'] : kind === 'time' ? ['דקות'] : kind === 'reps' ? ['חזרות'] : ['ק״ג', 'חזרות'];
+  const fields = tread ? ['minutes', 'speed', 'incline'] : kind === 'cardio' ? ['minutes', 'km'] : kind === 'time' ? ['minutes'] : kind === 'reps' ? ['reps'] : ['weight', 'reps'];
   return `<div class="card ex-card" id="entry-${i}">
     <div class="ex-head">
       ${thumb(ex)}
