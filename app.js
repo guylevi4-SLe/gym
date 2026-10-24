@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.85';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.86';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -824,7 +824,9 @@ function screenRoutineEdit(id) {
     ${draft.exerciseIds.length ? `<p class="muted small" style="margin-top:-6px">${ico('star')} מסמן את התרגיל שמופיע בריבוע של התוכנית.</p>` : ''}
     ${draft.exerciseIds.map((xid, i) => { const ex = exById(xid); return ex ? `<div class="card stack">
       <div class="list-item">
-        <b class="num muted" style="font-size:20px">${i + 1}</b><div class="grow card-title">${esc(ex.name)}</div>
+        <b class="num muted" style="font-size:20px">${i + 1}</b>${thumb(ex)}<div class="grow card-title">${esc(ex.name)}</div>
+      </div>
+      <div class="r-tools">
         <button class="btn sm ${xid === cover?.id ? 'primary' : ''}" data-act="r-cover" data-id="${xid}" aria-label="התמונה של התוכנית">${ico('star')}</button>
         <button class="btn sm" data-act="r-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">${ico('up')}</button>
         <button class="btn sm" data-act="r-move" data-i="${i}" data-d="1" ${i === draft.exerciseIds.length - 1 ? 'disabled' : ''} aria-label="למטה">${ico('down')}</button>
