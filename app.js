@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '20.67';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '20.68';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -601,7 +601,7 @@ function machineClock(e, i) {
 function startMachine(a, i) {
   a.entries.forEach((e, j) => { if (j !== i) stopMachine(e); });
   const e = a.entries[i], s = e.sets[0], ex = exById(e.exerciseId);
-  if (ex && timed(measure(ex)) && s && !s.done && !s.typed) s.minutes = null;  // the clock fills it, not last time's number
+  if (ex && timed(measure(ex)) && s && !s.done && !e.ms) s.minutes = null;  // the clock fills it, not last time's number
   e.on = Date.now();
   if (a.waiting) { a.start = e.on; delete a.waiting; }  // the workout's own clock starts with the first machine
 }
@@ -609,10 +609,9 @@ function stopMachine(e) {
   if (!e.on) return;
   e.ms = (e.ms || 0) + Date.now() - e.on;
   delete e.on;
-  // warm-up and other timed exercises: the minutes come from the clock if they weren't typed
+  // warm-up and other timed exercises: the minutes are the clock's total (typing minutes sets the clock, see inputs.set)
   const ex = exById(e.exerciseId), s = e.sets[0];
-  // (also after a resume: the clock's total wins; an emptied field counts as not typed)
-  if (ex && timed(measure(ex)) && s) { if (!s.typed || s.minutes == null) s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
+  if (ex && timed(measure(ex)) && s) { s.minutes = Math.max(1, Math.round(e.ms / 60000)); s.done = true; }
 }
 
 function entryCard(e, i) {
@@ -1620,7 +1619,9 @@ const inputs = {
     el.classList.toggle('long', el.value.length > 3);
     const s = myActive().entries[+el.dataset.i].sets[+el.dataset.j];
     s[el.dataset.f] = num(el.value);
-    if (el.dataset.f === 'minutes') s.typed = true;  // typed minutes win over the machine's clock
+    // one time per machine: typed minutes become the machine's clock (it keeps running from there if it was on)
+    const a = myActive(), e = a.entries[+el.dataset.i];
+    if (el.dataset.f === 'minutes' && !a.past && s.minutes != null) { e.ms = s.minutes * 60000; if (e.on) e.on = Date.now(); tick(); }
     save();
   },
   'ex-filter': el => {
