@@ -146,6 +146,7 @@ function applyUserDoc(d) {
   const uidv = cloudUser.uid;
   S.settings = { ...S.settings, ...(d.settings || {}), currentUserId: uidv };
   if (d.active) S.active[uidv] = d.active; else delete S.active[uidv];
+  if (d.bag) (S.bags = S.bags || {})[uidv] = d.bag;
 }
 
 function changed(key, list) {
@@ -183,6 +184,7 @@ function userDocData() {
     name: S.users.find(u => u.id === uidv)?.name || cloudDoc?.name || '',
     settings: { restSeconds: S.settings.restSeconds, weeklyGoal: S.settings.weeklyGoal },
     active: S.active[uidv] || null,
+    bag: S.bags?.[uidv] || null,
   };
 }
 
