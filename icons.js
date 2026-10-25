@@ -303,7 +303,9 @@
     // lying on the bench, side view: unlike the press the arm stays almost straight and sweeps a wide arc, from down beside the bench up over the chest
     dbfly: { A: { h: [11, 37], n: [17, 40], p: [33, 41], k: [43, 37], f: [46, 56], e: [22, 46], w: [27, 51] },
       B: { h: [11, 37], n: [17, 40], p: [33, 41], k: [43, 37], f: [46, 56], e: [19, 31], w: [19, 21] },
-      eq: P => [['e', 'M6 45 H40 M12 45 V58 M36 45 V58'], ['f db over', db(P.w1)[1]]] },
+      // the far arm, faded behind the body and the bench: a dumbbell in each hand
+      eq: P => { const far = P.w1[1] > 40 ? [[15, 46], [13, 52]] : [[14, 31], [13, 22]];
+        return [['f far', `M17 41 L${far[0]} L${far[1]}`], ['f db far', db(far[1])[1]], ['e', 'M6 45 H40 M12 45 V58 M36 45 V58'], ['f db over', db(P.w1)[1]]]; } },
     lunge: { A: V(STAND, { e: [32, 26], w: [32, 34] }),
       B: { h: [32, 21], n: [31, 28], p: [31, 44], k1: [42, 46], f1: [42, 57], k2: [25, 53], f2: [16, 56], e: [31, 36], w: [31, 44] },
       eq: P => [floor, db(P.w1, true)] },
