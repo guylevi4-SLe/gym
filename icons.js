@@ -300,6 +300,9 @@
     dbbench: { A: { h: [11, 37], n: [17, 40], p: [33, 41], k: [43, 37], f: [46, 56], e: [13, 46], w: [19, 33] },
       B: { h: [11, 37], n: [17, 40], p: [33, 41], k: [43, 37], f: [46, 56], e: [19, 32], w: [19, 22] },
       eq: P => [['e', 'M6 45 H40 M12 45 V58 M36 45 V58'], db(P.w1)] },
+    // lying on the bench, seen from above: arms open wide, then meet over the chest
+    dbfly: { A: V(FRONT, { e1: [18, 20], w1: [8, 22], e2: [46, 20], w2: [56, 22] }), B: V(FRONT, { e1: [24, 25], w1: [29, 27], e2: [40, 25], w2: [35, 27] }),
+      eq: P => [['e', 'M23 4 H41 V42 H23 Z'], ['f db over', db(P.w1, true)[1]], ['f db over', db(P.w2, true)[1]]] },
     lunge: { A: V(STAND, { e: [32, 26], w: [32, 34] }),
       B: { h: [32, 21], n: [31, 28], p: [31, 44], k1: [42, 46], f1: [42, 57], k2: [25, 53], f2: [16, 56], e: [31, 36], w: [31, 44] },
       eq: P => [floor, db(P.w1, true)] },
@@ -340,6 +343,7 @@
 
   // First matching keyword wins, so the specific names come before the general ones.
   const RULES = [
+    [/פרפר.*(משקול|בשכיבה)/, 'dbfly'],
     [/לחיצת רגליים בישיבה|seated leg press/i, 'seatedlegpress'],
     [/פשיטת ירך לאחור|בעיטה לאחור|קיקבק|kickback/i, 'kickback'],
     [/פומרולר|גליל|שחרור|foam|roller/i, 'foamroll'], [/מתיח(ת|ות) רגליים|leg stretch|hamstring stretch/i, 'legstretch'], [/מתיח|stretch|yoga|יוגה/i, 'stretch'],
@@ -362,7 +366,7 @@
     [/treadmill|\brun/i, 'treadmill'], [/elliptical|cross.?trainer/i, 'elliptical'], [/row(ing)? machine|rower|\berg\b/i, 'rower'],
     [/arm (bike|ergometer)/i, 'armbike'], [/recumbent/i, 'recumbent'], [/bike|cycl|spin/i, 'bike'], [/stair|stepper/i, 'stairs'], [/rope|skip/i, 'rope'],
     [/incline.*dumbbell|dumbbell.*incline/i, 'dbincline'], [/incline/i, 'inclinepress'], [/chest press/i, 'chestpress'], [/dumbbell (bench|chest)/i, 'dbbench'], [/bench/i, 'bench'],
-    [/reverse fly|rear delt/i, 'reversefly'], [/fly|flye/i, 'pecdeck'], [/crossover/i, 'crossover'],
+    [/reverse fly|rear delt/i, 'reversefly'], [/dumbbell fly|fly.*dumbbell/i, 'dbfly'], [/fly|flye/i, 'pecdeck'], [/crossover/i, 'crossover'],
     [/pull.?down/i, 'pulldown'], [/cable row|seated row/i, 'cablerow'], [/machine row/i, 'machinerow'], [/dumbbell row|one.arm row/i, 'dbrow'], [/row/i, 'bentrow'],
     [/back ext|hyperext/i, 'backext'], [/deadlift/i, 'deadlift'],
     [/shoulder press machine|machine shoulder/i, 'shoulderpress'], [/shoulder press|overhead press|military/i, 'dbpress'], [/lateral raise machine/i, 'lateralmachine'], [/lateral|side raise/i, 'lateral'],

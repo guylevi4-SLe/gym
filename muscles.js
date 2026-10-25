@@ -37,6 +37,7 @@
     'מתח': T('lats', 'biceps midback forearms'),
     'לחיצת חזה במכונה': T('chest', 'fdelt triceps'),
     'פרפר (Pec Deck)': T('chest', 'fdelt'),
+    'פרפר עם משקולות בשכיבה': T('chest', 'fdelt'),
     'לחיצת חזה בשיפוע במכונה': T('chest fdelt', 'triceps'),
     'שכיבות סמיכה': T('chest', 'triceps fdelt abs'),
     'לחיצת כתפיים במכונה': T('fdelt sdelt', 'triceps traps'),
