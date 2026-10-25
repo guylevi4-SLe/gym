@@ -617,3 +617,16 @@ body.dragging { overscroll-behavior: none; }
 .wday svg { width: 20px; height: 20px; }
 .wday.today { border: 2px solid var(--accent); }
 .wday.done { background: var(--done); }
+
+/* Home: gym bag checklist */
+.top-start { display: flex; align-items: center; gap: 10px; }
+.bag-btn { position: relative; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; padding: 0; background: var(--surface); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+.bag-btn svg { width: 22px; height: 22px; }
+.bag-btn b { position: absolute; top: -4px; inset-inline-end: -4px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-size: 11px; display: grid; place-items: center; }
+.bag-list { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.bag-item { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding-inline-end: 4px; }
+.bag-check { flex: 1; display: flex; align-items: center; gap: 12px; padding: 12px; background: none; border: 0; color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.bag-check .box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--border); display: grid; place-items: center; flex: none; }
+.bag-check .box svg { width: 18px; height: 18px; }
+.bag-item.on .box { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.bag-item.on .bag-check > span:last-child { color: var(--muted); text-decoration: line-through; }
