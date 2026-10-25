@@ -51,7 +51,7 @@
     'לחיצת רגליים בישיבה (Seated Leg Press)': 'Seated leg press', 'פשיטת ירך לאחור במכונה (Glute Kickback)': 'Glute kickback machine', 'גליל שחרור (פומרולר)': 'Foam roller', 'מתיחת רגליים': 'Leg stretch', 'מתיחת גב וכתפיים': 'Back & shoulder stretch',
     'הליכון': 'Treadmill', 'אליפטי': 'Elliptical', 'אופני כושר': 'Exercise bike', 'אופני כושר עם משענת': 'Recumbent bike',
     'מכונת חתירה': 'Rowing machine', 'מדרגות': 'Stair climber', 'אופני ידיים': 'Arm bike', 'קפיצה בחבל': 'Jump rope',
-    'לחיצת חזה במכונה': 'Chest press machine', 'פרפר (Pec Deck)': 'Pec deck', 'לחיצת חזה בשיפוע במכונה': 'Incline chest press machine',
+    'לחיצת חזה במכונה': 'Chest press machine', 'פרפר (Pec Deck)': 'Pec deck', 'פרפר עם משקולות בשכיבה': 'Dumbbell fly', 'לחיצת חזה בשיפוע במכונה': 'Incline chest press machine',
     'פולי עליון': 'Lat pulldown', 'חתירה בכבל בישיבה': 'Seated cable row', 'חתירה במכונה': 'Machine row', 'פשיטת גב': 'Back extension',
     'לחיצת כתפיים במכונה': 'Shoulder press machine', 'הרחקת כתפיים במכונה': 'Lateral raise machine', 'פרפר הפוך': 'Reverse fly',
     'כפיפת מרפקים במכונה': 'Biceps curl machine', 'פשיטת מרפקים בכבל': 'Triceps pushdown', 'פשיטת מרפקים מעל הראש בכבל': 'Cable overhead triceps extension', 'מקבילים עם סיוע': 'Assisted dips',
