@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.6';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.7';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -1081,21 +1081,31 @@ function renderModal() {
       <button class="btn primary block" data-act="past-start">${ico('edit')}<span>המשך לרישום התרגילים</span></button>
     </div>`;
   } else if (m.type === 'bag') {
+    // Compact list, like a notes app: a header per category, tight rows, and one add bar at the bottom
     const { cats, items } = myBag(), done = items.filter(i => i.on).length;
-    const row = i => `<div class="bag-item ${i.on ? 'on' : ''}">
-        <button class="bag-check tap" data-act="bag-toggle" data-id="${i.id}"><span class="box">${i.on ? ico('check') : ''}</span><span>${esc(i.t)}</span></button>
-        <button class="btn sm ghost" data-act="bag-remove" data-id="${i.id}" aria-label="הסר">${ico('x')}</button></div>`;
-    const adder = (c, ph) => `<div class="row bag-add"><input class="input grow bag-in" data-cat="${c || ''}" placeholder="${esc(ph)}" autocomplete="off"><button class="btn sm" data-act="bag-add" data-cat="${c || ''}">${ico('plus')}</button></div>`;
+    if (ui.bagCat !== 'new' && ui.bagCat && !cats.some(c => c.id === ui.bagCat)) ui.bagCat = '';
+    const target = ui.bagCat ?? (cats[0]?.id || '');
+    const row = i => `<div class="bag-row ${i.on ? 'on' : ''}">
+        <button class="bag-check" data-act="bag-toggle" data-id="${i.id}"><span class="box">${i.on ? ico('check') : ''}</span><span class="t">${esc(i.t)}</span></button>
+        <button class="bag-x" data-act="bag-remove" data-id="${i.id}" aria-label="הסר">${ico('x')}</button></div>`;
+    const head = (name, l, id) => `<div class="bag-head"><h3>${esc(name)}</h3><span class="num muted">${l.filter(i => i.on).length}/${l.length}</span>
+        <button class="bag-x plus" data-act="bag-pick" data-cat="${id || ''}" aria-label="הוסף">${ico('plus')}</button>
+        ${id ? `<button class="bag-x" data-act="bag-cat-remove" data-id="${id}" aria-label="מחק קטגוריה">${ico('x')}</button>` : '<span class="bag-x"></span>'}</div>`;
     const loose = items.filter(i => !i.c || !cats.some(c => c.id === i.c));
-    el.innerHTML = `<div class="sheet stack" data-stop>
-      <div class="row between"><h2>תיק למכון</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
-      <p class="muted small" style="margin:0">${items.length ? (done === items.length ? 'הכל בתיק ✓' : `${done} מתוך ${items.length} בתיק`) : 'הרשימה ריקה. הוסף קטגוריה, למשל "לאימון" או "למקלחת", ובתוכה את הפריטים.'}</p>
-      ${cats.map(c => { const l = items.filter(i => i.c === c.id); return `<div class="bag-cat">
-        <div class="row between bag-cat-head"><h3>${esc(c.name)}</h3><button class="btn sm ghost" data-act="bag-cat-remove" data-id="${c.id}" aria-label="מחק קטגוריה">${ico('x')}</button></div>
-        <div class="bag-list">${l.map(row).join('')}</div>${adder(c.id, 'פריט חדש')}</div>`; }).join('')}
-      ${loose.length || !cats.length ? `<div class="bag-cat">${cats.length ? '<div class="bag-cat-head"><h3>בלי קטגוריה</h3></div>' : ''}<div class="bag-list">${loose.map(row).join('')}</div>${adder(null, 'פריט חדש')}</div>` : ''}
-      <div class="row"><input class="input grow" id="bag-new-cat" placeholder="קטגוריה חדשה" autocomplete="off"><button class="btn" data-act="bag-cat-add">${ico('plus')}<span>קטגוריה</span></button></div>
-      ${done ? `<button class="btn block" data-act="bag-reset">אפס סימונים לאימון הבא</button>` : ''}
+    el.innerHTML = `<div class="sheet stack bag-sheet" data-stop>
+      <div class="row between"><h2>תיק למכון</h2><div class="row" style="gap:8px">${done ? `<button class="btn sm" data-act="bag-reset">אפס</button>` : ''}<button class="btn sm" data-act="close-modal">סגור</button></div></div>
+      ${!items.length && !cats.length ? '<p class="muted small" style="margin:0">הרשימה ריקה. בחר למטה "קטגוריה חדשה", למשל "לאימון" או "למקלחת", ואז הוסף לה פריטים.</p>' : ''}
+      <div class="bag-body">
+        ${cats.map(c => { const l = items.filter(i => i.c === c.id); return `<section>${head(c.name, l, c.id)}${l.map(row).join('')}</section>`; }).join('')}
+        ${loose.length ? `<section>${cats.length ? head('בלי קטגוריה', loose, null) : ''}${loose.map(row).join('')}</section>` : ''}
+      </div>
+      <div class="bag-bar">
+        <label class="row" style="gap:8px"><span class="muted">מוסיפים ל:</span><select class="input" data-in="bag-cat">
+          ${cats.map(c => `<option value="${c.id}" ${target === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          <option value="" ${target === '' ? 'selected' : ''}>בלי קטגוריה</option>
+          <option value="new" ${target === 'new' ? 'selected' : ''}>+ קטגוריה חדשה</option></select></label>
+        <div class="row"><input class="input grow" id="bag-new" placeholder="${target === 'new' ? 'שם הקטגוריה, למשל: למקלחת' : 'מה להוסיף?'}" autocomplete="off"><button class="btn primary" data-act="bag-add">${ico('plus')}</button></div>
+      </div>
     </div>`;
   } else if (m.type === 'ex-add') {
     el.innerHTML = `<div class="sheet stack" data-stop>
@@ -1392,15 +1402,13 @@ const actions = {
   'bag-open': () => { ui.modal = { type: 'bag' }; renderModal(); },
   'bag-toggle': d => { const i = myBag().items.find(i => i.id === d.id); if (i) { i.on = !i.on; save(); render(); keepSheetScroll(renderModal); } },
   'bag-remove': d => { const b = myBag(); b.items = b.items.filter(i => i.id !== d.id); save(); render(); keepSheetScroll(renderModal); },
-  'bag-add': d => {
-    const c = d.cat || null, inp = document.querySelector(`.bag-in[data-cat="${c || ''}"]`), t = inp?.value.trim(); if (!t) return;
-    myBag().items.push({ id: uid(), t, on: false, c }); save(); render(); keepSheetScroll(renderModal);
-    document.querySelector(`.bag-in[data-cat="${c || ''}"]`)?.focus();
-  },
-  'bag-cat-add': () => {
-    const name = $('#bag-new-cat')?.value.trim(); if (!name) return;
-    const c = { id: uid(), name }; myBag().cats.push(c); save(); keepSheetScroll(renderModal);
-    document.querySelector(`.bag-in[data-cat="${c.id}"]`)?.focus();
+  'bag-pick': d => { ui.bagCat = d.cat; keepSheetScroll(renderModal); $('#bag-new')?.focus(); },
+  'bag-add': () => {
+    const t = $('#bag-new')?.value.trim(); if (!t) return;
+    const b = myBag(), target = ui.bagCat ?? (b.cats[0]?.id || '');
+    if (target === 'new') { const c = { id: uid(), name: t }; b.cats.push(c); ui.bagCat = c.id; }
+    else b.items.push({ id: uid(), t, on: false, c: target || null });
+    save(); render(); keepSheetScroll(renderModal); $('#bag-new')?.focus();
   },
   'bag-cat-remove': async d => {
     const b = myBag(), c = b.cats.find(c => c.id === d.id); if (!c) return;
@@ -1762,6 +1770,7 @@ const actions = {
 };
 
 const inputs = {
+  'bag-cat': el => { ui.bagCat = el.value; const i = $('#bag-new'); if (i) { i.placeholder = trName(el.value === 'new' ? 'שם הקטגוריה, למשל: למקלחת' : 'מה להוסיף?'); i.focus(); } },
   past: el => { if (el.value) ui.pastDraft[el.dataset.f] = el.value; },
   when: el => {
     const p = whenDraft(el.dataset.k), [y, m, dd] = el.value.split('-').map(Number); if (!y) return;
@@ -1903,8 +1912,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'new-user-name') actions['create-first-user']();
   if (e.key === 'Enter' && e.target.id === 'add-user-name') actions['add-user']();
   if (e.key === 'Enter' && e.target.id === 'new-gym-name') actions['add-gym']();
-  if (e.key === 'Enter' && e.target.matches('.bag-in')) actions['bag-add']({ cat: e.target.dataset.cat });
-  if (e.key === 'Enter' && e.target.id === 'bag-new-cat') actions['bag-cat-add']();
+  if (e.key === 'Enter' && e.target.id === 'bag-new') actions['bag-add']();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveNow();
