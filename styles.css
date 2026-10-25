@@ -630,3 +630,6 @@ body.dragging { overscroll-behavior: none; }
 .bag-check .box svg { width: 18px; height: 18px; }
 .bag-item.on .box { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .bag-item.on .bag-check > span:last-child { color: var(--muted); text-decoration: line-through; }
+.bag-cat { display: flex; flex-direction: column; gap: 6px; }
+.bag-cat-head h3 { margin: 6px 0 0; font-size: 16px; color: var(--accent); }
+.bag-add .input { min-height: 0; padding-block: 9px; }
