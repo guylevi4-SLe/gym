@@ -238,6 +238,10 @@
     curl: { A: V(FRONT, { e1: [21, 28], w1: [18, 37], e2: [43, 28], w2: [46, 37] }), B: V(FRONT, { e1: [21, 28], w1: [18, 19], e2: [43, 28], w2: [46, 19] }),
       eq: P => [floor, db(P.w1), db(P.w2)].map((x, i) => i ? [x[0] + ' over', x[1]] : x) },
     hammer: { A: V(STAND, { e: [32, 28], w: [33, 37] }), B: V(STAND, { e: [32, 28], w: [38, 21] }), eq: P => [floor, db(P.w, true)] },
+    // standing at the low pulley: the cable runs from the bottom of the machine up to the handle
+    cablecurl: { A: V(STAND, { h: [30, 11], n: [29, 18], p: [27, 35], k1: [27, 46], f1: [26, 57], k2: [28, 46], f2: [30, 57], e: [30, 29], w: [35, 38] }),
+      B: V(STAND, { h: [30, 11], n: [29, 18], p: [27, 35], k1: [27, 46], f1: [26, 57], k2: [28, 46], f2: [30, 57], e: [30, 29], w: [34, 19] }),
+      eq: P => [floor, ['e', 'M52 58 V4'], line([52, 52], P.w), ['e over', `M${P.w[0] - 3} ${P.w[1]} H${P.w[0] + 3}`]] },
     pushdown: { A: V(STAND, { h: [30, 11], n: [29, 18], p: [27, 35], k1: [27, 46], f1: [26, 57], k2: [28, 46], f2: [30, 57], e: [31, 28], w: [38, 23] }),
       B: V(STAND, { h: [30, 11], n: [29, 18], p: [27, 35], k1: [27, 46], f1: [26, 57], k2: [28, 46], f2: [30, 57], e: [31, 28], w: [35, 37] }),
       eq: P => [floor, ['e', 'M52 58 V4'], line([52, 6], P.w), ['e over', `M${P.w[0] - 3} ${P.w[1]} H${P.w[0] + 3}`]] },
@@ -349,6 +353,7 @@
 
   // First matching keyword wins, so the specific names come before the general ones.
   const RULES = [
+    [/כפיפת מרפקים.*(בכבל|בפולי)|cable curl|curl.*cable/i, 'cablecurl'],
     [/פרפר.*(משקול|בשכיבה)/, 'dbfly'],
     [/לחיצת רגליים בישיבה|seated leg press/i, 'seatedlegpress'],
     [/פשיטת ירך לאחור|בעיטה לאחור|קיקבק|kickback/i, 'kickback'],
