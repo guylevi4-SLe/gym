@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.4';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.5';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -49,6 +49,7 @@ let S = {
   gyms: [],        // {id, name}; exercises with no gymIds are available everywhere
   workouts: [],    // finished: {id, userId, start, end, routineId, entries: [{exerciseId, sets}]}
   active: {},      // userId -> workout in progress
+  bags: {},        // userId -> gym bag checklist [{id, t, on}]
   settings: { currentUserId: null, restSeconds: 90, weeklyGoal: 3 },
 };
 let photos = {};   // exerciseId -> dataURL
@@ -441,10 +442,13 @@ function ring(done, goal) {
 
 /* ---- Gym bag: a checklist of what to bring, kept per user; reset clears the ticks, the items stay ---- */
 const BAG_DEFAULT = ['מגבת', 'בקבוק מים', 'אוזניות', 'מנעול', 'בגדים להחלפה', 'נעלי ספורט'];
+// Kept in S.bags by user id, not on the profile: in the cloud, profiles are rebuilt from the family list and would drop it
 function myBag() {
-  const u = me();
-  if (!u.bag) u.bag = BAG_DEFAULT.map(t => ({ id: uid(), t, on: false }));
-  return u.bag;
+  const id = S.settings.currentUserId, u = me();
+  S.bags = S.bags || {};
+  if (!S.bags[id]) S.bags[id] = u?.bag || BAG_DEFAULT.map(t => ({ id: uid(), t, on: false }));
+  if (u) delete u.bag;
+  return S.bags[id];
 }
 // A sports duffel in colour, drawn for the home button; handles and outline follow the theme's text colour
 const DUFFEL = `<svg viewBox="0 0 48 34" class="duffel" aria-hidden="true"> <path d="M15.5 12.5C15.5 3 32.5 3 32.5 12.5" fill="none" stroke="var(--text)" stroke-width="2.6" stroke-linecap="round"/> <path d="M19 12.5C19 5.8 29 5.8 29 12.5" fill="none" stroke="var(--text)" stroke-width="2.6" stroke-linecap="round"/> <rect x="20.3" y="4.2" width="7.4" height="3.4" rx="1.6" fill="var(--text)"/> <path d="M4 20.5C4 14 8 11.5 14 11.5h20c6 0 10 2.5 10 9v4.5c0 4-2.5 6-6.5 6h-27C6.5 31 4 29 4 25z" fill="#24407a" stroke="var(--text)" stroke-width="1"/> <path d="M14 11.5C8 11.5 4 14 4 20.5V25c0 4 2.5 6 6.5 6h3.5c-2.4-3-3.4-6.6-3.4-9.8 0-4 1.2-7.4 3.4-9.7z" fill="#15171c"/> <path d="M34 11.5c6 0 10 2.5 10 9V25c0 4-2.5 6-6.5 6H34c2.4-3 3.4-6.6 3.4-9.8 0-4-1.2-7.4-3.4-9.7z" fill="#15171c"/> <path d="M14.5 14.6h19" stroke="#aebfe0" stroke-width=".9" stroke-dasharray="1.6 1.3"/> <path d="M16.8 22.6c1.1 3.6 4.8 3.9 8.8 2.1l8.4-5.5-9.2 3.7c-3.5 1.4-6.3 1.3-8-.3z" fill="#fff"/> </svg>`;
@@ -1377,7 +1381,7 @@ const actions = {
   'close-modal': () => closeModal(),
   'bag-open': () => { ui.modal = { type: 'bag' }; renderModal(); },
   'bag-toggle': d => { const i = myBag().find(i => i.id === d.id); if (i) { i.on = !i.on; save(); render(); renderModal(); } },
-  'bag-remove': d => { const u = me(); u.bag = myBag().filter(i => i.id !== d.id); save(); render(); renderModal(); },
+  'bag-remove': d => { S.bags[S.settings.currentUserId] = myBag().filter(i => i.id !== d.id); save(); render(); renderModal(); },
   'bag-add': () => {
     const t = $('#bag-new')?.value.trim(); if (!t) return;
     myBag().push({ id: uid(), t, on: false }); save(); render(); renderModal();
