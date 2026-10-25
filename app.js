@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.0';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.1';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -376,6 +376,7 @@ const ICONS = {
   image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-5-5-9.5 8.5"/>',
   more: '<circle cx="5.5" cy="12" r="1.4" class="fill"/><circle cx="12" cy="12" r="1.4" class="fill"/><circle cx="18.5" cy="12" r="1.4" class="fill"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  bag: '<path d="M4 9.5h16l-1.2 10a1.5 1.5 0 0 1-1.5 1.3H6.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5"/>',
   x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   up: '<path d="m6.5 14.5 5.5-5.5 5.5 5.5"/>',
   note: '<path d="M7 3.5h10a1 1 0 0 1 1 1v16l-6-3.8-6 3.8v-16a1 1 0 0 1 1-1z"/>',
@@ -438,6 +439,17 @@ function ring(done, goal) {
     <div class="txt"><b class="num" dir="ltr">${done}<small style="font-size:20px;opacity:.55">/${goal}</small></b><span>אימונים</span></div></div>`;
 }
 
+/* ---- Gym bag: a checklist of what to bring, kept per user; reset clears the ticks, the items stay ---- */
+const BAG_DEFAULT = ['מגבת', 'בקבוק מים', 'אוזניות', 'מנעול', 'בגדים להחלפה', 'נעלי ספורט'];
+function myBag() {
+  const u = me();
+  if (!u.bag) u.bag = BAG_DEFAULT.map(t => ({ id: uid(), t, on: false }));
+  return u.bag;
+}
+function bagButton() {
+  const left = myBag().filter(i => !i.on).length;
+  return `<button class="bag-btn" data-act="bag-open" aria-label="תיק למכון">${ico('bag')}${left ? `<b class="num">${left}</b>` : ''}</button>`;
+}
 function screenHome() {
   const u = me(), a = myActive(), st = weekStats(), goal = S.settings.weeklyGoal;
   const streak = streakWeeks();
@@ -448,7 +460,7 @@ function screenHome() {
   else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
 
   // Kept short on purpose: the week at a glance and one big button. Plans live in "תוכניות", past workouts in "היסטוריה".
-  return `<div class="topbar">${brand()}<div class="top-end">${avatar(u)}</div></div>
+  return `<div class="topbar"><div class="top-start">${brand()}${bagButton()}</div><div class="top-end">${avatar(u)}</div></div>
     <h1 class="greet">שלום ${esc(u.name)}</h1>
     <div class="hero hero-sm">
       <div class="hero-top">
@@ -1058,6 +1070,17 @@ function renderModal() {
       <div><span class="muted small">מה עשית?</span><div class="chips" style="margin-top:6px">${how.map(([k, l]) => `<button class="chip ${d.how === k ? 'on' : ''}" data-act="past-set" data-f="how" data-v="${k}">${esc(l)}</button>`).join('')}</div></div>
       <button class="btn primary block" data-act="past-start">${ico('edit')}<span>המשך לרישום התרגילים</span></button>
     </div>`;
+  } else if (m.type === 'bag') {
+    const bag = myBag(), done = bag.filter(i => i.on).length;
+    el.innerHTML = `<div class="sheet stack" data-stop>
+      <div class="row between"><h2>${ico('bag')} <span>תיק למכון</span></h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      <p class="muted small" style="margin:0">${bag.length ? (done === bag.length ? 'הכל בתיק ✓' : `${done} מתוך ${bag.length} בתיק`) : 'הרשימה ריקה. הוסף את הפריט הראשון.'}</p>
+      <div class="bag-list">${bag.map(i => `<div class="bag-item ${i.on ? 'on' : ''}">
+        <button class="bag-check tap" data-act="bag-toggle" data-id="${i.id}"><span class="box">${i.on ? ico('check') : ''}</span><span>${esc(i.t)}</span></button>
+        <button class="btn sm ghost" data-act="bag-remove" data-id="${i.id}" aria-label="הסר">${ico('x')}</button></div>`).join('')}</div>
+      <div class="row"><input class="input grow" id="bag-new" placeholder="פריט חדש, למשל: כפפות" autocomplete="off"><button class="btn" data-act="bag-add">${ico('plus')}<span>הוסף</span></button></div>
+      ${done ? `<button class="btn block" data-act="bag-reset">אפס סימונים לאימון הבא</button>` : ''}
+    </div>`;
   } else if (m.type === 'ex-add') {
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>הוספת מכשיר</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
@@ -1350,6 +1373,15 @@ const actions = {
   'go-users': () => go('#/users'),
   'go-workout': () => go('#/workout'),
   'close-modal': () => closeModal(),
+  'bag-open': () => { ui.modal = { type: 'bag' }; renderModal(); },
+  'bag-toggle': d => { const i = myBag().find(i => i.id === d.id); if (i) { i.on = !i.on; save(); render(); renderModal(); } },
+  'bag-remove': d => { const u = me(); u.bag = myBag().filter(i => i.id !== d.id); save(); render(); renderModal(); },
+  'bag-add': () => {
+    const t = $('#bag-new')?.value.trim(); if (!t) return;
+    myBag().push({ id: uid(), t, on: false }); save(); render(); renderModal();
+    $('#bag-new')?.focus();
+  },
+  'bag-reset': () => { myBag().forEach(i => { i.on = false; }); save(); render(); renderModal(); toast('הרשימה מוכנה לאימון הבא'); },
   'confirm-ok': () => { const r = ui.modal.resolve; ui.modal = null; renderModal(); r(true); },
   'confirm-no': () => closeModal(),
   lang: d => { window.setLang?.(d.v); render(); },
@@ -1843,6 +1875,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'new-user-name') actions['create-first-user']();
   if (e.key === 'Enter' && e.target.id === 'add-user-name') actions['add-user']();
   if (e.key === 'Enter' && e.target.id === 'new-gym-name') actions['add-gym']();
+  if (e.key === 'Enter' && e.target.id === 'bag-new') actions['bag-add']();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveNow();
