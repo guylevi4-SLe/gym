@@ -415,6 +415,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .ic { --ic-eq: color-mix(in srgb, var(--text) 50%, transparent); fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .ic * { transform-box: view-box; }
 .ic .f { stroke: var(--accent); stroke-width: 4; fill: none; }
+.ic .far { opacity: .4; }
 .ic .fh { fill: var(--accent); stroke: none; }
 .ic.fig2 .fl { stroke: var(--accent); fill: none; stroke-linecap: round; }
 .ic.fig2 .w52 { stroke-width: 5.2; } .ic.fig2 .w42 { stroke-width: 4.2; } .ic.fig2 .w40 { stroke-width: 4; }
