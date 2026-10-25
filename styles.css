@@ -633,3 +633,22 @@ body.dragging { overscroll-behavior: none; }
 .bag-cat { display: flex; flex-direction: column; gap: 6px; }
 .bag-cat-head h3 { margin: 6px 0 0; font-size: 16px; color: var(--accent); }
 .bag-add .input { min-height: 0; padding-block: 9px; }
+
+/* Gym bag, compact */
+.bag-sheet { gap: 10px; }
+.bag-body section { margin-bottom: 12px; }
+.bag-head { display: flex; align-items: center; gap: 8px; border-bottom: 2px solid color-mix(in srgb, var(--accent) 30%, transparent); padding-bottom: 4px; margin-bottom: 2px; }
+.bag-head h3 { margin: 0; flex: 1; font-size: 18px; color: var(--accent); }
+.bag-head .num { font-size: 15px; }
+.bag-row { display: flex; align-items: center; }
+.bag-row .bag-check { flex: 1; display: flex; align-items: center; gap: 10px; padding: 4px 0; background: none; border: 0; color: var(--text); font: inherit; font-size: 17px; text-align: start; cursor: pointer; }
+.bag-row .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: grid; place-items: center; flex: none; }
+.bag-row .box svg { width: 16px; height: 16px; }
+.bag-row.on .box { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.bag-row.on .t { color: var(--muted); text-decoration: line-through; }
+.bag-x { width: 32px; height: 32px; flex: none; display: grid; place-items: center; background: none; border: 0; color: var(--muted); opacity: .6; padding: 0; cursor: pointer; }
+.bag-x svg { width: 16px; height: 16px; }
+.bag-x.plus { color: var(--accent); opacity: 1; }
+.bag-x.plus svg { width: 20px; height: 20px; }
+.bag-bar { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
+.bag-bar select.input { width: auto; min-height: 0; padding: 8px 12px; }
