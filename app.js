@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.2';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.3';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -376,7 +376,7 @@ const ICONS = {
   image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-5-5-9.5 8.5"/>',
   more: '<circle cx="5.5" cy="12" r="1.4" class="fill"/><circle cx="12" cy="12" r="1.4" class="fill"/><circle cx="18.5" cy="12" r="1.4" class="fill"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
-  bag: '<rect x="2" y="10" width="20" height="10" rx="5"/><path d="M7.5 10c1-5.5 8-5.5 9 0M6 13.5h12"/>',
+  bag: '<rect x="2.5" y="9" width="19" height="11" rx="2.5"/><path d="M9 9V6.5h6V9"/><path d="M6.5 14.8c.8 1.6 2.3 1.9 4.4 1.1L17.5 13" stroke-width="2.2"/>',
   x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   up: '<path d="m6.5 14.5 5.5-5.5 5.5 5.5"/>',
   note: '<path d="M7 3.5h10a1 1 0 0 1 1 1v16l-6-3.8-6 3.8v-16a1 1 0 0 1 1-1z"/>',
