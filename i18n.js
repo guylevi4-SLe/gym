@@ -62,7 +62,7 @@
     'כפיפות בטן במכונה': 'Ab crunch machine', 'הצלבת כבלים': 'Cable crossover',
     'לחיצת חזה במוט': 'Barbell bench press', 'לחיצת חזה במשקולות': 'Dumbbell bench press', 'סקוואט במוט': 'Barbell squat',
     'דדליפט': 'Deadlift', 'חתירה במוט': 'Barbell row', 'חתירה במשקולת יד': 'One-arm dumbbell row',
-    'לחיצת כתפיים במשקולות': 'Dumbbell shoulder press', 'הרחקת ידיים לצדדים עם משקולות': 'Dumbbell lateral raise', 'כפיפת מרפקים במשקולות': 'Dumbbell curl', 'כפיפת מרפקים בשיפוע במשקולות': 'Incline dumbbell curl',
+    'לחיצת כתפיים במשקולות': 'Dumbbell shoulder press', 'הרחקת ידיים לצדדים עם משקולות': 'Dumbbell lateral raise', 'הרחקת כתפיים לצדדים בעמידה עם משקולות': 'Standing dumbbell lateral raise', 'כפיפת מרפקים במשקולות': 'Dumbbell curl', 'כפיפת מרפקים בשיפוע במשקולות': 'Incline dumbbell curl',
     'פטישים': 'Hammer curl', 'פשיטת מרפקים מעל הראש': 'Overhead triceps extension', 'מכרעים (לאנג׳ים)': 'Lunges',
     'גשר ישבן (היפ תראסט)': 'Hip thrust', 'שכיבות סמיכה': 'Push-ups', 'מתח': 'Pull-ups', 'מקבילים': 'Dips',
     'כפיפות בטן': 'Crunches', 'הרמות רגליים בתלייה': 'Hanging leg raise', 'סקוואט משקל גוף': 'Bodyweight squat',
