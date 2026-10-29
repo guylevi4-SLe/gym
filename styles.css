@@ -426,6 +426,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .ic .e { stroke: var(--ic-eq); stroke-width: 3; fill: none; }
 .ic .ef { fill: var(--ic-eq); stroke: none; }
 .ic .soft { opacity: .45; }
+.ic .e.thin { stroke-width: 1.2; } .ic .dash { stroke-dasharray: 2 1.6; }
 .ic .belt { stroke-dasharray: 3 5; animation: ic-belt .5s linear infinite; }
 .ic .sw { animation: ic-swing .7s ease-in-out infinite alternate; }
 .ic .sw.sm { animation-name: ic-swing-sm; animation-duration: .9s; }

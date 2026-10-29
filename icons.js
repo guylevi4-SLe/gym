@@ -231,9 +231,15 @@
       eq: P => [floor, db(P.w1), db(P.w2)].map((x, i) => i ? [x[0] + ' over', x[1]] : x) },
     lateral: { A: V(FRONT, { e1: [25, 27], w1: [24, 35], e2: [39, 27], w2: [40, 35] }), B: V(FRONT, { e1: [19, 19], w1: [10, 19], e2: [45, 19], w2: [54, 19] }),
       eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
-    // Shoulder-led raise: elbows a little bent and leading, hands stay just under the elbows, stop at shoulder height
-    shoulderlateral: { A: V(FRONT, { e1: [25, 27], w1: [26, 35], e2: [39, 27], w2: [38, 35] }), B: V(FRONT, { e1: [18.5, 19.5], w1: [11, 22.5], e2: [45.5, 19.5], w2: [53, 22.5] }), dur: 2.2,
-      eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
+    // Shoulder-led raise in the scapular plane: a three-quarter view (body turned 25°) so the arms visibly rise about
+    // 30° in front of the body line, elbows a little bent and leading, hands just under the elbows, stop at shoulder height
+    shoulderlateral: { A: V(FRONT, { sw: 4.5, hw: 3.6, k1: [28.4, 46], f1: [27.5, 57], k2: [35.6, 46], f2: [36.5, 57], e1: [26.3, 27.2], w1: [24.9, 35.0], e2: [37.4, 27.2], w2: [38.2, 35.0] }), B: V(FRONT, { sw: 4.5, hw: 3.6, k1: [28.4, 46], f1: [27.5, 57], k2: [35.6, 46], f2: [36.5, 57], e1: [19.1, 19.5], w1: [11.5, 21.7], e2: [41.5, 19.5], w2: [45.9, 21.7] }), dur: 2.2,
+      // Corner badge, seen from above (forward = down, the nose shows it): the dashed body line and the arms opening at 30° in front of it
+      eq: P => { const L = P.w1[1] > 30 ? 0.5 : 7.5, c = r1(0.866 * L), d = r1(0.5 * L);
+        return [floor, [...db(P.w1, true)], [...db(P.w2, true)], ['circle', 'e soft thin', 52, 45, 10.5], ['e thin dash', 'M42.5 43 H61.5'],
+          ['fl w28', `M48.6 43 L${r1(48.6 - c)} ${r1(43 + d)}`], ['fl w28', `M55.4 43 L${r1(55.4 + c)} ${r1(43 + d)}`],
+          ['circle', 'fh', r1(48.6 - c), r1(43 + d), 1.3], ['circle', 'fh', r1(55.4 + c), r1(43 + d), 1.3],
+          ['fl w40', 'M48.6 43 H55.4'], ['fh', 'M50.6 44.6 L52 47.4 L53.4 44.6 Z'], ['circle', 'fh', 52, 43, 2.3]]; } },
     lateralmachine: { A: V(FRONT_SEAT, { e1: [25, 31], w1: [28, 35], e2: [39, 31], w2: [36, 35] }), B: V(FRONT_SEAT, { e1: [17, 21], w1: [18, 26], e2: [47, 21], w2: [46, 26] }),
       // Pads press on the outside of the upper arm near the elbow; the levers swing from shoulder-height pivots.
       eq: P => [frontSeat, ['e soft', 'M10 58 V14 M54 58 V14 M10 14 H22 M42 14 H54'],

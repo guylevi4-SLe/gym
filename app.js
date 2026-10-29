@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.12';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.13';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -111,7 +111,7 @@ const CATALOG = [
   ['משקולות', [
     ['לחיצת חזה במוט', 'free', 'חזה'], ['לחיצת חזה במשקולות', 'free', 'חזה'], ['לחיצת חזה בשיפוע במשקולות', 'free', 'חזה'], ['פרפר עם משקולות בשכיבה', 'free', 'חזה'], ['סקוואט במוט', 'free', 'רגליים'], ['סקוואט גביע עם משקולת', 'free', 'רגליים'],
     ['דדליפט', 'free', 'גב'], ['חתירה במוט', 'free', 'גב'], ['חתירה במשקולת יד', 'free', 'גב'],
-    ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקת ידיים לצדדים עם משקולות', 'free', 'כתפיים'], ['הרחקת כתפיים לצדדים בעמידה עם משקולות', 'free', 'כתפיים'],
+    ['לחיצת כתפיים במשקולות', 'free', 'כתפיים'], ['הרחקת כתפיים לצדדים בעמידה עם משקולות', 'free', 'כתפיים'],
     ['כפיפת מרפקים במשקולות', 'free', 'יד קדמית'], ['כפיפת מרפקים בשיפוע במשקולות', 'free', 'יד קדמית'], ['פטישים', 'free', 'יד קדמית'], ['פשיטת מרפקים מעל הראש', 'free', 'יד אחורית'],
     ['מכרעים (לאנג׳ים)', 'free', 'רגליים'], ['גשר ישבן (היפ תראסט)', 'free', 'ישבן'],
   ]],
@@ -122,7 +122,8 @@ const CATALOG = [
     ['גליל שחרור (פומרולר)', 'stretch', 'כל הגוף'], ['מתיחת רגליים', 'stretch', 'רגליים'], ['מתיחת גב וכתפיים', 'stretch', 'גב'],
   ]],
 ];
-const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשיטת ירך לאחור במכונה (Glute Kickback)', 'הרחקה לצדדים': 'הרחקת ידיים לצדדים עם משקולות' };
+// The two lateral raises became one: the old names move to the shoulder-led raise (only when that name isn't taken, so nothing is merged or lost)
+const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשיטת ירך לאחור במכונה (Glute Kickback)', 'הרחקה לצדדים': 'הרחקת כתפיים לצדדים בעמידה עם משקולות', 'הרחקת ידיים לצדדים עם משקולות': 'הרחקת כתפיים לצדדים בעמידה עם משקולות' };
 const CATALOG_TOPIC = Object.fromEntries(CATALOG.flatMap(([t, items]) => items.map(([n]) => [n, t])));
 const MUSCLE_TOPIC = { 'רגליים': 'רגליים', 'ישבן': 'רגליים', 'גב': 'גב', 'חזה': 'חזה', 'כתפיים': 'כתפיים', 'יד קדמית': 'ידיים', 'יד אחורית': 'ידיים', 'בטן': 'בטן / ליבה', 'אירובי': 'אירובי / חימום' };
 function topicOf(ex) {
@@ -1235,7 +1236,8 @@ function route() {
 let lastRoute = '';
 function render() {
   // Built-in names that were renamed after people already added them
-  for (const e of S.exercises) if (RENAMED[e.name]) { e.name = RENAMED[e.name]; save(); }
+  for (const e of S.exercises) if (RENAMED[e.name] && !S.exercises.some(x => x.name === RENAMED[e.name])) { e.name = RENAMED[e.name]; save(); }
+  for (const e of S.exercises) if (RENAMED[e.baseName]) { e.baseName = RENAMED[e.baseName]; save(); }
   const app = $('#app');
   if (ui.cloudScreen) {
     app.innerHTML = cloudScreen();
