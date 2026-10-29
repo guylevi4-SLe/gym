@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.15';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.16';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -868,9 +868,7 @@ function screenRoutineEdit(id) {
   if (id !== 'new' && !r) { go('#/routines'); return ''; }
   const draft = ui.draft || (ui.draft = r ? { name: r.name, exerciseIds: [...r.exerciseIds], alts: JSON.parse(JSON.stringify(r.alts || {})), coverId: r.coverId } : { name: '', exerciseIds: [], alts: {} });
   draft.alts = draft.alts || {};
-  const used = new Set([...draft.exerciseIds, ...Object.values(draft.alts).flat()]);
-  const altFor = ui.rAltFor != null ? exById(draft.exerciseIds[ui.rAltFor]) : null;
-  const sorted = [...S.exercises].sort(byName);
+  const sorted = S.exercises;
   const cover = routineKeyEx(draft);
   return `${topbar(r ? 'עריכת תוכנית' : 'תוכנית חדשה', true)}
     <label class="field"><span>שם התוכנית</span>
@@ -892,12 +890,9 @@ function screenRoutineEdit(id) {
       <div class="muted small">${ico('last')} <span>${esc(lastLine(ex))}</span></div>
       ${(draft.alts[xid] || []).filter(exById).map(aid => `<div class="list-item alt-row"><span class="slot-or">או</span>${thumb(exById(aid))}<div class="grow">${esc(exById(aid).name)}</div>
         <button class="btn sm danger" data-act="r-alt-remove" data-i="${i}" data-id="${aid}" aria-label="הסר">${ico('x')}</button></div>`).join('')}
-      <button class="btn sm ${ui.rAltFor === i ? 'primary' : ''}" data-act="r-alt-pick" data-i="${i}">${ico('plus')}<span>אפשרות נוספת לתרגיל הזה</span></button>
-    </div>` : ''; }).join('') || '<p class="muted">בחר תרגילים מהרשימה למטה</p>'}
-    <h2 id="r-add-head">${altFor ? `אפשרות נוספת ל${esc(altFor.name)}` : 'הוסף תרגיל'}</h2>
-    ${altFor ? `<p class="muted small" style="margin-top:-6px">באימון תבחר אחד מהם. <button class="link" data-act="r-alt-pick" data-i="${ui.rAltFor}">ביטול</button></p>` : ''}
-    ${sorted.length ? splitChips('r-split', ui.rSplit) : ''}
-    ${sorted.length ? `<div class="chips">${sorted.filter(e => !used.has(e.id) && (!ui.rSplit || splitOf(e) === ui.rSplit)).map(e => `<button class="chip" data-act="r-add" data-id="${e.id}">${ico('plus')}<span>${esc(e.name)}</span></button>`).join('')}</div>`
+      <button class="btn sm" data-act="r-alt-pick" data-i="${i}">${ico('plus')}<span>אפשרות נוספת לתרגיל הזה</span></button>
+    </div>` : ''; }).join('') || '<p class="muted">לחץ על "הוסף תרגיל" כדי לבחור תרגילים</p>'}
+    ${sorted.length ? `<button class="btn block big" style="margin-top:12px" data-act="r-pick-open">${ico('plus')}<span>הוסף תרגיל</span></button>`
       : `<p class="muted">קודם צריך להוסיף מכשירים בלשונית "מכשירים".</p>`}
     <div class="stack" style="margin-top:22px">
       <button class="btn primary big" data-act="save-routine" data-id="${r ? r.id : ''}">שמור</button>
@@ -1034,6 +1029,25 @@ function renderModal() {
       <div class="btns" style="margin-top:12px">
         <button class="btn" data-act="open-catalog">${ico('list')}<span>מהרשימה</span></button>
         <button class="btn" data-act="new-ex-from-workout">${ico('plus')}<span>חדש</span></button>
+      </div>
+    </div>`;
+  } else if (m.type === 'r-pick') {
+    // Picking exercises for a routine (or other options for one step): small tiles, three in a row, tap to select
+    const dr = ui.draft, base = m.alt != null ? exById(dr.exerciseIds[m.alt]) : null;
+    const used = new Set([...dr.exerciseIds, ...Object.values(dr.alts || {}).flat()]);
+    const f = (m.filter || '').trim(), n = m.picked.length;
+    const list = S.exercises.filter(e => !used.has(e.id) && (!f || nameHas(e, f))).sort(byName);
+    el.innerHTML = `<div class="sheet" data-stop>
+      <div class="row between"><h2>${base ? `אפשרות נוספת ל${esc(base.name)}` : 'הוסף תרגיל'}</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      ${base ? '<p class="muted small" style="margin-top:-4px">באימון תבחר אחד מהם.</p>' : ''}
+      <label class="search" style="display:block;margin-bottom:10px">${ico('search')}<input class="input" data-in="pick-filter" placeholder="חיפוש" value="${esc(m.filter || '')}"></label>
+      ${byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid grid3">${l.map(ex => `
+        <button class="tile mini tap ${m.picked.includes(ex.id) ? 'on' : ''}" data-act="r-pick-toggle" data-id="${ex.id}">
+          ${thumb(ex)}${m.picked.includes(ex.id) ? `<span class="pick-check">${ico('check')}</span>` : ''}
+          <span class="name">${esc(ex.name)}</span>
+        </button>`).join('')}</div>`).join('') || `<div class="empty">${f ? 'לא נמצא' : 'כל התרגילים כבר בתוכנית'}</div>`}
+      <div style="position:sticky;bottom:0;padding-top:12px;background:var(--bg)">
+        <button class="btn primary big" data-act="r-pick-add" ${n ? '' : 'disabled'}>${n ? `הוסף ${n}` : 'בחר תרגילים'}</button>
       </div>
     </div>`;
   } else if (m.type === 'catalog') {
@@ -1742,17 +1756,20 @@ const actions = {
     save(); render();
   },
 
-  'r-add': d => {
-    const dr = ui.draft, base = ui.rAltFor != null ? dr.exerciseIds[ui.rAltFor] : null;
-    if (base) { (dr.alts[base] = dr.alts[base] || []).push(d.id); ui.rAltFor = null; } else dr.exerciseIds.push(d.id);
-    render();
+  'r-pick-open': () => { ui.modal = { type: 'r-pick', alt: null, picked: [], filter: '' }; renderModal(); },
+  'r-pick-toggle': d => {
+    const p = ui.modal.picked, i = p.indexOf(d.id);
+    if (i >= 0) p.splice(i, 1); else p.push(d.id);
+    keepSheetScroll(renderModal);
+  },
+  'r-pick-add': () => {
+    const dr = ui.draft, m = ui.modal, base = m.alt != null ? dr.exerciseIds[m.alt] : null;
+    if (base) (dr.alts[base] = dr.alts[base] || []).push(...m.picked); else dr.exerciseIds.push(...m.picked);
+    ui.modal = null; renderModal(); render();
   },
   'r-cover': d => { ui.draft.coverId = d.id; render(); },
   'r-remove': d => { const id = ui.draft.exerciseIds.splice(+d.i, 1)[0]; delete ui.draft.alts?.[id]; ui.rAltFor = null; render(); },
-  'r-alt-pick': d => {
-    ui.rAltFor = ui.rAltFor === +d.i ? null : +d.i; render();
-    if (ui.rAltFor != null) requestAnimationFrame(() => $('#r-add-head')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-  },
+  'r-alt-pick': d => { ui.modal = { type: 'r-pick', alt: +d.i, picked: [], filter: '' }; renderModal(); },
   'r-alt-remove': d => { const base = ui.draft.exerciseIds[+d.i]; ui.draft.alts[base] = ui.draft.alts[base].filter(x => x !== d.id); render(); },
   'r-move': d => {
     ui.rAltFor = null;
