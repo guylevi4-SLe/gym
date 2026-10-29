@@ -58,6 +58,7 @@
     'חתירה במשקולת יד': T('lats midback', 'biceps rdelt'),
     'לחיצת כתפיים במשקולות': T('fdelt sdelt', 'triceps traps'),
     'הרחקת ידיים לצדדים עם משקולות': T('sdelt', 'traps'),
+    'הרחקת כתפיים לצדדים בעמידה עם משקולות': T('sdelt', 'traps'),
     'כפיפת מרפקים במשקולות': T('biceps', 'forearms'),
     'כפיפת מרפקים בשיפוע במשקולות': T('biceps', 'forearms'),
     'כפיפת מרפקים בכבל': T('biceps', 'forearms'),
