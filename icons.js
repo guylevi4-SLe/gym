@@ -232,7 +232,7 @@
     lateral: { A: V(FRONT, { e1: [25, 27], w1: [24, 35], e2: [39, 27], w2: [40, 35] }), B: V(FRONT, { e1: [19, 19], w1: [10, 19], e2: [45, 19], w2: [54, 19] }),
       eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
     // Shoulder-led raise: elbows a little bent and leading, hands stay just under the elbows, stop at shoulder height
-    shoulderlateral: { A: V(FRONT, { e1: [24, 27], w1: [25, 34], e2: [40, 27], w2: [39, 34] }), B: V(FRONT, { e1: [20, 18], w1: [15, 25], e2: [44, 18], w2: [49, 25] }), dur: 2.2,
+    shoulderlateral: { A: V(FRONT, { e1: [25, 27], w1: [26, 35], e2: [39, 27], w2: [38, 35] }), B: V(FRONT, { e1: [18.5, 19.5], w1: [11, 22.5], e2: [45.5, 19.5], w2: [53, 22.5] }), dur: 2.2,
       eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
     lateralmachine: { A: V(FRONT_SEAT, { e1: [25, 31], w1: [28, 35], e2: [39, 31], w2: [36, 35] }), B: V(FRONT_SEAT, { e1: [17, 21], w1: [18, 26], e2: [47, 21], w2: [46, 26] }),
       // Pads press on the outside of the upper arm near the elbow; the levers swing from shoulder-height pivots.
