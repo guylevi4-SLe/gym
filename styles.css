@@ -652,3 +652,8 @@ body.dragging { overscroll-behavior: none; }
 .bag-x.plus svg { width: 20px; height: 20px; }
 .bag-bar { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
 .bag-bar select.input { width: auto; min-height: 0; padding: 8px 12px; }
+
+/* Technique cue under the drawing of a ready-made exercise */
+.tip { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 600; line-height: 1.4; }
+.tip .i { flex: none; width: 20px; height: 20px; color: var(--accent); margin-top: 1px; }
+.tip-line { color: var(--accent); font-weight: 600; }

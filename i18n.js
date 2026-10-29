@@ -46,6 +46,7 @@
     'אין כאן מכשירים בחדר הכושר הזה': 'No machines for this at this gym', 'כל המכשירים שלי': 'All my machines',
     'חזה · כתפיים · יד אחורית': 'Chest · shoulders · triceps', 'גב · יד קדמית': 'Back · biceps', 'רגליים · ישבן': 'Legs · glutes',
     'עוד אין מכשירים. הוסף אותם בלשונית "מכשירים".': 'No machines yet. Add them in the "Machines" tab.',
+    'הידיים עולות בזווית קלה קדימה, בערך 30 מעלות מקו הגוף, מרפקים מובילים, עד גובה הכתפיים': 'Arms rise slightly forward, about 30° in front of the body line, elbows leading, up to shoulder height',
     'בתוכניות שלי': 'In my routines', 'לחץ על תוכנית כדי להוסיף אליה את התרגיל, או להוציא אותו ממנה.': 'Tap a routine to add this exercise to it, or take it out.',
     'כל הימים': 'All days', 'מתאים ליום': 'Workout day', 'ללא': 'None', 'החזר לאוטומטי': 'Back to automatic',
     'נקבע אוטומטית לפי השריר. אפשר לשנות.': 'Set automatically from the muscle. You can change it.', 'אימון לפי יום': 'Workout by day',
