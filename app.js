@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.8';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.9';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -173,6 +173,8 @@ const FOCUSES = {
 };
 // A routine step can have other options (the same exercise on a machine or with dumbbells): r.alts = { stepId: [otherIds] }
 const routineSlots = r => r.exerciseIds.filter(exById).map(id => [id, ...(r.alts?.[id] || [])].map(exById).filter(Boolean));
+// In a routine as a step or as one of a step's options
+const inRoutine = (r, id) => r.exerciseIds.includes(id) || Object.values(r.alts || {}).some(v => v.includes(id));
 const focusRoutine = f => /^r-/.test(f || '') ? S.routines.find(r => r.id === f.slice(2)) : null;
 const focusName = f => focusRoutine(f)?.name || FOCUSES[f]?.label || '';
 // The machines of a focus at a gym: a routine keeps its order, the rest go by topic and name
@@ -764,6 +766,11 @@ function screenExercise(id) {
       <div class="chips">${[...Object.entries(SPLITS), ['none', 'ללא']].map(([k, l]) => `<button class="chip ${(splitOf(ex) || 'none') === k ? 'on' : ''}" data-act="ex-split-set" data-id="${ex.id}" data-v="${k}">${l}</button>`).join('')}</div>
       ${ex.split ? `<button class="link small" style="margin-top:6px" data-act="ex-split-set" data-id="${ex.id}" data-v="">החזר לאוטומטי</button>` : `<div class="muted small" style="margin-top:6px">נקבע אוטומטית לפי השריר. אפשר לשנות.</div>`}
     </div>
+    ${(() => { const rs = S.routines.filter(r => r.userId === S.settings.currentUserId); return `<div class="field"><span class="label">${ico('list')} <span>בתוכניות שלי</span></span>
+      ${rs.length ? `<div class="chips">${rs.map(r => `<button class="chip ${inRoutine(r, ex.id) ? 'on' : ''}" data-act="ex-routine-toggle" data-id="${ex.id}" data-r="${r.id}">${inRoutine(r, ex.id) ? ico('check') : ico('plus')}<span>${esc(r.name)}</span></button>`).join('')}</div>
+        <div class="muted small" style="margin-top:6px">לחץ על תוכנית כדי להוסיף אליה את התרגיל, או להוציא אותו ממנה.</div>`
+      : `<button class="btn sm" data-act="go" data-to="#/routine/new">${ico('plus')}<span>תוכנית חדשה</span></button>`}
+    </div>`; })()}
     ${(() => { const last = lastPerformance(ex.id); return `<div class="card field"><span class="label">${ico('last')} <span>הפעם האחרונה</span>${last ? ` <span class="muted">· ${esc(fmtDate(last.date) + lastGym(ex, last))}</span>` : ''}</span>
       ${last ? `<div class="chips" style="margin-top:4px">${last.sets.map((st, j) => `<span class="chip last-set"><span class="muted">${j + 1}</span><b>${esc(setText(st, kind))}</b></span>`).join('')}</div>`
         : '<div class="muted">עוד לא עשית את התרגיל הזה</div>'}
@@ -1714,6 +1721,17 @@ const actions = {
     if (!await ask(`למחוק את "${ex.name}"? ההיסטוריה שלו תישאר באימונים שכבר נשמרו.`)) return;
     await removeExercise(d.id);
     ui.draft = null; save(); go('#/exercises');
+  },
+  'ex-routine-toggle': d => {
+    const r = S.routines.find(r => r.id === d.r);
+    if (!r) return;
+    if (inRoutine(r, d.id)) {
+      r.exerciseIds = r.exerciseIds.filter(id => id !== d.id);
+      if (r.alts) { delete r.alts[d.id]; for (const k in r.alts) { r.alts[k] = r.alts[k].filter(id => id !== d.id); if (!r.alts[k].length) delete r.alts[k]; } }
+      if (r.coverId === d.id) delete r.coverId;
+      toast(`הוצא מהתוכנית: ${r.name}`);
+    } else { r.exerciseIds.push(d.id); toast(`נוסף לתוכנית: ${r.name} ✓`); }
+    save(); render();
   },
   'ex-gym-toggle': d => {
     const ex = exById(d.id), ids = ex.gymIds = ex.gymIds || [], i = ids.indexOf(d.gym);
