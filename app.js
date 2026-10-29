@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.14';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.15';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -768,10 +768,6 @@ function screenExercise(id) {
     ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
       <div class="chips">${S.gyms.map(g => `<button class="chip ${(ex.gymIds || []).includes(g.id) ? 'on' : ''}" data-act="ex-gym-toggle" data-id="${ex.id}" data-gym="${g.id}">${ico('pin')}<span>${esc(g.name)}</span></button>`).join('')}</div>
     </div>` : ''}
-    <div class="field"><span class="label">${ico('plan')} <span>מתאים ליום</span></span>
-      <div class="chips">${[...Object.entries(SPLITS), ['none', 'ללא']].map(([k, l]) => `<button class="chip ${(splitOf(ex) || 'none') === k ? 'on' : ''}" data-act="ex-split-set" data-id="${ex.id}" data-v="${k}">${l}</button>`).join('')}</div>
-      ${ex.split ? `<button class="link small" style="margin-top:6px" data-act="ex-split-set" data-id="${ex.id}" data-v="">החזר לאוטומטי</button>` : `<div class="muted small" style="margin-top:6px">נקבע אוטומטית לפי השריר. אפשר לשנות.</div>`}
-    </div>
     ${(() => { const rs = S.routines.filter(r => r.userId === S.settings.currentUserId); return `<div class="field"><span class="label">${ico('list')} <span>בתוכניות שלי</span></span>
       ${rs.length ? `<div class="chips">${rs.map(r => `<button class="chip ${inRoutine(r, ex.id) ? 'on' : ''}" data-act="ex-routine-toggle" data-id="${ex.id}" data-r="${r.id}">${inRoutine(r, ex.id) ? ico('check') : ico('plus')}<span>${esc(r.name)}</span></button>`).join('')}</div>
         <div class="muted small" style="margin-top:6px">לחץ על תוכנית כדי להוסיף אליה את התרגיל, או להוציא אותו ממנה.</div>`
