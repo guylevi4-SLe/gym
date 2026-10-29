@@ -231,6 +231,9 @@
       eq: P => [floor, db(P.w1), db(P.w2)].map((x, i) => i ? [x[0] + ' over', x[1]] : x) },
     lateral: { A: V(FRONT, { e1: [25, 27], w1: [24, 35], e2: [39, 27], w2: [40, 35] }), B: V(FRONT, { e1: [19, 19], w1: [10, 19], e2: [45, 19], w2: [54, 19] }),
       eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
+    // Shoulder-led raise: elbows a little bent and leading, hands stay just under the elbows, stop at shoulder height
+    shoulderlateral: { A: V(FRONT, { e1: [24, 27], w1: [25, 34], e2: [40, 27], w2: [39, 34] }), B: V(FRONT, { e1: [20, 18], w1: [15, 25], e2: [44, 18], w2: [49, 25] }), dur: 2.2,
+      eq: P => [floor, [...db(P.w1, true)], [...db(P.w2, true)]] },
     lateralmachine: { A: V(FRONT_SEAT, { e1: [25, 31], w1: [28, 35], e2: [39, 31], w2: [36, 35] }), B: V(FRONT_SEAT, { e1: [17, 21], w1: [18, 26], e2: [47, 21], w2: [46, 26] }),
       // Pads press on the outside of the upper arm near the elbow; the levers swing from shoulder-height pivots.
       eq: P => [frontSeat, ['e soft', 'M10 58 V14 M54 58 V14 M10 14 H22 M42 14 H54'],
@@ -368,7 +371,7 @@
     [/פרפר הפוך|אחורי כתף/, 'reversefly'], [/פרפר|pec/i, 'pecdeck'], [/הצלבת כבלים|קרוס/, 'crossover'],
     [/פולי עליון|פולי/, 'pulldown'], [/חתירה בכבל/, 'cablerow'], [/חתירה במכונה/, 'machinerow'], [/חתירה (ב|עם )משקולת/, 'dbrow'], [/חתירה/, 'bentrow'],
     [/פשיטת גב|היפראקסטנשן/, 'backext'], [/דדליפט/, 'deadlift'],
-    [/לחיצת כתפיים במכונה/, 'shoulderpress'], [/לחיצת כתפיים/, 'dbpress'], [/הרחקת כתפיים במכונה/, 'lateralmachine'], [/הרחקה לצדדים|הרחקת ידיים|הרחקת כתפיים/, 'lateral'],
+    [/לחיצת כתפיים במכונה/, 'shoulderpress'], [/לחיצת כתפיים/, 'dbpress'], [/הרחקת כתפיים במכונה/, 'lateralmachine'], [/הרחקת כתפיים לצדדים/, 'shoulderlateral'], [/הרחקה לצדדים|הרחקת ידיים|הרחקת כתפיים/, 'lateral'],
     [/כפיפת מרפקים במכונה|פריצ׳ר|פריצר/, 'preacher'], [/פטיש/, 'hammer'], [/כפיפת מרפקים|בייספס/, 'curl'],
     [/מעל הראש.*(בכבל|בפולי)|(בכבל|בפולי).*מעל הראש/, 'cableohext'], [/מעל הראש/, 'ohext'], [/פשיטת מרפקים|טרייספס/, 'pushdown'], [/מקבילים עם סיוע/, 'assisteddips'], [/מקבילים/, 'dips'],
     [/לחיצת רגליים/, 'legpress'], [/פשיטת ברכיים/, 'legext'], [/כפיפת ברכיים בשכיבה/, 'legcurl'], [/כפיפת ברכיים/, 'seatedcurl'],
@@ -384,7 +387,7 @@
     [/reverse fly|rear delt/i, 'reversefly'], [/dumbbell fly|fly.*dumbbell/i, 'dbfly'], [/fly|flye/i, 'pecdeck'], [/crossover/i, 'crossover'],
     [/pull.?down/i, 'pulldown'], [/cable row|seated row/i, 'cablerow'], [/machine row/i, 'machinerow'], [/dumbbell row|one.arm row/i, 'dbrow'], [/row/i, 'bentrow'],
     [/back ext|hyperext/i, 'backext'], [/deadlift/i, 'deadlift'],
-    [/shoulder press machine|machine shoulder/i, 'shoulderpress'], [/shoulder press|overhead press|military/i, 'dbpress'], [/lateral raise machine/i, 'lateralmachine'], [/lateral|side raise/i, 'lateral'],
+    [/shoulder press machine|machine shoulder/i, 'shoulderpress'], [/shoulder press|overhead press|military/i, 'dbpress'], [/lateral raise machine/i, 'lateralmachine'], [/standing.*lateral/i, 'shoulderlateral'], [/lateral|side raise/i, 'lateral'],
     [/preacher|curl machine/i, 'preacher'], [/hammer/i, 'hammer'], [/cable overhead|overhead cable/i, 'cableohext'], [/overhead (triceps|ext)/i, 'ohext'], [/push.?down|triceps/i, 'pushdown'],
     [/assisted dip/i, 'assisteddips'], [/dip/i, 'dips'], [/leg press/i, 'legpress'], [/leg ext/i, 'legext'], [/lying leg curl/i, 'legcurl'], [/leg curl|hamstring/i, 'seatedcurl'],
     [/adduct/i, 'adduct'], [/abduct/i, 'abduct'], [/calf/i, 'calf'], [/smith/i, 'smith'], [/goblet/i, 'goblet'], [/bodyweight squat|air squat/i, 'bwsquat'], [/squat/i, 'squat'],
