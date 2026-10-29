@@ -207,6 +207,9 @@
       eq: P => [seat, ['e', 'M12 50 L5 28 M5 28 L3 8 H9'], line([9, 8], [P.w[0] - 1, P.w[1] - 3]), ['e over', `M${P.w[0] - 3} ${P.w[1] - 3} L${P.w[0] + 3} ${P.w[1] + 3}`]] },
     dbincline: { A: V(SEAT, { n: [11, 32], h: [8, 26], e: [14, 40], w: [21, 31] }), B: V(SEAT, { n: [11, 32], h: [8, 26], e: [22, 26], w: [31, 18] }),
       eq: P => [...farArm(P, [-3, -1]), seat, ['e', 'M12 50 L4 26'], db(P.w1)] },
+    // Seated on a bench set to about 65°, arms hanging behind the body; only the forearm moves
+    inclinecurl: { A: V(SEAT, { n: [11, 32], h: [8, 26], e: [10, 41], w: [11, 50] }), B: V(SEAT, { n: [11, 32], h: [8, 26], e: [10, 41], w: [17, 33] }),
+      eq: P => [...farArm(P, [-3, -1]), seat, ['e', 'M12 50 L4 26'], db(P.w1, true)] },
     pecdeck: { A: V(FRONT_SEAT, { e1: [18, 22], w1: [18, 12], e2: [46, 22], w2: [46, 12] }), B: V(FRONT_SEAT, { e1: [26, 27], w1: [29, 17], e2: [38, 27], w2: [35, 17] }),
       eq: P => [frontSeat, ['e', 'M8 6 H56'], line([P.w1[0], P.w1[1] - 2], [P.e1[0], P.e1[1] + 2], 'e over thick'), line([P.w2[0], P.w2[1] - 2], [P.e2[0], P.e2[1] + 2], 'e over thick')] },
     reversefly: { A: V(FRONT_SEAT, { e1: [27, 25], w1: [30, 24], e2: [37, 25], w2: [34, 24] }), B: V(FRONT_SEAT, { e1: [19, 21], w1: [10, 21], e2: [45, 21], w2: [54, 21] }),
@@ -354,6 +357,7 @@
   // First matching keyword wins, so the specific names come before the general ones.
   const RULES = [
     [/כפיפת מרפקים.*(בכבל|בפולי)|cable curl|curl.*cable/i, 'cablecurl'],
+    [/כפיפת מרפקים.*שיפוע|incline.*curl|curl.*incline/i, 'inclinecurl'],
     [/פרפר.*(משקול|בשכיבה)/, 'dbfly'],
     [/לחיצת רגליים בישיבה|seated leg press/i, 'seatedlegpress'],
     [/פשיטת ירך לאחור|בעיטה לאחור|קיקבק|kickback/i, 'kickback'],

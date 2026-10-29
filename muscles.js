@@ -59,6 +59,7 @@
     'לחיצת כתפיים במשקולות': T('fdelt sdelt', 'triceps traps'),
     'הרחקת ידיים לצדדים עם משקולות': T('sdelt', 'traps'),
     'כפיפת מרפקים במשקולות': T('biceps', 'forearms'),
+    'כפיפת מרפקים בשיפוע במשקולות': T('biceps', 'forearms'),
     'כפיפת מרפקים בכבל': T('biceps', 'forearms'),
     'פטישים': T('biceps forearms'),
     'פשיטת מרפקים מעל הראש': T('triceps'),
