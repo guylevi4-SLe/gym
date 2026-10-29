@@ -46,6 +46,7 @@
     'אין כאן מכשירים בחדר הכושר הזה': 'No machines for this at this gym', 'כל המכשירים שלי': 'All my machines',
     'חזה · כתפיים · יד אחורית': 'Chest · shoulders · triceps', 'גב · יד קדמית': 'Back · biceps', 'רגליים · ישבן': 'Legs · glutes',
     'עוד אין מכשירים. הוסף אותם בלשונית "מכשירים".': 'No machines yet. Add them in the "Machines" tab.',
+    'בתוכניות שלי': 'In my routines', 'לחץ על תוכנית כדי להוסיף אליה את התרגיל, או להוציא אותו ממנה.': 'Tap a routine to add this exercise to it, or take it out.',
     'כל הימים': 'All days', 'מתאים ליום': 'Workout day', 'ללא': 'None', 'החזר לאוטומטי': 'Back to automatic',
     'נקבע אוטומטית לפי השריר. אפשר לשנות.': 'Set automatically from the muscle. You can change it.', 'אימון לפי יום': 'Workout by day',
     'לחיצת רגליים בישיבה (Seated Leg Press)': 'Seated leg press', 'פשיטת ירך לאחור במכונה (Glute Kickback)': 'Glute kickback machine', 'גליל שחרור (פומרולר)': 'Foam roller', 'מתיחת רגליים': 'Leg stretch', 'מתיחת גב וכתפיים': 'Back & shoulder stretch',
@@ -195,6 +196,8 @@
 
   const plural = (n, one, many) => `${n} ${+n === 1 ? one : many}`;
   const PATTERNS = [
+    [/^נוסף לתוכנית: (.+) ✓$/, n => `Added to ${n} ✓`],
+    [/^הוצא מהתוכנית: (.+)$/, n => `Removed from ${n}`],
     [/^אפשרות נוספת ל(.+)$/, n => `Another option for ${tr(n)}`],
     [/^(.+)\. ההערה תופיע אוטומטית כשתגיע למכשיר הזה שוב.$/, n => `${tr(n)}. This note will show up automatically next time you get to this machine.`],
     [/^שלום (.+?)(!?)$/, (n, x) => `Hi ${n}${x}`],
