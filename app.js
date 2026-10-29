@@ -122,6 +122,9 @@ const CATALOG = [
     ['גליל שחרור (פומרולר)', 'stretch', 'כל הגוף'], ['מתיחת רגליים', 'stretch', 'רגליים'], ['מתיחת גב וכתפיים', 'stretch', 'גב'],
   ]],
 ];
+// A short technique cue for ready-made exercises whose drawing can't show it, shown on the machine page and in the workout
+const TIPS = { 'הרחקת כתפיים לצדדים בעמידה עם משקולות': 'הידיים עולות בזווית קלה קדימה, בערך 30 מעלות מקו הגוף, מרפקים מובילים, עד גובה הכתפיים' };
+const tipOf = ex => TIPS[ex.baseName || ex.name] || '';
 // The two lateral raises became one: the old names move to the shoulder-led raise (only when that name isn't taken, so nothing is merged or lost)
 const RENAMED = { 'בעיטה לאחור במכונה (Glute Kickback)': 'פשיטת ירך לאחור במכונה (Glute Kickback)', 'הרחקה לצדדים': 'הרחקת כתפיים לצדדים בעמידה עם משקולות', 'הרחקת ידיים לצדדים עם משקולות': 'הרחקת כתפיים לצדדים בעמידה עם משקולות' };
 const CATALOG_TOPIC = Object.fromEntries(CATALOG.flatMap(([t, items]) => items.map(([n]) => [n, t])));
@@ -682,6 +685,7 @@ function entryCard(e, i) {
       ${thumb(ex)}
       <div class="grow">
         <b>${esc(ex.name)}</b>
+        ${tipOf(ex) ? `<div class="last tip-line">${ico('bolt')}<span>${esc(tipOf(ex))}</span></div>` : ''}
         <div class="last">${ico('last')}<span>${last ? `בפעם הקודמת (${fmtDate(last.date)}${esc(lastGym(ex, last))}): ${esc(setsSummary(last.sets, kind))}` : 'פעם ראשונה על התרגיל הזה'}</span></div>
         ${myTarget(ex) && targetText(myTarget(ex), kind) ? `<div class="last">${ico('target')}<span>יעד: ${esc(targetText(myTarget(ex), kind))}</span></div>` : ''}
         ${note ? `<button class="note note-btn" data-act="note-edit" data-id="${ex.id}">${ico('note')}<span>${esc(note)}</span></button>`
@@ -758,6 +762,7 @@ function screenExercise(id) {
   }
   return `${topbar(esc(ex.name), true)}
     ${thumb(ex, 'lg')}
+    ${tipOf(ex) ? `<div class="tip">${ico('bolt')}<span>${esc(tipOf(ex))}</span></div>` : ''}
     <div class="row" style="margin:10px 0"><span class="tag">${TYPES[ex.type].label}</span>${ex.muscle ? `<span class="tag accent">${esc(ex.muscle)}</span>` : ''}</div>
     ${window.musclesCard ? musclesCard(ex) : ''}
     ${S.gyms.length ? `<div class="field"><span class="label">${ico('pin')} <span>באיזה חדר כושר יש את זה? (בלי סימון = בכל מקום)</span></span>
