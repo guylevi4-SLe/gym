@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.23';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.24';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -833,12 +833,12 @@ function screenExerciseEdit(id) {
 // The exercise that best represents a routine on its tile: the first real strength step, not the warm-up.
 const routineKeyEx = r => { const all = r.exerciseIds.map(exById).filter(Boolean); return all.find(ex => ex.id === r.coverId) || all.find(ex => !['cardio', 'stretch'].includes(ex.type)) || all[0]; };
 
-// A routine as a tile: its name and its main exercise (not on the routines screen). 'r-tile' tiles can be dragged to reorder
+// A routine as a tile: its main exercise's drawing, its name and how many exercises. 'r-tile' tiles can be dragged to reorder
 function routineTile(r, to, cls) {
   const k = routineKeyEx(r), n = r.exerciseIds.filter(exById).length;
   return `<div class="tile tap ${cls}" data-rid="${r.id}" data-act="go" data-to="${to}">
     ${k ? thumb(k) : `<div class="thumb">${ico('plan')}</div>`}
-    <div class="body"><div class="name">${esc(r.name)}</div>${k && cls !== 'r-tile' ? `<span class="muted small r-key">${esc(k.name)}</span>` : ''}<span class="muted small">${n} תרגילים</span></div>
+    <div class="body"><div class="name">${esc(r.name)}</div><span class="muted small">${n} תרגילים</span></div>
   </div>`;
 }
 function screenRoutines() {
