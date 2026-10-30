@@ -579,7 +579,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .m-clock { gap: 10px; padding: 0 14px; }
 .timed-fields .input.by-clock { background: var(--surface-2); color: var(--accent); pointer-events: none; }
 /* Routine steps with options */
-.slot { border: 2px solid color-mix(in srgb, var(--accent) 60%, var(--border)); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); border-radius: calc(var(--radius) + 6px); padding: 10px; margin: 16px 0; }
+.slot { border: 1.5px solid color-mix(in srgb, var(--accent) 40%, var(--border)); background: color-mix(in srgb, var(--accent) 4%, var(--bg)); border-radius: calc(var(--radius) + 6px); padding: 10px; margin: 16px 0; }
 .slot .card + .card, .slot .card { margin-top: 0; }
 .slot-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--accent); margin: 0 4px 8px; }
 .slot-or { display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--muted); margin: 6px 0; }
