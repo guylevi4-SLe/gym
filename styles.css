@@ -579,7 +579,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .m-clock { gap: 10px; padding: 0 14px; }
 .timed-fields .input.by-clock { background: var(--surface-2); color: var(--accent); pointer-events: none; }
 /* Routine steps with options */
-.slot { border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: calc(var(--radius) + 6px); padding: 10px; margin-top: 10px; }
+.slot { border: 2px solid color-mix(in srgb, var(--accent) 60%, var(--border)); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); border-radius: calc(var(--radius) + 6px); padding: 10px; margin: 16px 0; }
 .slot .card + .card, .slot .card { margin-top: 0; }
 .slot-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--accent); margin: 0 4px 8px; }
 .slot-or { display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--muted); margin: 6px 0; }
@@ -662,7 +662,7 @@ body.dragging { overscroll-behavior: none; }
 .grid.grid3 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .tile.mini { position: relative; display: flex; flex-direction: column; padding: 0; text-align: start; font: inherit; color: inherit; cursor: pointer; }
 .tile.mini .thumb { height: 78px; }
-.tile.mini .name { font-size: 13px; padding: 6px 8px 8px; margin: 0; min-height: 0; -webkit-line-clamp: 3; }
+.tile.mini .name { font-size: 13px; padding: 0; margin: 6px 8px 8px; min-height: 5em; -webkit-line-clamp: 4; }
 .tile.mini.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .tile.mini .pick-check { position: absolute; top: 6px; inset-inline-start: 6px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
 .tile.mini .pick-check .i { width: 16px; height: 16px; }
