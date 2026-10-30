@@ -596,8 +596,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 /* Routine tiles: long-press to lift and drag into a new order */
 .r-tile { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: box-shadow .15s; }
 .r-tile .body .small, .r-pick .body .small { display: block; }
-.r-tile .name { min-height: 0; }
-.r-tile .r-key, .r-pick .r-key { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 2px; }
+.r-tile .name, .r-pick .name { min-height: 0; }
 .r-tile.lift { position: relative; z-index: 5; box-shadow: 0 12px 28px rgba(0,0,0,.25); pointer-events: none; transition: none; }
 body.dragging { overscroll-behavior: none; }
 .r-tools { display: flex; gap: 8px; }
