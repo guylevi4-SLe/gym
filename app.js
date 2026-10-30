@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.16';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.17';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -1901,6 +1901,8 @@ function rDragEnd() {
   const sorted = order.map(id => mine.find(r => r.id === id)).filter(Boolean);
   let k = 0;
   S.routines = S.routines.map(r => r.userId === S.settings.currentUserId ? sorted[k++] || r : r);
+  // The cloud keeps routines in no order, so each one carries its place
+  sorted.forEach((r, i) => { r.order = i; });
   save();
   // Swallow the click that follows the drop so it does not open the routine.
   const stop = e => { e.stopPropagation(); e.preventDefault(); };
