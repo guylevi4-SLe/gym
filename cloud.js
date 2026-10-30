@@ -112,7 +112,7 @@ function subscribe() {
     let seen = false;
     unsubs.push(FB.onSnapshot(ref, snap => { onData(snap); if (!seen) { seen = true; first(); } }, () => { if (!seen) { seen = true; first(); } }));
   };
-  const watchList = (path, key, map) => watch(FB.collection(fs, ...path), snap => {
+  const watchList = (path, key, map, arrange = list => list) => watch(FB.collection(fs, ...path), snap => {
     const prefix = path.join('/') + '/';
     Object.keys(synced).filter(k => k.startsWith(prefix)).forEach(k => delete synced[k]);
     const list = snap.docs.map(d => {
@@ -120,7 +120,7 @@ function subscribe() {
       synced[prefix + d.id] = stable(data);
       return map({ ...data, id: d.id });
     });
-    changed(key, list);
+    changed(key, arrange(list));
   });
 
   watch(FB.doc(fs, 'users', uidv), snap => {
@@ -138,7 +138,7 @@ function subscribe() {
   });
   watchList(['families', fid, 'profiles'], 'users', p => p);
   watchList(['users', uidv, 'workouts'], 'workouts', w => ({ ...w, userId: uidv }));
-  watchList(['users', uidv, 'routines'], 'routines', r => ({ ...r, userId: uidv }));
+  watchList(['users', uidv, 'routines'], 'routines', r => ({ ...r, userId: uidv }), rs => rs.sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9)));
   watchList(['users', uidv, 'plans'], 'plans', p => ({ ...p, userId: uidv }));
 }
 
