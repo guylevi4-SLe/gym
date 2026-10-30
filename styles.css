@@ -658,7 +658,7 @@ body.dragging { overscroll-behavior: none; }
 .tip .i { flex: none; width: 20px; height: 20px; color: var(--accent); margin-top: 1px; }
 .tip-line { color: var(--accent); font-weight: 600; }
 
-/* Routine exercise picker: small tiles, three in a row */
+/* Small tiles, three in a row: machines screen and the routine exercise picker */
 .grid.grid3 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .tile.mini { position: relative; display: flex; flex-direction: column; padding: 0; text-align: start; font: inherit; color: inherit; cursor: pointer; }
 .tile.mini .thumb { height: 78px; }

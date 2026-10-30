@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.17';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.18';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -738,10 +738,10 @@ function screenExercises() {
       </div>` : ''}
       ${splitChips('ex-split', ui.exSplit)}
     </div>` : ''}
-    ${list.length ? byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid">${l.map(ex => `
-      <div class="tile tap" data-act="go" data-to="#/exercise/${ex.id}">
+    ${list.length ? byTopic(list).map(([t, l]) => `<h2 class="topic">${t}</h2><div class="grid grid3">${l.map(ex => `
+      <div class="tile mini tap" data-act="go" data-to="#/exercise/${ex.id}">
         ${thumb(ex)}
-        <div class="body"><div class="name">${esc(ex.name)}</div><span class="tag accent">${esc(ex.muscle || TYPES[ex.type].label)}</span></div>
+        <span class="name">${esc(ex.name)}</span>
       </div>`).join('')}</div>`).join('')
     : emptyState(S.exercises.length ? 'search' : 'camera', S.exercises.length ? 'לא נמצא' : 'עוד אין מכשירים. בחר מהרשימה המוכנה, או צלם מכשיר בחדר הכושר ותן לו שם.')}`;
 }
