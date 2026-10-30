@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.22';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.23';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -1964,7 +1964,7 @@ window.addEventListener('hashchange', () => { render(); reloadIfReady(); });
 
 /* ================= Updates ================= */
 // A new version reaches an open app too: look for one when the app comes back to the screen and every
-// few minutes, and reload once nothing is in progress (rest timer, open window, form being edited, typing).
+// 15 minutes, and reload once nothing is in progress (rest timer, open window, form being edited, typing).
 let swReg = null, updateReady = false, reloading = false;
 const calmToReload = () => !rest.endsAt && !ui.modal && !ui.draft && !document.querySelector('input:focus, textarea:focus, select:focus');
 function checkForUpdate() { if (swReg && navigator.onLine) swReg.update().catch(() => {}); }
@@ -1974,7 +1974,7 @@ function reloadIfReady() {
   saveNow();
   setTimeout(() => location.reload(), 1500);  // gives the cloud's local queue time to take the last write
 }
-setInterval(() => { if (document.visibilityState === 'visible') checkForUpdate(); }, 5 * 60 * 1000);
+setInterval(() => { if (document.visibilityState === 'visible') checkForUpdate(); }, 15 * 60 * 1000);
 setInterval(reloadIfReady, 10 * 1000);
 
 /* ================= Boot ================= */
