@@ -428,7 +428,7 @@ function cloudSettingsSection() {
 }
 
 /* ---------- Workout reminders (notifications to the phone and watch) ----------
-   While a workout is open, a small cloud service (functions/index.js) sends a notification every 10 minutes.
+   While a workout is open, a small cloud service (cloud-functions/index.js) sends a notification every 10 minutes.
    This device only has to agree once: we store its push address in users/{uid}/devices/{id}. */
 const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 let pushOn = null;   // null = not checked yet

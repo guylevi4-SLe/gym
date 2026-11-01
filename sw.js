@@ -33,7 +33,7 @@ self.addEventListener('fetch', e => {
   }));
 });
 
-// Open-workout reminder sent by the cloud (functions/index.js). Tapping it brings the workout back.
+// Open-workout reminder sent by the cloud (cloud-functions/index.js). Tapping it brings the workout back.
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = {}; }

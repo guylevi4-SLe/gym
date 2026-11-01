@@ -5,9 +5,9 @@ name: Cloud
 on:
   push:
     branches: [main]
-    paths: ['functions/**', 'firestore.rules', 'firebase.json', '.github/workflows/cloud.yml']
+    paths: ['cloud-functions/**', 'firestore.rules', 'firebase.json', '.github/workflows/cloud.yml']
   pull_request:
-    paths: ['functions/**', 'firestore.rules', 'firebase.json', '.github/workflows/cloud.yml']
+    paths: ['cloud-functions/**', 'firestore.rules', 'firebase.json', '.github/workflows/cloud.yml']
   workflow_dispatch:
 
 permissions:
@@ -26,9 +26,9 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-        working-directory: functions
+        working-directory: cloud-functions
       - run: npm test
-        working-directory: functions
+        working-directory: cloud-functions
 
   deploy:
     needs: test
@@ -40,7 +40,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-        working-directory: functions
+        working-directory: cloud-functions
       - name: Deploy reminders and database rules
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
