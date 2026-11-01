@@ -140,6 +140,7 @@ function subscribe() {
   watchList(['users', uidv, 'workouts'], 'workouts', w => ({ ...w, userId: uidv }));
   watchList(['users', uidv, 'routines'], 'routines', r => ({ ...r, userId: uidv }), rs => rs.sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9)));
   watchList(['users', uidv, 'plans'], 'plans', p => ({ ...p, userId: uidv }));
+  pushCheck(); clearReminders();
 }
 
 function applyUserDoc(d) {
@@ -426,6 +427,72 @@ function cloudSettingsSection() {
     <button class="btn block danger" data-act="sign-out">התנתק</button>`;
 }
 
+/* ---------- Workout reminders (notifications to the phone and watch) ----------
+   While a workout is open, a small cloud service (functions/index.js) sends a notification every 10 minutes.
+   This device only has to agree once: we store its push address in users/{uid}/devices/{id}. */
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+let pushOn = null;   // null = not checked yet
+async function pushCheck() {
+  if (!cloudUser || !pushSupported()) { pushOn = false; return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    const was = pushOn;
+    pushOn = !!sub && Notification.permission === 'granted';
+    if (sub && pushOn) await saveDevice(sub);   // keeps the address fresh if the phone renewed it
+    if (was !== pushOn) maybeRender();
+  } catch (_) { pushOn = false; }
+}
+async function deviceId(sub) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sub.endpoint));
+  return [...new Uint8Array(h)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function saveDevice(sub) {
+  const ref = FB.doc(fs, 'users', cloudUser.uid, 'devices', await deviceId(sub));
+  await FB.setDoc(ref, { sub: JSON.parse(JSON.stringify(sub)), ua: navigator.userAgent.slice(0, 160), updated: Date.now() });
+}
+const b64ToBytes = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4)), c => c.charCodeAt(0));
+async function pushEnable() {
+  if (!pushSupported()) { toast('כדי לקבל התראות, פתח את האפליקציה מהאייקון במסך הבית'); return; }
+  // iPhone asks only when this runs straight from the tap, so it comes before anything else
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { toast('ההתראות חסומות. אפשר לאשר אותן בהגדרות של האייפון, תחת Setou', 4500); pushOn = false; render(); return; }
+  try {
+    const key = (await FB.getDoc(FB.doc(fs, 'public', 'vapid'))).data()?.publicKey;
+    if (!key) throw new Error('no key');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
+    await saveDevice(sub);
+    pushOn = true;
+    toast('מעולה! כשיש אימון פעיל תקבל תזכורת כל 10 דקות 🔔', 4000);
+  } catch (_) {
+    toast('לא הצלחתי להפעיל את ההתראות כרגע. בדוק את הקליטה ונסה שוב', 4000);
+  }
+  render();
+}
+async function pushDisable() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) { await FB.deleteDoc(FB.doc(fs, 'users', cloudUser.uid, 'devices', await deviceId(sub))); await sub.unsubscribe(); }
+  } catch (_) { /* ignore */ }
+  pushOn = false;
+  toast('התזכורות כבויות בטלפון הזה');
+  render();
+}
+// The reminder has done its job once the app is open again
+async function clearReminders() {
+  try { (await (await navigator.serviceWorker.ready).getNotifications({ tag: 'setou-active' })).forEach(n => n.close()); } catch (_) { /* ignore */ }
+}
+function pushSettingsCard() {
+  if (!cloudUser) return '';
+  const body = !pushSupported()
+    ? '<p class="muted small" style="margin:4px 0 0">כדי לקבל התראות, פתח את האפליקציה מהאייקון במסך הבית.</p>'
+    : `<p class="muted small" style="margin:4px 0 0">כשיש אימון פעיל, תגיע התראה לטלפון ולשעון כל 10 דקות, עד שתסיים את האימון.</p>
+      <button class="btn ${pushOn ? '' : 'primary'} block" style="margin-top:10px" data-act="${pushOn ? 'push-off' : 'push-on'}">${ico('bell')}<span>${pushOn ? 'כבה תזכורות' : 'הפעל תזכורות'}</span></button>`;
+  return `<div class="card"><b>${ico('bell')} תזכורת באימון פעיל</b>${pushOn ? ' <span class="tag accent">פועל</span>' : ''}${body}</div>`;
+}
+
 Object.assign(window, { cloudActions: {
   'sign-in': (d, el) => cloudSignIn(false, el),
   'sign-up': (d, el) => cloudSignIn(true, el),
@@ -435,6 +502,8 @@ Object.assign(window, { cloudActions: {
   'sign-out': cloudSignOut,
   'sign-out-now': () => FB.signOut(fbAuth),
   'share-invite': shareInvite,
+  'push-on': pushEnable,
+  'push-off': pushDisable,
   migrate: d => migrateLocal(d.id),
   'local-mode': () => { setLocalModeChoice('local'); location.reload(); },
   'cloud-mode': () => { setLocalModeChoice(null); location.hash = '#/home'; location.reload(); },

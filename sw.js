@@ -1,6 +1,6 @@
 // Offline support: try the network first (so updates arrive), fall back to the cached copy
 // when there is no reception or the network is slow.
-const CACHE = 'setou-v21.24';
+const CACHE = 'setou-v21.25';
 const SHELL = ['./', 'index.html', 'styles.css', 'i18n.js', 'app.js', 'icons.js', 'body.js', 'muscles.js', 'cloud.js', 'config.js', 'vendor/firebase.js',
   'icons/setou-v2057-180.png', 'icons/setou-v2057-192.png', 'icons/setou-v2057-512.png', 'icons/setou-v2057.ico',
   'fonts/heebo-hebrew.woff2', 'fonts/heebo-latin.woff2', 'fonts/barlow-condensed-800i.woff2'];
@@ -30,5 +30,25 @@ self.addEventListener('fetch', e => {
     if (!cached) return network;
     const slow = new Promise(resolve => setTimeout(() => resolve(cached), 2500));
     return Promise.race([network.catch(() => cached), slow]);
+  }));
+});
+
+// Open-workout reminder sent by the cloud (functions/index.js). Tapping it brings the workout back.
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = {}; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Setou', {
+    body: d.body || '', tag: d.tag || 'setou-active', renotify: true, dir: d.dir || 'rtl', lang: d.lang || 'he',
+    icon: 'icons/setou-v2057-192.png', badge: 'icons/setou-v2057-192.png', data: { url: d.url || './#/workout' },
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || './#/workout', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const w = list[0];
+    if (w) return w.navigate(url).catch(() => null).then(() => w.focus());
+    return self.clients.openWindow(url);
   }));
 });

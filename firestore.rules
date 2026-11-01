@@ -14,6 +14,12 @@ service cloud.firestore {
       }
     }
 
+    // Public settings every signed-in phone needs, such as the key for turning on notifications.
+    // Only the cloud service writes here.
+    match /public/{doc} {
+      allow get: if signedIn();
+    }
+
     // A family: shared gyms, machines and member names. The family id is the invite code.
     match /families/{fid} {
       allow get: if signedIn();
