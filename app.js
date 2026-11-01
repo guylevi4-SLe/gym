@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.24';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.25';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -395,6 +395,7 @@ const ICONS = {
   users: '<circle cx="9" cy="8" r="3.3"/><path d="M3 19.5c.5-3.3 2.9-5.2 6-5.2s5.5 1.9 6 5.2"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.8 14.6c1.8.7 2.9 2.3 3.2 4.9"/>',
   palette: '<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.5-1-2.6 0-1 .8-1.7 1.8-1.7h2.2a3.7 3.7 0 0 0 3.7-3.7C20.5 6.8 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11" r="1.1" class="fill"/><circle cx="10.5" cy="7.3" r="1.1" class="fill"/><circle cx="15" cy="7.6" r="1.1" class="fill"/>',
   cloud: '<path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.7 4.7 0 0 0 7 18.5z"/>',
+  bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
 };
 const ico = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
@@ -620,6 +621,7 @@ function screenWorkout() {
         <div class="muted small">מה שרשום כאן יישמר, בלי צורך לסמן ✓. תקן את המספרים והסר תרגיל שלא עשית.</div>` : `<div class="elapsed" style="font-size:34px;line-height:1.1" data-elapsed></div>`}</div>
       <button class="btn primary" data-act="finish-workout">${ico('check')}<span>${a.past ? 'שמור אימון' : 'סיים אימון'}</span></button>
     </div>
+    ${cloudUser && !a.past && pushOn === false && pushSupported() ? `<button class="btn block" style="margin-bottom:12px" data-act="push-on">${ico('bell')}<span>תזכיר לי כל 10 דקות שהאימון פתוח</span></button>` : ''}
     ${a.entries.length ? a.entries.map((e, i) => entryCard(e, i)).join('') : emptyState('dumbbell', 'הוסף את התרגיל או המכשיר הראשון')}
     ${nextMachines(a)}
     <div class="stack" style="margin-top:14px">
@@ -968,6 +970,7 @@ function screenUsers() {
     <label class="field"><span>יעד אימונים בשבוע</span>
       <input class="input" inputmode="numeric" data-in="setting" data-f="weeklyGoal" value="${S.settings.weeklyGoal}">
     </label>
+    ${cloud ? pushSettingsCard() : ''}
     <h2>צבעים</h2>
     <div class="chips">${[['gold', 'שחור וזהב'], ['goldlight', 'לבן וזהב'], ['blue', 'כחול'], ['green', 'ירוק']].map(([v, l]) => `<button class="chip ${(document.documentElement.dataset.palette || 'goldlight') === v ? 'on' : ''}" data-act="palette" data-v="${v}"><span style="width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.75);background:${{ blue: '#3b82f6', gold: '#f5c518', goldlight: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', green: '#34d399' }[v]}"></span><span>${l}</span></button>`).join('')}</div>
     <h2>גיבוי</h2>
@@ -1955,7 +1958,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'bag-new') actions['bag-add']();
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') saveNow(); else checkForUpdate();
+  if (document.visibilityState === 'hidden') saveNow(); else { checkForUpdate(); if (cloudUser) clearReminders(); }
   updateWakeLock();
   tick();
   reloadIfReady();

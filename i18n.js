@@ -188,6 +188,16 @@
     'גב רחב': 'Lats', 'גב עליון': 'Upper back', 'גב תחתון': 'Lower back', 'ישבן צדדי (מרחיקים)': 'Hip abductors',
     'ארבע־ראשי': 'Quads', 'המסטרינג': 'Hamstrings', 'מקרבים': 'Adductors', 'תאומים': 'Calves',
     'הערה לפעם הבאה': 'Note for next time', 'למשל: היה כבד, להוריד ל־40 ק״ג': 'e.g. too heavy, drop to 40 kg next time', 'מחק הערה': 'Delete note',
+    // Workout reminders
+    'תזכורת באימון פעיל': 'Open-workout reminder', 'פועל': 'On', 'הפעל תזכורות': 'Turn on reminders', 'כבה תזכורות': 'Turn off reminders',
+    'כשיש אימון פעיל, תגיע התראה לטלפון ולשעון כל 10 דקות, עד שתסיים את האימון.': 'While a workout is open, a notification reaches your phone and watch every 10 minutes until you finish it.',
+    'כדי לקבל התראות, פתח את האפליקציה מהאייקון במסך הבית.': 'To get notifications, open the app from its home-screen icon.',
+    'כדי לקבל התראות, פתח את האפליקציה מהאייקון במסך הבית': 'To get notifications, open the app from its home-screen icon',
+    'תזכיר לי כל 10 דקות שהאימון פתוח': 'Remind me every 10 minutes while the workout is open',
+    'ההתראות חסומות. אפשר לאשר אותן בהגדרות של האייפון, תחת Setou': 'Notifications are blocked. You can allow them in iPhone Settings, under Setou',
+    'מעולה! כשיש אימון פעיל תקבל תזכורת כל 10 דקות 🔔': 'Great! While a workout is open you will get a reminder every 10 minutes 🔔',
+    'לא הצלחתי להפעיל את ההתראות כרגע. בדוק את הקליטה ונסה שוב': 'Could not turn on notifications right now. Check your connection and try again',
+    'התזכורות כבויות בטלפון הזה': 'Reminders are off on this phone',
   };
 
   // Hebrew words that may appear next to numbers ("3 סטים", "45 דק׳")
