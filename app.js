@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.25';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.26';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -50,6 +50,7 @@ let S = {
   workouts: [],    // finished: {id, userId, start, end, routineId, entries: [{exerciseId, sets}]}
   active: {},      // userId -> workout in progress
   bags: {},        // userId -> gym bag checklist [{id, t, on}]
+  notes: {},       // userId -> short notes [{id, t, at}], newest first
   settings: { currentUserId: null, restSeconds: 90, weeklyGoal: 3 },
 };
 let photos = {};   // exerciseId -> dataURL
@@ -467,6 +468,18 @@ function bagButton() {
   const left = myBag().items.filter(i => !i.on).length;
   return `<button class="bag-btn" data-act="bag-open" aria-label="תיק למכון">${DUFFEL}${left ? `<b class="num">${left}</b>` : ''}</button>`;
 }
+/* ---- Notes: short notes per user, like "the bag is in locker 45"; newest first ---- */
+function myNotes() {
+  const id = S.settings.currentUserId;
+  S.notes = S.notes || {};
+  return (S.notes[id] = S.notes[id] || []);
+}
+// A yellow notepad in colour, next to the bag; outline follows the theme's text colour
+const NOTEPAD = `<svg viewBox="0 0 40 40" class="notepad" aria-hidden="true"> <rect x="7" y="6" width="24" height="29" rx="3.5" fill="#f5c84c" stroke="var(--text)" stroke-width="1.2"/> <path d="M7 12h24" stroke="#c9952a" stroke-width="2"/> <path d="M12 18h14M12 23h14M12 28h9" stroke="#8a6414" stroke-width="1.8" stroke-linecap="round"/> <path d="M12 4v5M19 4v5M26 4v5" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/> <path d="M27.5 31.5l9-12.5 2.6 1.9-9 12.5-3.4 1.6z" fill="#e8574a" stroke="var(--text)" stroke-width="1"/> </svg>`;
+function notesButton() {
+  const n = myNotes().length;
+  return `<button class="bag-btn notes-btn" data-act="notes-open" aria-label="פתקים">${NOTEPAD}${n ? `<b class="num">${n}</b>` : ''}</button>`;
+}
 function screenHome() {
   const u = me(), a = myActive(), st = weekStats(), goal = S.settings.weeklyGoal;
   const streak = streakWeeks();
@@ -477,7 +490,7 @@ function screenHome() {
   else msg = `עוד ${goal - st.count} ${goal - st.count === 1 ? 'אימון' : 'אימונים'} ליעד השבועי`;
 
   // Kept short on purpose: the week at a glance and one big button. Plans live in "תוכניות", past workouts in "היסטוריה".
-  return `<div class="topbar"><div class="top-start">${brand()}${bagButton()}</div><div class="top-end">${avatar(u)}</div></div>
+  return `<div class="topbar"><div class="top-start">${brand()}${bagButton()}${notesButton()}</div><div class="top-end">${avatar(u)}</div></div>
     <h1 class="greet">שלום ${esc(u.name)}</h1>
     <div class="hero hero-sm">
       <div class="hero-top">
@@ -1133,6 +1146,23 @@ function renderModal() {
         <div class="row"><input class="input grow" id="bag-new" placeholder="${target === 'new' ? 'שם הקטגוריה, למשל: למקלחת' : 'מה להוסיף?'}" autocomplete="off"><button class="btn primary" data-act="bag-add">${ico('plus')}</button></div>
       </div>
     </div>`;
+  } else if (m.type === 'notes') {
+    // One card per note; tap a note to edit it in the bar at the bottom
+    const notes = myNotes(), editing = notes.find(n => n.id === ui.noteEdit);
+    if (!editing) ui.noteEdit = null;
+    el.innerHTML = `<div class="sheet stack notes-sheet" data-stop>
+      <div class="row between"><h2>פתקים</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
+      ${notes.length ? '' : '<p class="muted small" style="margin:0">אין עדיין פתקים. כתוב למטה משהו קצר, למשל: התיק בלוקר 45</p>'}
+      <div class="notes-list">
+        ${notes.map(n => `<div class="note-card ${n.id === ui.noteEdit ? 'editing' : ''}">
+          <button class="note-t" data-act="pad-edit" data-id="${n.id}"><span translate="no">${esc(n.t)}</span><small class="muted">${fmtDate(n.at)} ${new Date(n.at).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' })}</small></button>
+          <button class="note-x" data-act="pad-remove" data-id="${n.id}" aria-label="מחק פתק">${ico('trash')}</button></div>`).join('')}
+      </div>
+      <div class="bag-bar">
+        <textarea class="input" id="note-new" rows="2" placeholder="פתק חדש, למשל: התיק בלוקר 45">${editing ? esc(editing.t) : ''}</textarea>
+        <div class="row" style="gap:8px">${editing ? '<button class="btn" data-act="pad-cancel">ביטול</button>' : ''}<button class="btn primary grow" data-act="pad-save">${ico(editing ? 'check' : 'plus')}<span>${editing ? 'שמור שינוי' : 'הוסף פתק'}</span></button></div>
+      </div>
+    </div>`;
   } else if (m.type === 'ex-add') {
     el.innerHTML = `<div class="sheet stack" data-stop>
       <div class="row between"><h2>הוספת מכשיר</h2><button class="btn sm" data-act="close-modal">סגור</button></div>
@@ -1426,6 +1456,21 @@ const actions = {
   'go-users': () => go('#/users'),
   'go-workout': () => go('#/workout'),
   'close-modal': () => closeModal(),
+  'notes-open': () => { ui.noteEdit = null; ui.modal = { type: 'notes' }; renderModal(); },
+  'pad-edit': d => { ui.noteEdit = d.id; keepSheetScroll(renderModal); const t = $('#note-new'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
+  'pad-cancel': () => { ui.noteEdit = null; keepSheetScroll(renderModal); },
+  'pad-save': () => {
+    const t = $('#note-new')?.value.trim(); if (!t) return;
+    const notes = myNotes(), n = notes.find(n => n.id === ui.noteEdit);
+    if (n) { n.t = t; n.at = Date.now(); } else notes.unshift({ id: uid(), t, at: Date.now() });
+    ui.noteEdit = null; save(); render(); keepSheetScroll(renderModal);
+  },
+  'pad-remove': async d => {
+    const n = myNotes().find(n => n.id === d.id); if (!n) return;
+    const ok = await ask(`למחוק את הפתק "${n.t.length > 40 ? n.t.slice(0, 40) + '…' : n.t}"?`, 'מחק');
+    if (ok) { S.notes[S.settings.currentUserId] = myNotes().filter(x => x.id !== d.id); if (ui.noteEdit === d.id) ui.noteEdit = null; save(); render(); }
+    ui.modal = { type: 'notes' }; renderModal();
+  },
   'bag-open': () => { ui.modal = { type: 'bag' }; renderModal(); },
   'bag-toggle': d => { const i = myBag().items.find(i => i.id === d.id); if (i) { i.on = !i.on; save(); render(); keepSheetScroll(renderModal); } },
   'bag-remove': d => { const b = myBag(); b.items = b.items.filter(i => i.id !== d.id); save(); render(); keepSheetScroll(renderModal); },
