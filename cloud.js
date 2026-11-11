@@ -148,6 +148,7 @@ function applyUserDoc(d) {
   S.settings = { ...S.settings, ...(d.settings || {}), currentUserId: uidv };
   if (d.active) S.active[uidv] = d.active; else delete S.active[uidv];
   if (d.bag) (S.bags = S.bags || {})[uidv] = d.bag;
+  if (d.notes) (S.notes = S.notes || {})[uidv] = d.notes;
 }
 
 function changed(key, list) {
@@ -186,6 +187,7 @@ function userDocData() {
     settings: { restSeconds: S.settings.restSeconds, weeklyGoal: S.settings.weeklyGoal },
     active: S.active[uidv] || null,
     bag: S.bags?.[uidv] || null,
+    notes: S.notes?.[uidv] || null,
   };
 }
 
