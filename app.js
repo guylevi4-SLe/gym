@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = '21.26';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
+const APP_VERSION = '21.27';  // shown in settings; bump the minor (20.2, 20.3…) each release, together with ?v= in index.html and CACHE in sw.js
 
 /* ================= Storage (IndexedDB) ================= */
 
@@ -474,8 +474,8 @@ function myNotes() {
   S.notes = S.notes || {};
   return (S.notes[id] = S.notes[id] || []);
 }
-// A yellow notepad in colour, next to the bag; outline follows the theme's text colour
-const NOTEPAD = `<svg viewBox="0 0 40 40" class="notepad" aria-hidden="true"> <rect x="7" y="6" width="24" height="29" rx="3.5" fill="#f5c84c" stroke="var(--text)" stroke-width="1.2"/> <path d="M7 12h24" stroke="#c9952a" stroke-width="2"/> <path d="M12 18h14M12 23h14M12 28h9" stroke="#8a6414" stroke-width="1.8" stroke-linecap="round"/> <path d="M12 4v5M19 4v5M26 4v5" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/> <path d="M27.5 31.5l9-12.5 2.6 1.9-9 12.5-3.4 1.6z" fill="#e8574a" stroke="var(--text)" stroke-width="1"/> </svg>`;
+// A notepad in the chosen app colour, next to the bag; outline follows the theme's text colour
+const NOTEPAD = `<svg viewBox="0 0 40 40" class="notepad" aria-hidden="true"> <rect x="7" y="6" width="24" height="29" rx="3.5" style="fill:var(--accent)" stroke="var(--text)" stroke-width="1.2"/> <path d="M7 12h24" style="stroke:color-mix(in srgb, var(--accent) 60%, #000)" stroke-width="2"/> <path d="M12 18h14M12 23h14M12 28h9" style="stroke:color-mix(in srgb, var(--accent) 40%, #000)" stroke-width="1.8" stroke-linecap="round"/> <path d="M12 4v5M19 4v5M26 4v5" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/> <path d="M27.5 31.5l9-12.5 2.6 1.9-9 12.5-3.4 1.6z" style="fill:var(--surface)" stroke="var(--text)" stroke-width="1"/> </svg>`;
 function notesButton() {
   const n = myNotes().length;
   return `<button class="bag-btn notes-btn" data-act="notes-open" aria-label="פתקים">${NOTEPAD}${n ? `<b class="num">${n}</b>` : ''}</button>`;
